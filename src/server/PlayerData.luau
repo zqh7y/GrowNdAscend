@@ -1,32 +1,27 @@
--- Loads and saves player data. Other server modules read and change the data
--- table returned by PlayerData.get and call PlayerData.changed afterwards.
+-- Loads and saves player data. Other server modules change the table from
+-- PlayerData.get directly.
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 
-local store = DataStoreService:GetDataStore("PlayerData_v1")
+local store = DataStoreService:GetDataStore("RngData_v1")
 local AUTOSAVE_SECONDS = 60
 
 local PlayerData = {}
 
--- Fires (player) after data loads. (Bindables copy tables, so listeners
--- use PlayerData.get to change the real data.)
+-- Fires (player) after data loads. (Bindables copy tables, so listeners use
+-- PlayerData.get to reach the real data.)
 PlayerData.Loaded = Instance.new("BindableEvent")
 
 local DEFAULT = {
-	Energy = 0,
-	RunEarned = 0, -- energy earned since the last ascend (grows the pet)
-	TotalEarned = 0, -- energy earned ever
-	Trainers = {}, -- [trainer id] = owned
-	TapLevel = 0,
-	Stars = 0,
-	Ascensions = 0,
-	BestPower = 0, -- strongest the pet has ever been, for the leaderboard
-	Taps = 0,
-	LastOnline = nil, -- os.time() of the last save, for offline earnings
+	Rolls = 0,
+	Pets = {}, -- [pet name] = how many you've rolled
+	Equipped = {}, -- names of the pets following you (they add luck)
+	Best = nil, -- name of the rarest pet ever rolled
 }
 
 local sessionData = {} -- [player] = data while they're in game
 local loadFailed = {} -- [player] = true: don't overwrite their save
+local removingHooks = {}
 
 local function load(player)
 	local ok, saved = pcall(function()
@@ -38,12 +33,22 @@ local function load(player)
 	end
 
 	local data = table.clone(DEFAULT)
-	data.Trainers = {}
+	data.Pets = {}
+	data.Equipped = {}
 	if ok and saved then
 		for k, v in pairs(saved) do
 			data[k] = v
 		end
 	end
+
+	-- shows Rolls on the player list
+	local stats = Instance.new("Folder")
+	stats.Name = "leaderstats"
+	local rolls = Instance.new("IntValue")
+	rolls.Name = "Rolls"
+	rolls.Value = data.Rolls
+	rolls.Parent = stats
+	stats.Parent = player
 
 	if player.Parent then
 		sessionData[player] = data
@@ -56,7 +61,6 @@ local function save(player)
 	if not data or loadFailed[player] then
 		return
 	end
-	data.LastOnline = os.time()
 	local ok, err = pcall(function()
 		store:SetAsync("user_" .. player.UserId, data)
 	end)
@@ -70,7 +74,6 @@ function PlayerData.get(player)
 end
 
 -- Runs fn(player, data) when a player leaves, before their data is dropped
-local removingHooks = {}
 function PlayerData.onRemoving(fn)
 	table.insert(removingHooks, fn)
 end

@@ -1,33 +1,29 @@
--- Client entry point: the HUD, trainer shop, pet card, ascend, offline
--- earnings popup and the Strongest Pet leaderboard.
+-- Client entry point: the Roll button (bottom middle), the reveal, auto roll,
+-- the pets panel and the Most Rolls leaderboard.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ui = require(script.Ui)
-local Pet = require(script.Pet)
+local Pets = require(script.Pets)
 
 local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local stateEvent = remotes:WaitForChild("State")
-local offlineEvent = remotes:WaitForChild("Offline")
-local tapEvent = remotes:WaitForChild("Tap")
-local buyFunction = remotes:WaitForChild("Buy")
-local ascendFunction = remotes:WaitForChild("Ascend")
+local rollFunction = remotes:WaitForChild("Roll")
+local equipFunction = remotes:WaitForChild("Equip")
 local leaderboardEvent = remotes:WaitForChild("Leaderboard")
 
 local state = nil -- latest data from the server
-local stateTime = 0 -- os.clock() when it arrived
-local predicted = 0 -- tap energy we've shown but the server hasn't confirmed yet
-local buyMode = 1 -- 1, 10 or "Max"
+local rolling = false
+local autoRoll = false
 
 -- Screen -----------------------------------------------------------------------
 
 local gui = Ui.new("ScreenGui", {
-	Name = "GrowNdAscend",
+	Name = "RollGui",
 	ResetOnSpawn = false,
 	IgnoreGuiInset = true,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -41,308 +37,266 @@ end
 fitScreen()
 Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitScreen)
 
--- Energy counter (top middle)
-local energyBox = Ui.new("Frame", {
+-- Stats (top middle)
+local statsBox = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 14),
-	Size = UDim2.fromOffset(360, 96),
+	Size = UDim2.fromOffset(380, 84),
 	BackgroundColor3 = Ui.DARK,
 	BackgroundTransparency = 0.15,
 	Parent = gui,
 }, { Ui.corner(18), Ui.stroke(Ui.GOLD, 3) })
-local energyText = Ui.new("TextLabel", {
+local rollsText = Ui.new("TextLabel", {
 	Position = UDim2.fromOffset(12, 6),
-	Size = UDim2.new(1, -24, 0, 56),
-	Text = "⚡ 0",
+	Size = UDim2.new(1, -24, 0, 44),
+	Text = "🎲 0 Rolls",
 	TextColor3 = Ui.GOLD,
-	Parent = energyBox,
+	Parent = statsBox,
 })
-local rateText = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(12, 62),
-	Size = UDim2.new(1, -24, 0, 26),
-	Text = "0 / sec",
+local bestText = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(12, 52),
+	Size = UDim2.new(1, -24, 0, 24),
+	Text = "Best: nothing yet",
 	TextColor3 = Ui.MUTED,
-	Parent = energyBox,
+	Parent = statsBox,
 })
 
--- Tap button (bottom middle)
-local tapButton
+-- Reveal card (above the roll button) ------------------------------------------
+
+local card = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -170),
+	Size = UDim2.fromOffset(340, 110),
+	BackgroundColor3 = Ui.DARK,
+	BackgroundTransparency = 0.1,
+	Visible = false,
+	Parent = gui,
+}, { Ui.corner(18), Ui.padding(10) })
+local cardStroke = Ui.stroke(Ui.GREY, 4)
+cardStroke.Parent = card
+local cardName = Ui.new("TextLabel", {
+	Size = UDim2.new(1, 0, 0, 50),
+	Text = "",
+	Parent = card,
+})
+local cardOdds = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 54),
+	Size = UDim2.new(1, 0, 0, 34),
+	Text = "",
+	Parent = card,
+})
+local cardScale = Ui.new("UIScale", { Parent = card })
+
+local function showOnCard(pet)
+	local rarity = Config.rarity(pet.Odds)
+	cardName.Text = pet.Name
+	cardName.TextColor3 = pet.Color:Lerp(Color3.new(1, 1, 1), 0.35)
+	cardOdds.Text = rarity.Name .. " · " .. Config.formatOdds(pet.Odds)
+	cardOdds.TextColor3 = rarity.Color
+	cardStroke.Color = rarity.Color
+end
+
+-- Big reveal for rare rolls (full screen) ---------------------------------------
+
+local flash = Ui.new("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.new(1, 1, 1),
+	BackgroundTransparency = 1,
+	Visible = false,
+	ZIndex = 40,
+	Parent = gui,
+})
+local bigName = Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.42),
+	Size = UDim2.fromOffset(900, 120),
+	TextStrokeTransparency = 0,
+	ZIndex = 41,
+	Parent = flash,
+})
+local bigOdds = Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.56),
+	Size = UDim2.fromOffset(700, 60),
+	TextStrokeTransparency = 0,
+	ZIndex = 41,
+	Parent = flash,
+})
+local bigScale = Ui.new("UIScale", { Parent = flash })
+
+local function bigReveal(pet)
+	local rarity = Config.rarity(pet.Odds)
+	flash.BackgroundColor3 = rarity.Color
+	flash.BackgroundTransparency = 0
+	flash.Visible = true
+	bigName.Text = pet.Name:upper() .. "!"
+	bigName.TextColor3 = Color3.new(1, 1, 1)
+	bigName.TextStrokeColor3 = pet.Color
+	bigOdds.Text = rarity.Name .. " · " .. Config.formatOdds(pet.Odds)
+	bigOdds.TextColor3 = Color3.new(1, 1, 1)
+	bigOdds.TextStrokeColor3 = rarity.Color
+	bigScale.Scale = 0.3
+	TweenService:Create(flash, TweenInfo.new(0.6), { BackgroundTransparency = 0.55 }):Play()
+	TweenService:Create(bigScale, TweenInfo.new(0.5, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	-- rarer rolls stay on screen longer
+	task.wait(math.clamp(math.log10(pet.Odds) - 1.5, 1.5, 4))
+	TweenService:Create(flash, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
+	TweenService:Create(bigScale, TweenInfo.new(0.4), { Scale = 0 }):Play()
+	task.wait(0.4)
+	flash.Visible = false
+end
+
+-- Roll button + auto roll (bottom middle) ---------------------------------------
+
+local luckText = Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -138),
+	Size = UDim2.fromOffset(420, 26),
+	Text = "",
+	TextColor3 = Ui.GREEN,
+	TextStrokeTransparency = 0.4,
+	Parent = gui,
+})
+
+local rollButton, autoButton
+
+local function refreshLuck()
+	if not state then
+		return
+	end
+	local untilBonus = Config.BONUS_EVERY - state.Rolls % Config.BONUS_EVERY
+	local nextIsBonus = untilBonus == 1
+	local luck = Config.luck(state.Equipped, nextIsBonus)
+	luckText.Text = "🍀 Luck x" .. string.format("%.2f", luck) .. "   ·   "
+		.. (if nextIsBonus then "✨ BONUS ROLL NEXT! ✨" else "Bonus roll in " .. untilBonus)
+	luckText.TextColor3 = if nextIsBonus then Ui.GOLD else Ui.GREEN
+end
+
+-- random names flicker past before the real result lands
+local function spinTo(pet)
+	card.Visible = true
+	local steps = 9
+	for i = 1, steps do
+		-- mostly common pets flash by, like a real roll
+		local fake = Config.PETS[math.random(1, math.min(#Config.PETS, 4 + i))]
+		showOnCard(fake)
+		cardScale.Scale = 0.94
+		TweenService:Create(cardScale, TweenInfo.new(0.05), { Scale = 1 }):Play()
+		task.wait(0.03 + i * 0.012)
+	end
+	showOnCard(pet)
+	cardScale.Scale = 1.25
+	TweenService:Create(cardScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+end
+
 local function floatText(text, color)
 	local label = Ui.new("TextLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, math.random(-80, 80), 1, -210),
-		Size = UDim2.fromOffset(200, 40),
+		Position = UDim2.new(0.5, 0, 1, -300),
+		Size = UDim2.fromOffset(360, 40),
 		Text = text,
-		TextColor3 = color or Ui.GOLD,
+		TextColor3 = color,
 		TextStrokeTransparency = 0.2,
 		ZIndex = 20,
 		Parent = gui,
 	})
-	TweenService:Create(label, TweenInfo.new(0.9, Enum.EasingStyle.Quad), {
-		Position = label.Position - UDim2.fromOffset(0, 120),
+	TweenService:Create(label, TweenInfo.new(1.4, Enum.EasingStyle.Quad), {
+		Position = label.Position - UDim2.fromOffset(0, 90),
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
 	}):Play()
-	task.delay(0.9, function()
+	task.delay(1.4, function()
 		label:Destroy()
 	end)
 end
 
-local tapTimes = {} -- recent taps, to not go over the server's limit
-tapButton = Ui.button({
+local function doRoll()
+	if rolling or not state then
+		return
+	end
+	rolling = true
+	rollButton.Text = "🎲 ..."
+	local started = os.clock()
+	local ok, result = pcall(rollFunction.InvokeServer, rollFunction)
+	if ok and result then
+		local pet = Config.PETS_BY_NAME[result.Pet]
+		spinTo(pet)
+		if result.Bonus then
+			floatText("✨ Bonus roll x" .. Config.BONUS_LUCK .. " luck!", Ui.GOLD)
+		end
+		if result.First then
+			floatText("🆕 New pet: " .. pet.Name .. "!", Config.rarity(pet.Odds).Color)
+		end
+		if pet.Odds >= Config.BIG_ROLL then
+			bigReveal(pet)
+		end
+	end
+	-- wait out the cooldown
+	local left = Config.ROLL_COOLDOWN - (os.clock() - started)
+	if left > 0 then
+		task.wait(left)
+	end
+	rollButton.Text = "🎲 ROLL"
+	rolling = false
+end
+
+rollButton = Ui.button({
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, -24),
-	Size = UDim2.fromOffset(230, 110),
-	Text = "💪 TRAIN!",
+	Size = UDim2.fromOffset(240, 104),
+	Text = "🎲 ROLL",
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	Parent = gui,
 }, function()
+	task.spawn(doRoll)
+end)
+Ui.gradient(Color3.fromRGB(90, 200, 255), Color3.fromRGB(120, 80, 240)).Parent = rollButton
+Ui.stroke(Color3.new(1, 1, 1), 4).Parent = rollButton
+Ui.padding(18).Parent = rollButton
+
+local function refreshAuto()
 	if not state then
 		return
 	end
-	local now = os.clock()
-	while tapTimes[1] and now - tapTimes[1] > 1 do
-		table.remove(tapTimes, 1)
+	if state.Rolls < Config.AUTO_ROLL_AT then
+		autoButton.Text = "🔒 Auto (" .. state.Rolls .. "/" .. Config.AUTO_ROLL_AT .. ")"
+		autoButton.BackgroundColor3 = Ui.GREY
+	else
+		autoButton.Text = if autoRoll then "🔁 Auto: ON" else "🔁 Auto: OFF"
+		autoButton.BackgroundColor3 = if autoRoll then Ui.GREEN else Ui.GREY
 	end
-	if #tapTimes >= Config.MAX_TAPS_PER_SECOND then
-		return
-	end
-	table.insert(tapTimes, now)
-	tapEvent:FireServer()
-	local gain = Config.tapValue(state)
-	predicted += gain
-	Pet.bounce()
-	floatText("+" .. Config.formatNumber(gain) .. " ⚡")
-end)
-Ui.gradient(Color3.fromRGB(255, 150, 60), Color3.fromRGB(235, 80, 110)).Parent = tapButton
-Ui.stroke(Color3.new(1, 1, 1), 4).Parent = tapButton
-Ui.padding(18).Parent = tapButton
-
--- Pet card (left) ----------------------------------------------------------------
-
-local petCard = Ui.new("Frame", {
-	Position = UDim2.new(0, 16, 0.5, -170),
-	Size = UDim2.fromOffset(280, 340),
-	BackgroundColor3 = Ui.DARK,
-	BackgroundTransparency = 0.1,
-	Parent = gui,
-}, { Ui.corner(18), Ui.stroke(Ui.PURPLE, 3), Ui.padding(14) })
-
-local function cardLine(y, height, text, color)
-	return Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(0, y),
-		Size = UDim2.new(1, 0, 0, height),
-		Text = text,
-		TextColor3 = color or Ui.TEXT,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Parent = petCard,
-	})
 end
-local formText = cardLine(0, 38, "Sprout Pup")
-local powerText = cardLine(44, 30, "💪 Power 0", Ui.GOLD)
-local bestText = cardLine(76, 24, "🏆 Best 0", Ui.MUTED)
-local starsText = cardLine(104, 24, "⭐ 0 Stars (+0%)", Ui.MUTED)
-local nextFormText = cardLine(130, 22, "", Ui.MUTED)
 
-local progressBack = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 166),
-	Size = UDim2.new(1, 0, 0, 22),
-	BackgroundColor3 = Ui.PANEL,
-	Parent = petCard,
-}, { Ui.corner(11) })
-local progressFill = Ui.new("Frame", {
-	Size = UDim2.fromScale(0, 1),
-	BackgroundColor3 = Ui.PURPLE,
-	Parent = progressBack,
-}, { Ui.corner(11) })
-local progressText = Ui.new("TextLabel", {
-	Size = UDim2.fromScale(1, 1),
-	Text = "",
-	ZIndex = 2,
-	Parent = progressBack,
-}, { Ui.padding(3) })
-
-local ascendModal -- built below
-local ascendButton = Ui.button({
-	Position = UDim2.fromOffset(0, 200),
-	Size = UDim2.new(1, 0, 0, 70),
-	Text = "🌟 ASCEND",
+autoButton = Ui.button({
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UDim2.new(0.5, 136, 1, -40),
+	Size = UDim2.fromOffset(170, 64),
+	Text = "🔁 Auto: OFF",
 	BackgroundColor3 = Ui.GREY,
-	Parent = petCard,
-}, function()
-	if state and Config.starsFor(state.RunEarned) > 0 then
-		Ui.popIn(ascendModal)
-	end
-end)
-Ui.padding(12).Parent = ascendButton
-
-local leaderboardButton -- built below
-
--- Trainer shop (right) -----------------------------------------------------------
-
-local shop = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(1, 0.5),
-	Position = UDim2.new(1, -16, 0.5, 0),
-	Size = UDim2.fromOffset(380, 560),
-	BackgroundColor3 = Ui.DARK,
-	BackgroundTransparency = 0.1,
 	Parent = gui,
-}, { Ui.corner(18), Ui.stroke(Ui.GREEN, 3), Ui.padding(12) })
-Ui.new("TextLabel", {
-	Size = UDim2.new(0.5, 0, 0, 36),
-	Text = "🏋️ Trainers",
-	TextXAlignment = Enum.TextXAlignment.Left,
-	Parent = shop,
-})
-
-local modeButtons = {}
-local function refreshModes()
-	for mode, button in pairs(modeButtons) do
-		button.BackgroundColor3 = if mode == buyMode then Ui.GREEN else Ui.GREY
+}, function()
+	if not state or state.Rolls < Config.AUTO_ROLL_AT then
+		return
 	end
-end
-for i, mode in ipairs({ 1, 10, "Max" }) do
-	local button = Ui.button({
-		Position = UDim2.new(0.5, (i - 1) * 60, 0, 2),
-		Size = UDim2.fromOffset(54, 32),
-		Text = if mode == "Max" then "Max" else "x" .. mode,
-		BackgroundColor3 = Ui.GREY,
-		Parent = shop,
-	}, function()
-		buyMode = mode
-		refreshModes()
-	end)
-	Ui.padding(5).Parent = button
-	modeButtons[mode] = button
-end
-refreshModes()
+	autoRoll = not autoRoll
+	refreshAuto()
+end)
+Ui.padding(12).Parent = autoButton
+Ui.stroke(Color3.new(1, 1, 1), 3).Parent = autoButton
 
-local list = Ui.new("ScrollingFrame", {
-	Position = UDim2.fromOffset(0, 46),
-	Size = UDim2.new(1, 0, 1, -46),
-	BackgroundTransparency = 1,
-	ScrollBarThickness = 6,
-	AutomaticCanvasSize = Enum.AutomaticSize.Y,
-	CanvasSize = UDim2.new(),
-	Parent = shop,
-}, {
-	Ui.new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
-	Ui.new("UIPadding", { PaddingRight = UDim.new(0, 10) }),
-})
-
-local rows = {} -- { Kind, Trainer, Frame, Title, Info, Buy }
-local function makeRow(order, icon, onBuy)
-	local frame = Ui.new("Frame", {
-		LayoutOrder = order,
-		Size = UDim2.new(1, 0, 0, 74),
-		BackgroundColor3 = Ui.PANEL,
-		Parent = list,
-	}, { Ui.corner(12) })
-	Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(8, 12),
-		Size = UDim2.fromOffset(50, 50),
-		Text = icon,
-		Parent = frame,
-	})
-	local title = Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(64, 8),
-		Size = UDim2.new(1, -190, 0, 28),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Parent = frame,
-	})
-	local info = Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(64, 40),
-		Size = UDim2.new(1, -190, 0, 22),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = Ui.MUTED,
-		Parent = frame,
-	})
-	local buy = Ui.button({
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -8, 0.5, 0),
-		Size = UDim2.fromOffset(112, 56),
-		BackgroundColor3 = Ui.GREY,
-		Parent = frame,
-	}, onBuy)
-	Ui.padding(8).Parent = buy
-	return { Frame = frame, Title = title, Info = info, Buy = buy }
-end
-
-local function currentEnergy()
-	if not state then
-		return 0
-	end
-	local elapsed = math.min(os.clock() - stateTime, 1)
-	return state.Energy + Config.perSecond(state) * elapsed + predicted
-end
-
-local tapRow = makeRow(0, "👊", function()
-	if buyFunction:InvokeServer("Tap") then
-		Pet.bounce()
+task.spawn(function()
+	while true do
+		if autoRoll and not rolling then
+			doRoll()
+		else
+			task.wait(0.1)
+		end
 	end
 end)
-tapRow.Kind = "Tap"
-table.insert(rows, tapRow)
 
-for i, trainer in ipairs(Config.TRAINERS) do
-	local row = makeRow(i, trainer.Icon, function()
-		if buyFunction:InvokeServer("Trainer", trainer.Id, buyMode) then
-			Pet.bounce()
-		end
-	end)
-	row.Kind = "Trainer"
-	row.Trainer = trainer
-	table.insert(rows, row)
-end
+-- Modals -------------------------------------------------------------------------
 
--- the bulk count and cost shown on a trainer's button for the current mode
-local function trainerOffer(trainer, owned, energy)
-	if buyMode == 1 then
-		return 1, Config.trainerCost(trainer, owned)
-	elseif buyMode == 10 then
-		local total = 0
-		for n = 0, 9 do
-			total += Config.trainerCost(trainer, owned + n)
-		end
-		return 10, total
-	end
-	local count, total = Config.trainerBulk(trainer, owned, energy, 1000)
-	if count == 0 then
-		return 1, Config.trainerCost(trainer, owned)
-	end
-	return count, total
-end
-
-local function refreshShop(energy)
-	for _, row in ipairs(rows) do
-		if row.Kind == "Tap" then
-			local cost = Config.tapCost(state.TapLevel)
-			row.Title.Text = "Stronger Taps  Lv " .. state.TapLevel
-			row.Info.Text = Config.formatNumber(Config.tapValue(state)) .. " ⚡ per tap"
-			row.Buy.Text = "⚡ " .. Config.formatNumber(cost)
-			row.Buy.BackgroundColor3 = if energy >= cost then Ui.GREEN else Ui.GREY
-		else
-			local trainer = row.Trainer
-			local owned = state.Trainers[trainer.Id] or 0
-			-- hide trainers more than one step beyond what you own, so there's
-			-- always something new to unlock
-			local previous = Config.TRAINERS[table.find(Config.TRAINERS, trainer) - 1]
-			local unlocked = not previous or (state.Trainers[previous.Id] or 0) > 0 or owned > 0
-			row.Frame.Visible = unlocked
-			local count, cost = trainerOffer(trainer, owned, energy)
-			local nextMilestone = (math.floor(owned / Config.MILESTONE) + 1) * Config.MILESTONE
-			row.Title.Text = trainer.Name .. "  x" .. owned
-			row.Info.Text = Config.formatNumber(Config.trainerRate(trainer, math.max(owned, 1), state.Stars) / math.max(owned, 1))
-				.. "/s each · 2x at " .. nextMilestone
-			row.Buy.Text = (if count > 1 then "+" .. count .. "  " else "") .. "⚡ " .. Config.formatNumber(cost)
-			row.Buy.BackgroundColor3 = if energy >= cost then Ui.GREEN else Ui.GREY
-		end
-	end
-end
-
--- Ascend modal -------------------------------------------------------------------
-
-local function modal(accent)
+local function modal(accent, width, height)
 	local shade = Ui.new("TextButton", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -357,117 +311,205 @@ local function modal(accent)
 		Name = "Box",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(460, 300),
+		Size = UDim2.fromOffset(width, height),
 		BackgroundColor3 = Ui.DARK,
 		ZIndex = 31,
 		Parent = shade,
 	}, { Ui.corner(20), Ui.stroke(accent, 4), Ui.padding(18) })
+	local close = Ui.button({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.fromOffset(44, 44),
+		Text = "✕",
+		BackgroundColor3 = Color3.fromRGB(230, 70, 80),
+		ZIndex = 33,
+		Parent = box,
+	}, function()
+		shade.Visible = false
+	end)
+	Ui.padding(8).Parent = close
 	return shade, box
 end
 
-local function modalText(box, y, height, text, color)
+local function title(box, text, color)
 	return Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(0, y),
-		Size = UDim2.new(1, 0, 0, height),
+		Size = UDim2.new(1, -60, 0, 44),
 		Text = text,
-		TextColor3 = color or Ui.TEXT,
+		TextColor3 = color,
+		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 32,
 		Parent = box,
 	})
 end
 
-local ascendBox
-ascendModal, ascendBox = modal(Ui.GOLD)
-modalText(ascendBox, 0, 44, "🌟 Ascend?", Ui.GOLD)
-local ascendInfo = modalText(ascendBox, 54, 100, "", Ui.MUTED)
-ascendInfo.TextWrapped = true
-local confirm = Ui.button({
-	Position = UDim2.new(0, 0, 1, -70),
-	Size = UDim2.new(0.48, 0, 0, 70),
-	Text = "Ascend!",
-	BackgroundColor3 = Ui.GREEN,
+local function scrollList(box, top, layout)
+	return Ui.new("ScrollingFrame", {
+		Position = UDim2.fromOffset(0, top),
+		Size = UDim2.new(1, 0, 1, -top),
+		BackgroundTransparency = 1,
+		ScrollBarThickness = 6,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ZIndex = 32,
+		Parent = box,
+	}, { layout, Ui.new("UIPadding", { PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 4) }) })
+end
+
+-- Pets panel: every pet in the game, owned ones can be equipped ------------------
+
+local petsModal, petsBox = modal(Ui.PURPLE, 720, 560)
+local petsTitle = title(petsBox, "🎒 Pets", Ui.PURPLE)
+local equipHint = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 46),
+	Size = UDim2.new(1, 0, 0, 24),
+	Text = "Equip up to " .. Config.MAX_EQUIPPED .. " pets. Rarer pets give more luck!",
+	TextColor3 = Ui.MUTED,
+	TextXAlignment = Enum.TextXAlignment.Left,
 	ZIndex = 32,
-	Parent = ascendBox,
-}, function()
-	ascendModal.Visible = false
-	local result = ascendFunction:InvokeServer()
-	if result then
-		predicted = 0
-		Pet.evolve()
-		floatText("+" .. result.Stars .. " ⭐", Ui.GOLD)
-		floatText(result.Form .. "!", Color3.fromRGB(210, 160, 255))
-	end
-end)
-Ui.padding(14).Parent = confirm
-local cancel = Ui.button({
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, 0, 1, -70),
-	Size = UDim2.new(0.48, 0, 0, 70),
-	Text = "Not yet",
-	BackgroundColor3 = Ui.GREY,
-	ZIndex = 32,
-	Parent = ascendBox,
-}, function()
-	ascendModal.Visible = false
-end)
-Ui.padding(14).Parent = cancel
-
--- Offline earnings popup ---------------------------------------------------------
-
-local offlineModal, offlineBox = modal(Ui.GREEN)
-modalText(offlineBox, 0, 44, "💤 Welcome back!", Ui.GREEN)
-local offlineInfo = modalText(offlineBox, 54, 100, "", Ui.MUTED)
-offlineInfo.TextWrapped = true
-local collect = Ui.button({
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 1, -70),
-	Size = UDim2.new(0.6, 0, 0, 70),
-	Text = "Collect!",
-	BackgroundColor3 = Ui.GREEN,
-	ZIndex = 32,
-	Parent = offlineBox,
-}, function()
-	offlineModal.Visible = false
-end)
-Ui.padding(14).Parent = collect
-
-offlineEvent.OnClientEvent:Connect(function(info)
-	offlineInfo.Text = "Your pet kept training for " .. Config.formatTime(info.Seconds)
-		.. " while you were away and earned\n⚡ " .. Config.formatNumber(info.Gain)
-	Ui.popIn(offlineModal)
-end)
-
--- Leaderboard --------------------------------------------------------------------
-
-local boardModal, boardBox = modal(Ui.GOLD)
-boardBox.Size = UDim2.fromOffset(520, 620)
-modalText(boardBox, 0, 44, "🏆 Strongest Pets", Ui.GOLD)
-local myRankText = modalText(boardBox, 48, 26, "", Ui.MUTED)
-local boardList = Ui.new("ScrollingFrame", {
-	Position = UDim2.fromOffset(0, 84),
-	Size = UDim2.new(1, 0, 1, -150),
-	BackgroundTransparency = 1,
-	ScrollBarThickness = 6,
-	AutomaticCanvasSize = Enum.AutomaticSize.Y,
-	CanvasSize = UDim2.new(),
-	ZIndex = 32,
-	Parent = boardBox,
-}, {
-	Ui.new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
-	Ui.new("UIPadding", { PaddingRight = UDim.new(0, 10) }),
+	Parent = petsBox,
 })
-local close = Ui.button({
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, 0),
-	Size = UDim2.new(0.5, 0, 0, 54),
-	Text = "Close",
-	BackgroundColor3 = Ui.GREY,
+local petsGrid = scrollList(petsBox, 80, Ui.new("UIGridLayout", {
+	CellSize = UDim2.fromOffset(158, 176),
+	CellPadding = UDim2.fromOffset(10, 10),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+}))
+
+local petCells = {} -- [pet name] = { Frame, Name, Count, Luck, Equip, Stroke }
+for _, pet in ipairs(Config.PETS) do
+	local rarity = Config.rarity(pet.Odds)
+	local frame = Ui.new("Frame", {
+		LayoutOrder = -pet.Index, -- rarest first
+		BackgroundColor3 = Ui.PANEL,
+		ZIndex = 32,
+		Parent = petsGrid,
+	}, { Ui.corner(14), Ui.padding(8) })
+	local stroke = Ui.stroke(rarity.Color, 2)
+	stroke.Parent = frame
+	local nameLabel = Ui.new("TextLabel", {
+		Size = UDim2.new(1, 0, 0, 30),
+		ZIndex = 33,
+		Parent = frame,
+	})
+	Ui.new("TextLabel", {
+		Position = UDim2.fromOffset(0, 32),
+		Size = UDim2.new(1, 0, 0, 20),
+		Text = rarity.Name,
+		TextColor3 = rarity.Color,
+		ZIndex = 33,
+		Parent = frame,
+	})
+	Ui.new("TextLabel", {
+		Position = UDim2.fromOffset(0, 54),
+		Size = UDim2.new(1, 0, 0, 20),
+		Text = Config.formatOdds(pet.Odds),
+		TextColor3 = Ui.MUTED,
+		ZIndex = 33,
+		Parent = frame,
+	})
+	local countLabel = Ui.new("TextLabel", {
+		Position = UDim2.fromOffset(0, 76),
+		Size = UDim2.new(1, 0, 0, 20),
+		TextColor3 = Ui.MUTED,
+		ZIndex = 33,
+		Parent = frame,
+	})
+	local luckLabel = Ui.new("TextLabel", {
+		Position = UDim2.fromOffset(0, 98),
+		Size = UDim2.new(1, 0, 0, 20),
+		Text = "🍀 +" .. math.floor(Config.petLuck(pet) * 100 + 0.5) .. "% luck",
+		TextColor3 = Ui.GREEN,
+		ZIndex = 33,
+		Parent = frame,
+	})
+	local equip = Ui.button({
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 36),
+		Text = "Equip",
+		BackgroundColor3 = Ui.GREEN,
+		ZIndex = 33,
+		Parent = frame,
+	}, function()
+		equipFunction:InvokeServer(pet.Name)
+	end)
+	Ui.padding(6).Parent = equip
+	petCells[pet.Name] = { Name = nameLabel, Count = countLabel, Luck = luckLabel, Equip = equip }
+end
+
+local function refreshPets()
+	if not state then
+		return
+	end
+	local found = 0
+	for _, pet in ipairs(Config.PETS) do
+		local cell = petCells[pet.Name]
+		local owned = state.Pets[pet.Name] or 0
+		local equipped = table.find(state.Equipped, pet.Name) ~= nil
+		if owned > 0 then
+			found += 1
+			cell.Name.Text = pet.Name
+			cell.Name.TextColor3 = Color3.new(1, 1, 1)
+			cell.Count.Text = "Rolled x" .. Config.formatNumber(owned)
+			cell.Luck.Visible = true
+			cell.Equip.Visible = true
+			cell.Equip.Text = if equipped then "Unequip" else "Equip"
+			cell.Equip.BackgroundColor3 = if equipped
+				then Color3.fromRGB(230, 70, 80)
+				elseif #state.Equipped >= Config.MAX_EQUIPPED then Ui.GREY
+				else Ui.GREEN
+		else
+			-- not found yet: show only the odds, as something to chase
+			cell.Name.Text = "???"
+			cell.Name.TextColor3 = Ui.MUTED
+			cell.Count.Text = "Not found yet"
+			cell.Luck.Visible = false
+			cell.Equip.Visible = false
+		end
+	end
+	petsTitle.Text = "🎒 Pets  (" .. found .. "/" .. #Config.PETS .. " found)"
+	equipHint.Text = "Equipped " .. #state.Equipped .. "/" .. Config.MAX_EQUIPPED .. ". Rarer pets give more luck!"
+end
+
+-- Leaderboard ----------------------------------------------------------------------
+
+local boardModal, boardBox = modal(Ui.GOLD, 520, 600)
+title(boardBox, "🏆 Most Rolls", Ui.GOLD)
+local myRankText = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 46),
+	Size = UDim2.new(1, 0, 0, 24),
+	Text = "",
+	TextColor3 = Ui.MUTED,
+	TextXAlignment = Enum.TextXAlignment.Left,
 	ZIndex = 32,
 	Parent = boardBox,
-}, function()
-	boardModal.Visible = false
+})
+local boardList = scrollList(boardBox, 80, Ui.new("UIListLayout", {
+	Padding = UDim.new(0, 6),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+}))
+
+-- Side buttons (left) ------------------------------------------------------------
+
+local function sideButton(y, text, color, onClick)
+	local button = Ui.button({
+		Position = UDim2.new(0, 16, 0.5, y),
+		Size = UDim2.fromOffset(180, 60),
+		Text = text,
+		BackgroundColor3 = color,
+		Parent = gui,
+	}, onClick)
+	Ui.padding(10).Parent = button
+	Ui.stroke(Color3.new(1, 1, 1), 3).Parent = button
+	return button
+end
+
+sideButton(-70, "🎒 Pets", Ui.PURPLE, function()
+	refreshPets()
+	Ui.popIn(petsModal)
 end)
-Ui.padding(12).Parent = close
+local boardButton = sideButton(10, "🏆 Top Rollers", Color3.fromRGB(230, 160, 30), function()
+	Ui.popIn(boardModal)
+end)
 
 local MEDALS = { "🥇", "🥈", "🥉" }
 leaderboardEvent.OnClientEvent:Connect(function(entries)
@@ -508,91 +550,31 @@ leaderboardEvent.OnClientEvent:Connect(function(entries)
 			AnchorPoint = Vector2.new(1, 0),
 			Position = UDim2.new(1, -10, 0, 8),
 			Size = UDim2.fromOffset(140, 28),
-			Text = "💪 " .. Config.formatNumber(entry.Power),
+			Text = "🎲 " .. Config.formatNumber(entry.Rolls),
 			TextColor3 = Ui.GOLD,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			ZIndex = 33,
 			Parent = row,
 		})
 	end
-	myRankText.Text = if myRank then "You are #" .. myRank .. "!" else "Grow your pet to get on the board!"
-	if leaderboardButton then
-		leaderboardButton.Text = if myRank then "🏆 #" .. myRank else "🏆 Top Pets"
-	end
+	myRankText.Text = if myRank then "You are #" .. myRank .. "!" else "Keep rolling to get on the board!"
+	boardButton.Text = if myRank then "🏆 You're #" .. myRank else "🏆 Top Rollers"
 end)
-
-leaderboardButton = Ui.button({
-	Position = UDim2.new(0, 16, 0, 16),
-	Size = UDim2.fromOffset(180, 56),
-	Text = "🏆 Top Pets",
-	BackgroundColor3 = Color3.fromRGB(230, 160, 30),
-	Parent = gui,
-}, function()
-	Ui.popIn(boardModal)
-end)
-Ui.padding(10).Parent = leaderboardButton
-Ui.stroke(Color3.new(1, 1, 1), 3).Parent = leaderboardButton
 
 -- Updates ------------------------------------------------------------------------
 
-local lastForm = nil
 stateEvent.OnClientEvent:Connect(function(newState)
 	state = newState
-	stateTime = os.clock()
-	predicted = 0
-	local form = Pet.update(state)
-	if lastForm and lastForm ~= form.Name then
-		Pet.evolve()
+	rollsText.Text = "🎲 " .. Config.formatNumber(state.Rolls) .. " Rolls"
+	local best = state.Best and Config.PETS_BY_NAME[state.Best]
+	if best then
+		bestText.Text = "Best: " .. best.Name .. " (" .. Config.formatOdds(best.Odds) .. ")"
+		bestText.TextColor3 = Config.rarity(best.Odds).Color
 	end
-	lastForm = form.Name
-end)
-
-local function refresh()
-	if not state then
-		return
-	end
-	local energy = currentEnergy()
-	local perSecond = Config.perSecond(state)
-	energyText.Text = "⚡ " .. Config.formatNumber(energy)
-	rateText.Text = Config.formatNumber(perSecond) .. " / sec"
-
-	local form, index = Config.form(state.Ascensions)
-	local power = Config.petPower(state)
-	formText.Text = form.Name
-	formText.TextColor3 = form.Glow
-	powerText.Text = "💪 Power " .. Config.formatNumber(power)
-	bestText.Text = "🏆 Best " .. Config.formatNumber(math.max(state.BestPower, power))
-	starsText.Text = "⭐ " .. Config.formatNumber(state.Stars) .. " Stars (+"
-		.. Config.formatNumber(state.Stars * Config.STAR_BONUS * 100) .. "%)"
-	local nextForm = Config.FORMS[index + 1]
-	nextFormText.Text = if nextForm
-		then "Next form: " .. nextForm.Name .. " (ascend " .. nextForm.Ascensions - state.Ascensions .. "x)"
-		else "Final form reached!"
-
-	-- ascend progress
-	local stars = Config.starsFor(state.RunEarned)
-	if stars > 0 then
-		progressFill.Size = UDim2.fromScale(1, 1)
-		progressText.Text = "Ready! +" .. Config.formatNumber(stars) .. " ⭐"
-		ascendButton.BackgroundColor3 = Ui.GOLD
-		ascendButton.Text = "🌟 ASCEND +" .. Config.formatNumber(stars) .. " ⭐"
-	else
-		progressFill.Size = UDim2.fromScale(math.clamp(state.RunEarned / Config.ASCEND_MIN, 0, 1), 1)
-		progressText.Text = Config.formatNumber(state.RunEarned) .. " / " .. Config.formatNumber(Config.ASCEND_MIN)
-		ascendButton.BackgroundColor3 = Ui.GREY
-		ascendButton.Text = "🌟 ASCEND"
-	end
-	ascendInfo.Text = "Reset your energy, trainers and taps for +" .. Config.formatNumber(stars)
-		.. " ⭐ Stars. Every star is +10% energy and pet power forever, and your pet evolves!"
-
-	refreshShop(energy)
-end
-
-local elapsed = 0
-RunService.Heartbeat:Connect(function(dt)
-	elapsed += dt
-	if elapsed >= 0.1 then
-		elapsed = 0
-		refresh()
+	Pets.update(state.Equipped)
+	refreshLuck()
+	refreshAuto()
+	if petsModal.Visible then
+		refreshPets()
 	end
 end)

@@ -1,12 +1,11 @@
--- Global "Strongest Pet" leaderboard. Every server is solo, so this is the
--- only place players see each other: each player's best pet power goes into
--- an OrderedDataStore and the top 50 are sent to the client every minute.
+-- Global "Most Rolls" leaderboard. Every server is solo, so this is where
+-- players see each other: each player's total rolls go into an
+-- OrderedDataStore and the top 50 are sent to the client every minute.
 -- Without DataStore access (Studio) it still shows the players in this server.
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Shared.Config)
 local PlayerData = require(script.Parent.PlayerData)
 
 local Leaderboard = {}
@@ -19,14 +18,14 @@ remote.Name = "Leaderboard"
 remote.Parent = ReplicatedStorage:WaitForChild("Remotes")
 
 local okStore, store = pcall(function()
-	return DataStoreService:GetOrderedDataStore("StrongestPet_v1")
+	return DataStoreService:GetOrderedDataStore("MostRolls_v1")
 end)
 if not okStore then
 	store = nil
 end
 
-local written = {} -- [userId] = encoded value we last saved
-local globalTop = {} -- { { UserId, Value } } from the last refresh
+local written = {} -- [userId] = rolls we last saved
+local globalTop = {} -- { { UserId, Rolls } } from the last refresh
 local nameCache = {} -- [userId] = name
 
 local function userName(userId)
@@ -41,23 +40,15 @@ local function userName(userId)
 	return nameCache[userId]
 end
 
-local function writeScores()
-	if not store then
+local function writeScore(userId, rolls)
+	if not store or rolls <= 0 or written[userId] == rolls then
 		return
 	end
-	for _, player in ipairs(Players:GetPlayers()) do
-		local data = PlayerData.get(player)
-		if data then
-			local value = Config.encodePower(data.BestPower)
-			if value > 0 and written[player.UserId] ~= value then
-				local ok, err = pcall(store.SetAsync, store, tostring(player.UserId), value)
-				if ok then
-					written[player.UserId] = value
-				else
-					warn("Leaderboard write failed:", err)
-				end
-			end
-		end
+	local ok, err = pcall(store.SetAsync, store, tostring(userId), rolls)
+	if ok then
+		written[userId] = rolls
+	else
+		warn("Leaderboard write failed:", err)
 	end
 end
 
@@ -74,31 +65,31 @@ local function readTop()
 	for _, entry in ipairs(pages:GetCurrentPage()) do
 		local userId = tonumber(entry.key)
 		if userId then
-			table.insert(top, { UserId = userId, Value = entry.value })
+			table.insert(top, { UserId = userId, Rolls = entry.value })
 		end
 	end
 	globalTop = top
 end
 
--- The global list with this server's players' live values mixed in
+-- The global list with this server's players' live counts mixed in
 local function build()
 	local byUser = {}
 	for _, entry in ipairs(globalTop) do
-		byUser[entry.UserId] = Config.decodePower(entry.Value)
+		byUser[entry.UserId] = entry.Rolls
 	end
 	for _, player in ipairs(Players:GetPlayers()) do
 		local data = PlayerData.get(player)
-		if data and data.BestPower > 0 then
-			byUser[player.UserId] = math.max(byUser[player.UserId] or 0, data.BestPower)
+		if data and data.Rolls > 0 then
+			byUser[player.UserId] = math.max(byUser[player.UserId] or 0, data.Rolls)
 		end
 	end
 
 	local list = {}
-	for userId, power in pairs(byUser) do
-		table.insert(list, { UserId = userId, Power = power })
+	for userId, rolls in pairs(byUser) do
+		table.insert(list, { UserId = userId, Rolls = rolls })
 	end
 	table.sort(list, function(a, b)
-		return a.Power > b.Power
+		return a.Rolls > b.Rolls
 	end)
 	for i = #list, TOP + 1, -1 do
 		list[i] = nil
@@ -115,7 +106,12 @@ end
 
 task.spawn(function()
 	while true do
-		writeScores()
+		for _, player in ipairs(Players:GetPlayers()) do
+			local data = PlayerData.get(player)
+			if data then
+				writeScore(player.UserId, data.Rolls)
+			end
+		end
 		readTop()
 		remote:FireAllClients(build())
 		task.wait(REFRESH_SECONDS)
@@ -123,13 +119,7 @@ task.spawn(function()
 end)
 
 PlayerData.onRemoving(function(player, data)
-	-- save their final best before they go
-	if store then
-		local value = Config.encodePower(data.BestPower)
-		if value > 0 and written[player.UserId] ~= value then
-			pcall(store.SetAsync, store, tostring(player.UserId), value)
-		end
-	end
+	writeScore(player.UserId, data.Rolls) -- their final count before they go
 	written[player.UserId] = nil
 end)
 
