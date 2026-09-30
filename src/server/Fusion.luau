@@ -71,6 +71,7 @@ collectFunction.OnServerInvoke = function(player)
 	end
 	local result = fusedName(data.Fusion.Pet) or data.Fusion.Pet
 	data.Pets[result] = (data.Pets[result] or 0) + 1
+	PlayerData.discover(data, result)
 	data.Fusion = nil
 	PlayerData.updateStrongest(player)
 	PlayerData.sync(player)

@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Ui = require(script.Parent.Ui)
+local Rebirth = require(script.Parent.Rebirth)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
 local Effects = require(script.Parent.Effects)
@@ -27,7 +28,7 @@ end
 
 -- Top Rollers -----------------------------------------------------------------------------
 
-local topModal, topBox = Screen.modal(520, 600)
+local topModal, topBox = Screen.modal(520, 600, "Top")
 Screen.title(topBox, "Top Rollers")
 local myRank = Screen.subtitle(topBox, "")
 local topList = Screen.scrollList(topBox, 70, Ui.new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }))
@@ -101,84 +102,20 @@ function Panels.openTop()
 	Screen.open(topModal)
 end
 
--- Rebirth --------------------------------------------------------------------------------
-
-local rebirthModal, rebirthBox = Screen.modal(460, 330)
-Screen.title(rebirthBox, "Rebirth")
-Screen.subtitle(rebirthBox, "Reset your coins and areas. You keep all your pets and upgrades.")
-local rebirthBonus = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 84),
-	Size = UDim2.new(1, 0, 0, 40),
-	TextScaled = false,
-	TextSize = 34,
-	TextColor3 = Ui.GOLD,
-	ZIndex = 32,
-	Parent = rebirthBox,
-})
-Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 128),
-	Size = UDim2.new(1, 0, 0, 18),
-	Font = Ui.FONT_MEDIUM,
-	TextScaled = false,
-	TextSize = 15,
-	Text = "COINS FROM EVERYTHING, FOREVER",
-	TextColor3 = Ui.MUTED,
-	ZIndex = 32,
-	Parent = rebirthBox,
-})
-local rebirthCost = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 162),
-	Size = UDim2.new(1, 0, 0, 20),
-	TextScaled = false,
-	TextSize = 17,
-	ZIndex = 32,
-	Parent = rebirthBox,
-})
-local rebirthButton = Ui.button({
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, 0),
-	Size = UDim2.new(1, 0, 0, 60),
-	Radius = 20,
-	Text = "REBIRTH",
-	Icon = "star",
-	TextSize = 22,
-	ZIndex = 33,
-	Parent = rebirthBox,
-}, function()
-	if State.remote("Rebirth"):InvokeServer() then
-		Screen.close(rebirthModal)
-		Effects.jingle(4)
-		Effects.confetti(50)
-	end
-end, "primary")
-
-local function refreshRebirth()
-	local data = State.Data
-	if not data then
-		return
-	end
-	local cost = Config.rebirthCost(data.Rebirths)
-	rebirthBonus.Text = "x" .. Config.coinMultiplier(data.Rebirths) .. "  →  x" .. Config.coinMultiplier(data.Rebirths + 1)
-	rebirthCost.Text = if cost == 0
-		then "FREE (TESTING)"
-		else "COSTS " .. Config.formatNumber(cost) .. " COINS  ·  YOU HAVE " .. Config.formatNumber(data.Coins)
-	rebirthCost.TextColor3 = if data.Coins >= cost then Ui.SUCCESS else Ui.MUTED
-	Ui.setStyle(rebirthButton, if data.Coins >= cost then "primary" else "disabled")
-end
+-- Rebirth (its own screen now: Rebirth.luau) ---------------------------------------------------
 
 function Panels.openRebirth()
-	Screen.open(rebirthModal)
-	refreshRebirth()
+	Rebirth.open()
 end
 
 -- Fusion machine ------------------------------------------------------------------------------
 
-local fusionModal, fusionBox = Screen.modal(560, 520)
+local fusionModal, fusionBox = Screen.modal(560, 540, "Fusion")
 Screen.title(fusionBox, "Pet Fusion")
 Screen.subtitle(fusionBox, "Put in " .. Config.FUSE_COPIES .. " of the same pet, get 1 of the next size up")
 
 local fusingCard = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 76),
+	Position = UDim2.fromOffset(0, 88),
 	Size = UDim2.new(1, 0, 0, 190),
 	BackgroundColor3 = Ui.GLASS_LIGHT,
 	BackgroundTransparency = 0.3,
@@ -195,7 +132,7 @@ local fusingName = Ui.new("TextLabel", {
 	Parent = fusingCard,
 })
 local fusingTimer = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 40),
+	Position = UDim2.fromOffset(0, 52),
 	Size = UDim2.new(1, 0, 0, 22),
 	Font = Ui.FONT_MEDIUM,
 	TextScaled = false,
@@ -205,7 +142,7 @@ local fusingTimer = Ui.new("TextLabel", {
 	Parent = fusingCard,
 })
 local barBack = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 74),
+	Position = UDim2.fromOffset(0, 86),
 	Size = UDim2.new(1, 0, 0, 12),
 	BackgroundColor3 = Ui.GLASS,
 	ZIndex = 33,
@@ -237,7 +174,7 @@ end, "disabled")
 
 local fuseList = Screen.scrollList(fusionBox, 76, Ui.new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }))
 local fuseEmpty = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 120),
+	Position = UDim2.fromOffset(0, 132),
 	Size = UDim2.new(1, 0, 0, 20),
 	Font = Ui.FONT_MEDIUM,
 	TextScaled = false,
@@ -351,11 +288,11 @@ end)
 
 -- Settings ---------------------------------------------------------------------------------
 
-local settingsModal, settingsBox = Screen.modal(420, 320)
+local settingsModal, settingsBox = Screen.modal(440, 340, "Settings")
 Screen.title(settingsBox, "Settings")
 local SETTINGS = {
 	{ Key = "DamageNumbers", Name = "Damage numbers" },
-	{ Key = "Reveals", Name = "Roll reveal animation" },
+	{ Key = "Reveals", Name = "Full hatch animation" },
 	{ Key = "Sounds", Name = "Sounds" },
 }
 for i, setting in ipairs(SETTINGS) do
@@ -393,9 +330,6 @@ function Panels.openSettings()
 end
 
 State.watch(function()
-	if rebirthModal.Visible then
-		refreshRebirth()
-	end
 	if fusionModal.Visible then
 		refreshFusion()
 	end

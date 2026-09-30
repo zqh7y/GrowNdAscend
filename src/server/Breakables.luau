@@ -38,6 +38,7 @@ local random = Random.new()
 Breakables.Targets = {}
 local nextId = 0
 local taken = {} -- [area index] = { [spot index] = true }
+local pending = {} -- [area index] = targets waiting to respawn
 
 local function now()
 	return workspace:GetServerTimeNow()
@@ -69,11 +70,20 @@ local function freeSpot(areaIndex)
 	return best
 end
 
+local function alive(areaIndex)
+	local n = 0
+	for _, target in pairs(Breakables.Targets) do
+		if target.Area == areaIndex then
+			n += 1
+		end
+	end
+	return n
+end
+
 local function spawnOne(areaIndex)
 	local spot = freeSpot(areaIndex)
 	if not spot then
-		-- everything nearby is busy; try again a little later
-		task.delay(RESPAWN_SECONDS, spawnOne, areaIndex)
+		-- everything is busy; the watchdog below tries again shortly
 		return
 	end
 	taken[areaIndex][spot] = true
@@ -197,15 +207,49 @@ function Breakables.damage(target, amount, player)
 	Breakables.Targets[target.Id] = nil
 	target.Data:Destroy()
 	taken[target.Area][target.Spot] = nil
-	task.delay(RESPAWN_SECONDS, spawnOne, target.Area)
+	pending[target.Area] += 1
+	task.delay(RESPAWN_SECONDS, function()
+		pending[target.Area] -= 1
+		spawnOne(target.Area)
+	end)
 	return true
 end
 
-for i, area in ipairs(World.Areas) do
+for i in ipairs(World.Areas) do
 	taken[i] = {}
-	for _ = 1, math.min(PER_AREA, #area.Spots) do
+	pending[i] = 0
+	for _ = 1, PER_AREA do
 		spawnOne(i)
 	end
+end
+
+-- Say what's there (in Studio's Output), so it's easy to check every world
+-- has its targets
+for i, area in ipairs(World.Areas) do
+	local where = {}
+	for _, target in pairs(Breakables.Targets) do
+		if target.Area == i then
+			table.insert(where, string.format("(%d, %.1f, %d)", target.Home.X, target.Home.Y, target.Home.Z))
+		end
+	end
+	print(string.format("[Targets] %s: %d %s alive (%d spots) at %s", Config.AREAS[i].Name, alive(i), Config.AREAS[i].Breakable.Name, #area.Spots, table.concat(where, " ")))
+end
+
+-- Watchdog: every world always gets back to PER_AREA targets, whatever happens
+task.spawn(function()
+	while true do
+		task.wait(2)
+		for i in ipairs(World.Areas) do
+			for _ = 1, PER_AREA - alive(i) - pending[i] do
+				spawnOne(i)
+			end
+		end
+	end
+end)
+
+-- How many targets are alive in an area
+function Breakables.count(areaIndex)
+	return alive(areaIndex)
 end
 
 return Breakables

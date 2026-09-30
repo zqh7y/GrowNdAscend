@@ -1,7 +1,9 @@
 """Simulates an active player to check the economy against the targets
-(the animals are read from Config.luau; rolls only give animals from
-unlocked worlds, like the game):
+(the animals are read from Config.luau; like the game, every animal can
+come out anywhere but animals from worlds ahead are WORLD_PENALTY x rarer
+per world, and each world has its own luck):
    ~40 min to World 4 with ~1B pets there; best Titanic ~5T (endgame).
+   Rebirths (8, coins + an animal each) spread over many hours.
 Usage: python3 tools/economy/simulate.py [runs]
 Keep the numbers here in sync with src/shared/Config.luau (Config is the
 source of truth; this mirrors it so the curve can be tested quickly)."""
@@ -11,7 +13,13 @@ import math, random, sys
 import os, re
 _config = open(os.path.join(os.path.dirname(__file__), "../../src/shared/Config.luau")).read()
 # (odds, world) for every animal, read straight from Config.luau
-PETS = [(int(o), int(w)) for o, w in re.findall(r'Odds = (\d+), World = (\d+)', _config)]
+_rows = re.findall(r'Name = "([^"]+)", Odds = (\d+), World = (\d+)', _config)
+PETS = [(int(o), int(w)) for _, o, w in _rows]
+ODDS_OF = {n: int(o) for n, o, _ in _rows}
+WORLD_PENALTY = float(re.search(r'WORLD_PENALTY = ([\d.]+)', _config).group(1))
+WORLD_LUCK = [float(x) for x in re.findall(r'Luck = ([\d.]+), -- rolling here', _config)]
+REBIRTHS = [(float(c), ODDS_OF[n]) for c, n in re.findall(r'\{ Cost = ([\d.e]+), Pet = "([^"]+)" \}', _config)]
+REBIRTH_LUCK, REBIRTH_COINS = 1.5, 2
 PET_ODDS = [o for o, _ in PETS]
 def base_power(odds):  # Config.basePower
     return 1e6 * (odds / 1000) ** 1.17
@@ -41,11 +49,12 @@ def pet_luck(odds, size):  # Config.petLuck (added up, then 1 + sum)
     return math.log10(odds) * 0.05 * [1, 2, 4][size]
 
 # --- one player ------------------------------------------------------------------
-def run(minutes=60, seed=1, verbose=False):
+def run(minutes=60, seed=1, verbose=False, rebirth=False):
     rng = random.Random(seed)
     lv = {k: 0 for k in UP}
     val = lambda k: UP[k][0](lv[k])
-    coins, world, rolls = 0.0, 1, 0
+    coins, world, rolls, rebirths = 0.0, 1, 0, 0
+    hatched = set()
     pets = []  # (power, odds, size)
     team = []
     log = {}
@@ -65,11 +74,13 @@ def run(minutes=60, seed=1, verbose=False):
                 rolls += 1
                 bonus = BONUS_LUCK if rolls % BONUS_EVERY == 0 else 1
                 luck = val("Luck") * (1 + sum(pet_luck(o, s) for _, o, s in team)) * bonus
+                luck *= REBIRTH_LUCK ** rebirths * WORLD_LUCK[world - 1]
                 odds = 2
                 for o, w in reversed(PETS[1:]):
-                    if w <= world and rng.random() < luck / o:
+                    if rng.random() < luck / (o * WORLD_PENALTY ** max(0, w - world)):
                         odds = o
                         break
+                hatched.add(odds)
                 size = 0
                 for i in (2, 1):
                     if rng.random() < val("SizeLuck") * bonus / SIZES[i][0]:
@@ -83,7 +94,7 @@ def run(minutes=60, seed=1, verbose=False):
         dps = sum(p[0] for p in team) * val("Damage") / HIT_EVERY
         if dps > 0:
             kill = hp / dps + OVERHEAD
-            coins += reward * val("Coins") / kill
+            coins += reward * val("Coins") * (1 + REBIRTH_COINS * rebirths) / kill
         # spending: unlock the next world first, else the cheapest upgrade
         # that isn't more than half of what the next world costs
         if world < 4 and coins >= WORLDS[world][2]:
@@ -92,7 +103,16 @@ def run(minutes=60, seed=1, verbose=False):
             log[world] = (t / 60, max(p[0] for p in pets), dict(lv))
             if verbose:
                 print(f"  World {world} at {t/60:5.1f} min, best pet {fmt(max(p[0] for p in pets))}, team {fmt(sum(p[0] for p in team))}")
-        nxt = WORLDS[world][2] if world < 4 else float("inf")
+        # rebirth: all 8 need the coins and the animal
+        if rebirth and world == 4 and rebirths < len(REBIRTHS):
+            cost, pet_odds = REBIRTHS[rebirths]
+            if coins >= cost and pet_odds in hatched:
+                rebirths += 1
+                coins, world = 0.0, 1
+                log["R%d" % rebirths] = (t / 60, max(p[0] for p in pets))
+                if verbose:
+                    print(f"  Rebirth {rebirths} at {t/60:6.1f} min ({t/3600:.1f} h), best pet {fmt(max(p[0] for p in pets))}")
+        nxt = WORLDS[world][2] if world < 4 else (REBIRTHS[rebirths][0] if rebirth and rebirths < len(REBIRTHS) else float("inf"))
         while True:
             options = [(UP[k][1](lv[k]), k) for k in UP if lv[k] < UP[k][2]]
             options = [o for o in options if o[0] <= coins and (o[0] <= 0.5 * nxt or world == 4)]
@@ -114,7 +134,7 @@ def fmt(n):
     return f"{n:.0f}"
 
 if __name__ == "__main__":
-    runs = int(sys.argv[1]) if len(sys.argv) > 1 else 5
+    runs = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 5
     print("pet power: " + ", ".join(fmt(base_power(o)) for o in PET_ODDS))
     print("best Titanic:", fmt(base_power(PET_ODDS[-1]) * SIZES[2][1]))
     w4 = []
@@ -127,6 +147,10 @@ if __name__ == "__main__":
             w4.append(log[4][0])
     if w4:
         print(f"World 4 reached at {sum(w4)/len(w4):.1f} min on average ({len(w4)}/{runs} runs)")
+    if "--rebirth" in sys.argv:
+        hours = float(sys.argv[sys.argv.index("--rebirth") + 1]) if len(sys.argv) > sys.argv.index("--rebirth") + 1 else 30
+        print(f"rebirth run ({hours:.0f} hours):")
+        log, pets, lv, rolls = run(minutes=hours * 60, seed=7, verbose=True, rebirth=True)
     # endgame: everything maxed, a team of strong Huge/Titanic pets
     luck = UP["Luck"][0](UP["Luck"][2]) * (1 + 6 * pet_luck(1e6, 1))
     size = UP["SizeLuck"][0](UP["SizeLuck"][2])

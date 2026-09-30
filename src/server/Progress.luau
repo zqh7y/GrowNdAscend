@@ -49,9 +49,23 @@ rebirthFunction.OnServerInvoke = function(player)
 	if not data then
 		return false
 	end
-	local cost = Config.rebirthCost(data.Rebirths)
-	if data.Coins < cost then
-		notifyEvent:FireClient(player, "You need " .. Config.formatNumber(cost - data.Coins) .. " more coins", "danger")
+	-- both the coins and the animal are needed, and there are 8 rebirths
+	local row = Config.nextRebirth(data.Rebirths)
+	if not row then
+		notifyEvent:FireClient(player, "You've reached the max rebirth (" .. Config.MAX_REBIRTHS .. ")!", "danger")
+		return false
+	end
+	local ok, hasCoins, hasPet = Config.canRebirth(data)
+	if not ok then
+		local cost = Config.rebirthCost(data.Rebirths)
+		local missing = {}
+		if not hasCoins then
+			table.insert(missing, Config.formatNumber(cost - data.Coins) .. " more coins")
+		end
+		if not hasPet then
+			table.insert(missing, "a " .. row.Pet)
+		end
+		notifyEvent:FireClient(player, "You need " .. table.concat(missing, " and "), "danger")
 		return false
 	end
 	data.Coins = 0
@@ -64,7 +78,7 @@ rebirthFunction.OnServerInvoke = function(player)
 	if root then
 		root.CFrame = World.Spawns[1]
 	end
-	notifyEvent:FireClient(player, "Rebirth " .. data.Rebirths .. "!  Coins x" .. Config.coinMultiplier(data.Rebirths), "success")
+	notifyEvent:FireClient(player, string.format("Rebirth %d!  Luck x%.2f  ·  Coins x%d", data.Rebirths, Config.rebirthLuck(data.Rebirths), Config.coinMultiplier(data.Rebirths)), "success")
 	return true
 end
 

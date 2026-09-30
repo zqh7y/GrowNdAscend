@@ -14,12 +14,12 @@ local Inventory = {}
 local equipFunction = State.remote("Equip")
 local equipBestFunction = State.remote("EquipBest")
 
-local modal, box = Screen.modal(820, 600)
+local modal, box = Screen.modal(860, 620, "Inventory")
 local title = Screen.title(box, "Inventory")
 local hint = Screen.subtitle(box, "")
 Ui.button({
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -52, 0, 0),
+	Position = UDim2.new(1, -40, 0, 8),
 	Size = UDim2.fromOffset(150, 40),
 	Radius = 14,
 	Text = "EQUIP BEST",
@@ -29,7 +29,7 @@ Ui.button({
 	Parent = box,
 }, function()
 	equipBestFunction:InvokeServer()
-end, "primary")
+end, "gold")
 
 -- Filters and sorting ----------------------------------------------------------------------
 
@@ -58,8 +58,8 @@ Inventory.Sort = 1
 local refresh
 
 local toolbar = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 64),
-	Size = UDim2.new(1, 0, 0, 34),
+	Position = UDim2.fromOffset(0, 56),
+	Size = UDim2.new(1, 0, 0, 38),
 	BackgroundTransparency = 1,
 	ZIndex = 32,
 	Parent = box,
@@ -80,10 +80,10 @@ local chips = {}
 for i, filter in ipairs(FILTERS) do
 	chips[i] = Ui.button({
 		LayoutOrder = i,
-		Size = UDim2.fromOffset(if filter.Name == "Equipped" then 96 else 78, 34),
-		Radius = 17,
+		Size = UDim2.fromOffset(if filter.Name == "Equipped" then 104 else 86, 38),
+		Radius = 19,
 		Text = filter.Name,
-		TextSize = 13,
+		TextSize = 16,
 		ZIndex = 33,
 		Parent = chipRow,
 	}, function()
@@ -94,11 +94,11 @@ end
 local sortButton = Ui.button({
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, 0, 0, 0),
-	Size = UDim2.fromOffset(160, 34),
-	Radius = 17,
+	Size = UDim2.fromOffset(170, 38),
+	Radius = 19,
 	Icon = "sort",
 	Text = "Power",
-	TextSize = 13,
+	TextSize = 16,
 	ZIndex = 33,
 	Parent = toolbar,
 }, function()
@@ -106,7 +106,7 @@ local sortButton = Ui.button({
 	refresh(true)
 end, "glass")
 
-local grid = Screen.scrollList(box, 110, Ui.new("UIGridLayout", {
+local grid = Screen.scrollList(box, 106, Ui.new("UIGridLayout", {
 	CellSize = UDim2.fromOffset(170, 214),
 	CellPadding = UDim2.fromOffset(12, 12),
 	SortOrder = Enum.SortOrder.LayoutOrder,
@@ -141,12 +141,12 @@ local function card(order, name, owned, equipped, data)
 	local rarity = Config.rarity(pet.Odds)
 	local frame = Ui.new("Frame", {
 		LayoutOrder = order,
-		BackgroundColor3 = if equipped > 0 then Color3.fromRGB(60, 55, 110) else Ui.GLASS_LIGHT,
-		BackgroundTransparency = 0.25,
+		BackgroundColor3 = if equipped > 0 then Color3.fromRGB(60, 120, 110) else Color3.fromRGB(70, 60, 140),
+		BackgroundTransparency = 0.15,
 		ZIndex = 32,
 		Parent = grid,
-	}, { Ui.corner(16), Ui.padding(10) })
-	Ui.stroke(if size.Index > 1 then size.Color else rarity.Color, if size.Index > 1 then 2.5 else 1.5, 0.2).Parent = frame
+	}, { Ui.corner(20), Ui.padding(10) })
+	Ui.stroke(if size.Index > 1 then size.Color else rarity.Color, if size.Index > 1 then 3.5 else 2.5, 0).Parent = frame
 
 	-- the pet itself, on a soft glow in its rarity colour
 	Ui.new("Frame", {
@@ -260,7 +260,7 @@ function refresh(force)
 	lastSignature = signature
 
 	for i, chip in ipairs(chips) do
-		Ui.setStyle(chip, if i == Inventory.Filter then "primary" else "glass")
+		Ui.setStyle(chip, if i == Inventory.Filter then "orange" else "glass")
 	end
 	Ui.setText(sortButton, "Sort: " .. SORTS[Inventory.Sort].Name)
 

@@ -27,19 +27,19 @@ visuals.Parent = Workspace
 -- [id] = { Data, Model, Style, Yaw, Scale, Shake, Flash, Highlight, Phase, Position, Bar }
 local coins = {}
 
--- A health bar and the coin's value above it
+-- A name, health bar and the coin's value above it
 local function healthBar(model, areaIndex, height)
 	local area = Config.AREAS[areaIndex]
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "HealthBar"
-	gui.Size = UDim2.new(4.5, 0, 0.9, 0)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, height + 1.4, 0)
-	gui.MaxDistance = 70
+	gui.Size = UDim2.new(5, 0, 1.5, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, height + 1.6, 0)
+	gui.MaxDistance = 140
 	gui.Adornee = model.PrimaryPart
 	gui.Parent = model
 	local back = Instance.new("Frame")
-	back.Position = UDim2.fromScale(0, 0.45)
-	back.Size = UDim2.fromScale(1, 0.55)
+	back.Position = UDim2.fromScale(0, 0.62)
+	back.Size = UDim2.fromScale(1, 0.34)
 	back.BackgroundColor3 = Color3.fromRGB(20, 22, 40)
 	back.BackgroundTransparency = 0.3
 	back.BorderSizePixel = 0
@@ -55,14 +55,55 @@ local function healthBar(model, areaIndex, height)
 	corner:Clone().Parent = fill
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 0.42)
-	label.Font = Enum.Font.GothamBold
+	label.Size = UDim2.fromScale(1, 0.58)
+	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
 	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.4
-	label.Text = Config.formatNumber(area.Breakable.Coins) .. " coins"
+	label.TextStrokeTransparency = 0.2
+	label.TextStrokeColor3 = Color3.fromRGB(30, 30, 60)
+	label.RichText = true
+	label.Text = string.format('%s  <font color="#ffd24a">+%s</font>', area.Breakable.Name, Config.formatNumber(area.Breakable.Coins))
 	label.Parent = gui
 	return fill
+end
+
+-- If a model can't be built for any reason, a simple stand-in (a round
+-- blob in the world's colour) so the target is never invisible
+local function fallback(areaIndex, parent)
+	local model = Instance.new("Model")
+	model.Name = "Target"
+	local body = Instance.new("Part")
+	body.Shape = Enum.PartType.Ball
+	body.Size = Vector3.new(4, 4, 4)
+	body.CFrame = CFrame.new(0, 2, 0)
+	body.Color = Config.AREAS[areaIndex].Color
+	body.Anchored = true
+	body.CanCollide = false
+	body.Material = Enum.Material.SmoothPlastic
+	body.Parent = model
+	model.PrimaryPart = body
+	model.WorldPivot = CFrame.new()
+	model.Parent = parent
+	return model
+end
+
+-- A soft glowing ring on the ground under a target, in its world's colour,
+-- so targets stand out from the scenery
+local function marker(model, areaIndex, width)
+	local ring = Instance.new("Part")
+	ring.Name = "Marker"
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Size = Vector3.new(0.12, width, width)
+	ring.CFrame = CFrame.new(0, 0.06, 0) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Color = Config.AREAS[areaIndex].Color
+	ring.Material = Enum.Material.Neon
+	ring.Transparency = 0.55
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.CastShadow = false
+	ring.Parent = model
 end
 
 local function add(data)
@@ -71,8 +112,22 @@ local function add(data)
 	if not id or not area or coins[id] then
 		return
 	end
-	local model = Coins.build(area, visuals, data:GetAttribute("Seed") or id)
-	local height = model:GetExtentsSize().Y
+	local ok, model = pcall(Coins.build, area, visuals, data:GetAttribute("Seed") or id)
+	if not ok then
+		warn("[Targets] couldn't build a " .. tostring(Config.AREAS[area] and Config.AREAS[area].Breakable.Name) .. ": " .. tostring(model))
+		model = fallback(area, visuals)
+	end
+	local extents = model:GetExtentsSize()
+	local height = extents.Y
+	marker(model, area, math.max(extents.X, extents.Z) + 1.5)
+	-- an outline in the world's colour (it also flashes white when hit)
+	local highlight = Instance.new("Highlight")
+	highlight.FillColor = Color3.new(1, 1, 1)
+	highlight.FillTransparency = 1
+	highlight.OutlineColor = Config.AREAS[area].Color:Lerp(Color3.new(1, 1, 1), 0.35)
+	highlight.OutlineTransparency = 0.25
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+	highlight.Parent = model
 	local coin = {
 		Data = data,
 		Model = model,
@@ -83,6 +138,7 @@ local function add(data)
 		Phase = math.random() * 10,
 		Position = data:GetAttribute("HopTo"),
 		Bar = healthBar(model, area, height),
+		Highlight = highlight,
 	}
 	coins[id] = coin
 	data:GetAttributeChangedSignal("Health"):Connect(function()
@@ -107,6 +163,27 @@ end
 folder.ChildAdded:Connect(add)
 folder.ChildRemoved:Connect(remove)
 
+-- How many targets are drawn in each world (also printed once, for checking)
+function Living.counts()
+	local counts = {}
+	for i = 1, #Config.AREAS do
+		counts[i] = 0
+	end
+	for _, coin in pairs(coins) do
+		local area = coin.Data:GetAttribute("Area")
+		counts[area] = (counts[area] or 0) + 1
+	end
+	return counts
+end
+task.delay(5, function()
+	local counts = Living.counts()
+	local parts = {}
+	for i, n in ipairs(counts) do
+		table.insert(parts, Config.AREAS[i].Name .. " " .. n)
+	end
+	print("[Targets] drawn on this screen: " .. table.concat(parts, ", "))
+end)
+
 -- Where a coin is right now (its feet), as drawn, or nil if it's gone
 function Living.position(id)
 	local coin = coins[id]
@@ -125,15 +202,6 @@ function Living.hit(id, strength)
 		return
 	end
 	coin.Shake = math.min(coin.Shake + 0.35 * (strength or 1), 0.6)
-	if not coin.Highlight then
-		local highlight = Instance.new("Highlight")
-		highlight.FillColor = Color3.new(1, 1, 1)
-		highlight.OutlineTransparency = 1
-		highlight.FillTransparency = 1
-		highlight.DepthMode = Enum.HighlightDepthMode.Occluded
-		highlight.Parent = coin.Model
-		coin.Highlight = highlight
-	end
 	coin.Flash = 1
 end
 

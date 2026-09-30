@@ -259,12 +259,33 @@ terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF 
 
 -- Breakable spots were picked before the small props and some terrain; keep
 -- only the ones on flat ground and set them to its real height
-for _, area in ipairs(World.Areas) do
-	local valid = {}
+-- only the ones on flat ground and set them to its real height. If too few
+-- pass (terrain can come out slightly bumpy), the rest are kept on whatever
+-- ground is there, so every area always has enough spots for its targets.
+for i, area in ipairs(World.Areas) do
+	local valid, rest, total = {}, {}, #area.Spots
 	for _, spot in ipairs(area.Spots) do
 		if World.flatGround(spot.X, spot.Z, 2.5) then
 			table.insert(valid, Vector3.new(spot.X, World.groundAt(spot.X, spot.Z), spot.Z))
+		else
+			table.insert(rest, Vector3.new(spot.X, World.groundAt(spot.X, spot.Z) or 0, spot.Z))
 		end
+	end
+	local MIN_SPOTS = 12
+	for _, spot in ipairs(rest) do
+		if #valid >= MIN_SPOTS then
+			break
+		end
+		table.insert(valid, spot)
+	end
+	-- last resort: a line of spots down the middle of the area
+	local x0 = Config.areaStart(i)
+	for k = 1, MIN_SPOTS - #valid do
+		local x, z = x0 + 12 + (k - 1) * 7, (if k % 2 == 0 then 8 else -8)
+		table.insert(valid, Vector3.new(x, World.groundAt(x, z) or 0, z))
+	end
+	if #rest > 0 then
+		warn(string.format("[World] %s: %d of %d target spots were on uneven ground", Config.AREAS[i].Name, #rest, total))
 	end
 	area.Spots = valid
 end

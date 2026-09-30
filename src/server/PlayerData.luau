@@ -38,6 +38,25 @@ local sessionData = {} -- [player] = data while they're in game
 local loadFailed = {} -- [player] = true: don't overwrite their save
 local removingHooks = {}
 
+-- Marks a pet as found in the Index: its size ("Huge Tiger") and the animal
+-- itself ("Tiger", which is what the 70-animal count uses)
+function PlayerData.discover(data, name)
+	local pet = Config.petInfo(name)
+	if pet then
+		data.Discovered[pet.Name] = true
+		data.Discovered[name] = true
+	end
+end
+
+-- The world a player is standing in (for the hatch odds), never above what
+-- they've unlocked
+function PlayerData.worldOf(player)
+	local data = PlayerData.get(player)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local world = if root then Config.areaAt(root.Position.X) else 1
+	return math.min(world, if data then data.Unlocked else 1)
+end
+
 local function load(player)
 	local ok, saved = pcall(function()
 		return store:GetAsync("user_" .. player.UserId)
@@ -65,12 +84,11 @@ local function load(player)
 		end
 		data.Huges = nil
 	end
+	-- there are at most 8 rebirths (older saves could have more)
+	data.Rebirths = math.min(data.Rebirths or 0, Config.MAX_REBIRTHS)
 	-- the Index: everything ever owned counts as discovered (older saves)
 	for name in pairs(data.Pets) do
-		local pet = Config.petInfo(name)
-		if pet then
-			data.Discovered[pet.Name] = true
-		end
+		PlayerData.discover(data, name)
 	end
 	-- older fusions stored the result's base name; that's also the input now
 	-- (a normal pet fuses into its huge), so they carry on as they were

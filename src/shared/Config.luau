@@ -200,27 +200,39 @@ Config.BIG_ROLL = 1000 -- rolls this rare (1 in 1000+), or any big size, get the
 Config.FUSE_COPIES = 5 -- the fusion machine turns 5 of a pet into 1 of the next size
 
 -- Total luck: the Luck upgrade (the big one), times a bonus from the
--- equipped pets, times 2 on every 10th roll
-function Config.luck(data, isBonus)
+-- equipped pets, times x1.5 per rebirth, times the world you roll in, times
+-- 2 on every 10th roll. `world` is the area the player stands in (nil = 1).
+function Config.luck(data, isBonus, world)
 	local fromPets = 1
 	for _, name in ipairs(data.Equipped) do
 		fromPets += Config.petLuck(name)
 	end
-	local luck = Config.upgradeValue(data, "Luck") * fromPets
+	local luck = Config.upgradeValue(data, "Luck") * fromPets * Config.rebirthLuck(data.Rebirths or 0)
+	luck *= Config.AREAS[math.clamp(world or 1, 1, #Config.AREAS)].Luck
 	if isBonus then
 		luck *= Config.BONUS_LUCK
 	end
 	return luck
 end
 
+-- Every animal can be hatched in every world, but animals from worlds ahead
+-- of the one you're rolling in are much rarer: WORLD_PENALTY times per world
+-- ahead (a World 4 animal rolled in World 1 is 25^3 = 15,625x rarer). Never
+-- impossible, just a long shot, so the right world matters.
+Config.WORLD_PENALTY = 25
+
+-- "1 in N" for an animal when rolling in `world` (before luck)
+function Config.worldOdds(pet, world)
+	local ahead = math.max(pet.World - (world or #Config.AREAS), 0)
+	return pet.Odds * Config.WORLD_PENALTY ^ ahead
+end
+
 -- Try the rarest pet first, then the next rarest, and so on. Luck multiplies
--- every pet's chance; if nothing hits you get the most common pet. Only
--- animals from worlds up to `unlocked` can come out.
-function Config.roll(luck, random, unlocked)
-	unlocked = unlocked or math.huge
+-- every pet's chance; if nothing hits you get the most common pet.
+function Config.roll(luck, random, world)
 	for i = #Config.PETS, 2, -1 do
 		local pet = Config.PETS[i]
-		if pet.World <= unlocked and random:NextNumber() < luck / pet.Odds then
+		if random:NextNumber() < luck / Config.worldOdds(pet, world) then
 			return pet
 		end
 	end
@@ -480,24 +492,28 @@ Config.AREA_HALF_WIDTH = 35
 Config.AREAS = {
 	{
 		Name = "Forest",
+		Luck = 1, -- rolling here multiplies luck
 		Cost = 0,
 		Color = Color3.fromRGB(110, 210, 90),
 		Breakable = { Name = "Tree", Health = 5e3, Coins = 20 },
 	},
 	{
 		Name = "Sahara",
+		Luck = 1.2, -- rolling here multiplies luck
 		Cost = 4e3,
 		Color = Color3.fromRGB(240, 190, 90),
 		Breakable = { Name = "Cactus", Health = 6e7, Coins = 400 },
 	},
 	{
 		Name = "Frozen Peaks",
+		Luck = 1.45, -- rolling here multiplies luck
 		Cost = 6e5,
 		Color = Color3.fromRGB(140, 215, 255),
 		Breakable = { Name = "Ice Cube", Health = 4e9, Coins = 2.5e4 },
 	},
 	{
 		Name = "Sakura Jungle",
+		Luck = 1.75, -- rolling here multiplies luck
 		Cost = 2.2e8,
 		Color = Color3.fromRGB(255, 150, 200),
 		Breakable = { Name = "Sushi", Health = 2.5e11, Coins = 1.5e6 },
@@ -526,23 +542,85 @@ function Config.areaStart(i)
 	return (i - 1) * Config.AREA_LENGTH
 end
 
+-- The area at world position x
+function Config.areaAt(x)
+	return math.clamp(math.floor(x / Config.AREA_LENGTH) + 1, 1, #Config.AREAS)
+end
+
 -- Rebirth -------------------------------------------------------------------------
 
-Config.REBIRTH_BONUS = 0.5 -- +50% coins per rebirth
+-- A rebirth resets coins and areas (pets and upgrades stay). Each one needs
+-- the coins AND the animal of its row (any size, it isn't used up), and
+-- gives, for good: Luck x1.5 and +200% coins. They stack: rebirth 3 is
+-- luck x1.5^3 = x3.4 and coins x(1 + 3 x 2) = x7. There are 8 rebirths.
+Config.REBIRTH_LUCK = 1.5 -- luck is multiplied by this per rebirth
+Config.REBIRTH_COINS = 2 -- +200% coins per rebirth
+Config.REBIRTHS = {
+	{ Cost = 3e11, Pet = "Lion" },
+	{ Cost = 6e12, Pet = "Griffin" },
+	{ Cost = 1.5e13, Pet = "Polar Bear" },
+	{ Cost = 3.5e13, Pet = "Yeti" },
+	{ Cost = 7e13, Pet = "Frost Dragon" },
+	{ Cost = 1.2e14, Pet = "Kitsune" },
+	{ Cost = 2e14, Pet = "Dragon" },
+	{ Cost = 3.5e14, Pet = "Galaxy Whale" },
+}
+Config.MAX_REBIRTHS = #Config.REBIRTHS
 
--- TESTING ONLY: rebirth costs nothing so it can be tried right away.
+-- TESTING ONLY: rebirths cost no coins so they can be tried right away (the
+-- animal is still needed, and there are still at most 8).
 -- BEFORE THE FINAL VERSION set this to false (see CLAUDE.md).
 Config.REBIRTH_FREE_FOR_TESTING = true
 
+-- The next rebirth's row (nil when all 8 are done)
+function Config.nextRebirth(rebirths)
+	return Config.REBIRTHS[(rebirths or 0) + 1]
+end
+
 function Config.rebirthCost(rebirths)
+	local row = Config.nextRebirth(rebirths)
+	if not row then
+		return math.huge
+	end
 	if Config.REBIRTH_FREE_FOR_TESTING then
 		return 0
 	end
-	return 2e10 * 5 ^ rebirths -- about 10 minutes of World 4 coins at first
+	return row.Cost
 end
 
+-- True if the player owns this animal in any size
+function Config.ownsAnimal(data, animal)
+	for _, size in ipairs(Config.SIZES) do
+		if (data.Pets[Config.petName(animal, size.Index)] or 0) > 0 then
+			return true
+		end
+	end
+	return false
+end
+
+-- Can this player rebirth now? Returns ok, hasCoins, hasPet, reason
+function Config.canRebirth(data)
+	local row = Config.nextRebirth(data.Rebirths)
+	if not row then
+		return false, false, false, "Max rebirth reached"
+	end
+	local hasCoins = data.Coins >= Config.rebirthCost(data.Rebirths)
+	local hasPet = Config.ownsAnimal(data, row.Pet)
+	local reason = if not hasCoins and not hasPet then "Needs coins and a " .. row.Pet
+		elseif not hasCoins then "Needs more coins"
+		elseif not hasPet then "Needs a " .. row.Pet
+		else nil
+	return hasCoins and hasPet, hasCoins, hasPet, reason
+end
+
+-- Coins x(1 + 2 per rebirth): 1, 3, 5, 7 ... 17 at rebirth 8
 function Config.coinMultiplier(rebirths)
-	return 1 + rebirths * Config.REBIRTH_BONUS
+	return 1 + rebirths * Config.REBIRTH_COINS
+end
+
+-- Luck x1.5 per rebirth: 1, 1.5, 2.25 ... ~25.6 at rebirth 8
+function Config.rebirthLuck(rebirths)
+	return Config.REBIRTH_LUCK ^ rebirths
 end
 
 -- All coin bonuses together: rebirths and the Coins upgrade

@@ -1,6 +1,7 @@
 -- The always-on screen, laid out around the fights in the middle:
 --   top centre   coins, and under them YOUR TEAM (equipped pets + damage)
---   left side    navigation: Pets, Upgrades, Rebirth, Top, Settings
+--   left side    navigation: Inventory, Index, Upgrades, Rebirth, Settings
+--                (the leaderboards are in the world, in the Forest)
 --   right side   gameplay: the big Roll button and Auto
 -- The top-left corner is left alone: Roblox puts its menu and chat buttons
 -- there (the HUD ignores the top bar inset, so anything there would overlap).
@@ -178,12 +179,11 @@ local function button(parent, order, icon, label, onClick, size, style)
 	return holder, b
 end
 
-button(nav, 1, "paw", "Inventory", Inventory.open)
-button(nav, 2, "book", "Index", Index.open)
-local _, upgradesButton = button(nav, 3, "tree", "Upgrades", UpgradeTree.open)
-button(nav, 4, "star", "Rebirth", Panels.openRebirth)
-local topHolder = button(nav, 5, "podium", "Top", Panels.openTop)
-button(nav, 6, "gear", "Settings", Panels.openSettings)
+button(nav, 1, "paw", "Inventory", Inventory.open, nil, "orange")
+button(nav, 2, "book", "Index", Index.open, nil, "blue")
+local _, upgradesButton = button(nav, 3, "tree", "Upgrades", UpgradeTree.open, nil, "green")
+button(nav, 4, "star", "Rebirth", Panels.openRebirth, nil, "purple")
+button(nav, 5, "gear", "Settings", Panels.openSettings, nil, "gray")
 
 -- a gold dot on Upgrades when something can be bought
 local upgradeDot = Ui.new("Frame", {
@@ -196,9 +196,6 @@ local upgradeDot = Ui.new("Frame", {
 	Parent = upgradesButton,
 }, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 2) })
 
-Panels.RankChanged.Event:Connect(function()
-	topHolder.Caption.Text = if Panels.Rank then "#" .. Panels.Rank else "Top"
-end)
 
 -- Gameplay controls (right side) -----------------------------------------------------------------
 

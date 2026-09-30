@@ -752,6 +752,12 @@ function Instance.new(class, parent)
 	if class == "UIScale" then
 		rawget(inst, "_props").Scale = 1
 	end
+	if class == "Camera" then
+		rawget(inst, "_props").FieldOfView = 70
+	end
+	if class == "Humanoid" then
+		rawget(inst, "_props").CameraOffset = Vector3.zero
+	end
 	STATS.ByClass[class] = (STATS.ByClass[class] or 0) + 1
 	if parent then
 		inst.Parent = parent

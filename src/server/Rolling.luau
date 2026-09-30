@@ -74,23 +74,26 @@ rollFunction.OnServerInvoke = function(player)
 	end
 	lastRoll[player] = now
 
+	-- the world you roll in changes the odds (every animal is possible anywhere)
+	local world = PlayerData.worldOf(player)
 	local results = {}
 	local sizeLuck = Config.sizeLuck(data)
 	for _ = 1, Config.rollsAtOnce(data) do
 		data.Rolls += 1
 		local isBonus = data.Rolls % Config.BONUS_EVERY == 0
-		local pet = Config.roll(Config.luck(data, isBonus), random, data.Unlocked)
+		local pet = Config.roll(Config.luck(data, isBonus, world), random, world)
 		local sizeIndex = Config.rollSize(sizeLuck * (if isBonus then Config.BONUS_LUCK else 1), random)
 		local name = Config.petName(pet.Name, sizeIndex)
 
 		local isFirst = not data.Discovered[pet.Name]
-		data.Discovered[pet.Name] = true
+		local isFirstOfSize = not data.Discovered[name]
+		PlayerData.discover(data, name)
 		data.Pets[name] = (data.Pets[name] or 0) + 1
 		local best = data.Best and Config.PETS_BY_NAME[data.Best]
 		if not best or pet.Odds > best.Odds then
 			data.Best = pet.Name
 		end
-		table.insert(results, { Pet = pet.Name, Size = sizeIndex, Name = name, Bonus = isBonus, First = isFirst })
+		table.insert(results, { Pet = pet.Name, Size = sizeIndex, Name = name, Bonus = isBonus, First = isFirst, FirstOfSize = isFirstOfSize, World = world })
 	end
 
 	-- Auto Hatch level 3 keeps the strongest team equipped

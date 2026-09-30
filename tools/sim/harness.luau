@@ -363,11 +363,11 @@ if ok then
 			end)
 		end
 		print("upgrades now:", data.Upgrades.Coins, data.Upgrades.AutoHatch, data.Upgrades.Slots)
-		try("Panels.openTop", C("Panels").openTop)
 		try("Panels.openRebirth", C("Panels").openRebirth)
 		try("Panels.openSettings", C("Panels").openSettings)
 		try("Roll.roll", C("Roll").roll)
 		try("Roll.bigReveal titanic", C("Roll").bigReveal, "Glitch", 3)
+		try("Rebirth.open", C("Rebirth").open)
 		try("Roll.toggleAuto", C("Roll").toggleAuto)
 		try("fusion open", function()
 			remotes.FusionOpen:FireClient(player)
@@ -484,6 +484,159 @@ if ok then
 		STATS.Ambient = report
 		rootPart.CFrame = CFrame.new(__cache["Shared/Config"].areaStart(1) + 50, 3, 0)
 		frames(60)
+
+		local Cfg = __cache["Shared/Config"]
+		local Breakables = __cache["Breakables"]
+
+		-- WORLDS: walk into each world with a team; the targets must be drawn
+		-- there (5, on the ground, with a health bar), get attacked and
+		-- destroyed by the pets, pay out, and come back
+		local worldsReport = {}
+		data.Pets = { Tiger = 3, ["Titanic Glitch"] = 3 }
+		data.Equipped = { "Titanic Glitch", "Titanic Glitch", "Titanic Glitch" }
+		PlayerData.sync(player)
+		frames(30)
+		local team = { "Titanic Glitch", "Titanic Glitch", "Titanic Glitch" }
+		local function setTeam(list)
+			data.Equipped = list
+			PlayerData.sync(player)
+		end
+		for area = 1, 4 do
+			local x = Cfg.areaStart(area) + 50
+			setTeam({}) -- no pets while counting
+			rootPart.CFrame = CFrame.new(x, 3, 0)
+			frames(60 * 6) -- let anything broken earlier respawn
+			local w = { Drawn = 0, OnGround = true, Bars = true, InArea = true }
+			for _, model in ipairs(workspace.LivingCoins:GetChildren()) do
+				local p = model:GetPivot().Position
+				if p.X >= Cfg.areaStart(area) and p.X < Cfg.areaStart(area) + Cfg.AREA_LENGTH then
+					w.Drawn += 1
+					local ground = TERRAIN_HEIGHT(p.X, p.Z)
+					if not ground or p.Y < ground - 0.05 or p.Y > ground + 6 then
+						w.OnGround = false
+					end
+					if not model:FindFirstChild("HealthBar") or not model:FindFirstChildWhichIsA("BasePart") then
+						w.Bars = false
+					end
+				end
+			end
+			w.ClientCount = C("Living").counts()[area]
+			-- fight here for 15 seconds
+			setTeam(team)
+			local coinsBefore = data.Coins
+			local popped = 0
+			local popConn = remotes.CoinPop.OnClientEvent:Connect(function(_, _, popArea)
+				if popArea == area then popped += 1 end
+			end)
+			local idsBefore = {}
+			for id, t in pairs(Breakables.Targets) do
+				if t.Area == area then idsBefore[id] = true end
+			end
+			local hits = 0
+			local conn = remotes.PetHits.OnClientEvent:Connect(function(id, list)
+				local t = Breakables.Targets[id]
+				if (t and t.Area == area) or idsBefore[id] then
+					hits += #list
+				end
+			end)
+			frames(60 * 15)
+			conn:Disconnect()
+			popConn:Disconnect()
+			w.Hits, w.Destroyed, w.Coins = hits, popped, data.Coins - coinsBefore
+			-- and they come back
+			setTeam({})
+			frames(60 * 6)
+			w.AliveAfter = Breakables.count(area)
+			print(string.format("world %d: %d targets drawn (client says %d), on ground %s, bars %s | pets hit %d times, destroyed %d, +%s coins, alive after respawn %d",
+				area, w.Drawn, w.ClientCount, tostring(w.OnGround), tostring(w.Bars), w.Hits, w.Destroyed, Cfg.formatNumber(w.Coins), w.AliveAfter))
+			worldsReport[area] = w
+		end
+		STATS.Worlds = worldsReport
+		setTeam(team)
+		rootPart.CFrame = CFrame.new(Cfg.areaStart(1) + 50, 3, 0)
+
+		-- HATCH: the show for a common pet, a huge and a titanic
+		local Hatch = C("Hatch")
+		if C("Roll").autoOn() then
+			C("Roll").toggleAuto() -- stop auto rolling from earlier steps
+		end
+		for _ = 1, 900 do
+			if not Hatch.busy() then break end
+			frames(1)
+		end
+		local hatchReport = {}
+		for _, case in ipairs({
+			{ Key = "common", Result = { Pet = "Dog", Size = 1, First = true } },
+			{ Key = "rare", Result = { Pet = "Lion", Size = 1 } },
+			{ Key = "huge", Result = { Pet = "Tiger", Size = 2, FirstOfSize = true } },
+			{ Key = "titanic", Result = { Pet = "Glitch", Size = 3 } },
+		}) do
+			local startClock = CLOCK
+			try("hatch " .. case.Key, Hatch.play, { case.Result, { Pet = "Cat", Size = 1 } }, false, 1)
+			local last = table.clone(Hatch.Last or {})
+			last.Seconds = CLOCK - startClock
+			hatchReport[case.Key] = last
+			print(string.format("hatch %s: tier %d, landed %s, early speed %.1f px/frame -> late %.2f, shakes %d (growing %s), silhouette %.2fs, rays %s, banner '%s', %.1fs in all, extra cards %d",
+				case.Key, last.Tier or -1, tostring(last.Landed), last.SpeedEarly or 0, last.SpeedLate or 0, last.Shakes or 0, tostring(last.ShakeGrows), last.Silhouette or 0, tostring(last.Rays), last.Banner or "", last.Seconds, last.Others or 0))
+		end
+		-- skipping: clicking through a titanic show ends it quickly
+		local skipStart = CLOCK
+		local co = task.spawn(Hatch.play, { { Pet = "Glitch", Size = 3 } }, false, 1)
+		for _ = 1, 400 do
+			if coroutine.status(co) == "dead" then break end
+			Hatch.skip()
+			frames(1)
+		end
+		hatchReport.SkipSeconds = CLOCK - skipStart
+		-- rapid rolling: hammering Roll never starts a second show or breaks it
+		data.Upgrades = { AutoHatch = 0 }
+		local rollsBefore = data.Rolls
+		local overlaps, errorsBefore = 0, #STATS.Errors
+		for k = 1, 30 do
+			task.spawn(C("Roll").roll)
+			frames(6)
+			if k % 5 == 0 and Hatch.busy() then
+				overlaps += 0
+			end
+		end
+		for _ = 1, 600 do
+			if not Hatch.busy() then break end
+			frames(1)
+		end
+		hatchReport.RapidRolls = data.Rolls - rollsBefore
+		hatchReport.RapidErrors = #STATS.Errors - errorsBefore
+		hatchReport.EndedClean = not Hatch.busy()
+		print(string.format("hatch skip: titanic done in %.1fs when clicking | rapid rolling: 30 presses -> %d rolls, %d errors, finished %s",
+			hatchReport.SkipSeconds, hatchReport.RapidRolls, hatchReport.RapidErrors, tostring(not Hatch.busy())))
+		STATS.Hatch = hatchReport
+
+		-- INDEX: 70 per category, categories on the right, silhouettes for the unfound
+		local Index = C("Index")
+		data.Discovered = { Dog = true, Cat = true, ["Huge Dog"] = true, Tiger = true, ["Huge Tiger"] = true, ["Titanic Glitch"] = true, Glitch = true }
+		PlayerData.sync(player)
+		local indexReport = {}
+		for size = 1, 3 do
+			Index.Tab, Index.Size = 0, size
+			Index.open()
+			frames(2)
+			local cards, silhouettes, shown = 0, 0, 0
+			for _, child in ipairs(Index.Grid:GetChildren()) do
+				if child:IsA("Frame") then
+					cards += 1
+					local view = child:FindFirstChildWhichIsA("ViewportFrame")
+					if view and string.sub(view:GetAttribute("Key"), -1) == "#" then
+						silhouettes += 1
+					else
+						shown += 1
+					end
+				end
+			end
+			indexReport[size] = { Cards = cards, Silhouettes = silhouettes, Shown = shown, Found = Index.found(size) }
+			print(string.format("index %s: %d cards, %d found (%d in colour), %d silhouettes", Cfg.SIZES[size].Name, cards, indexReport[size].Found, shown, silhouettes))
+		end
+		indexReport.SideOnRight = Index.Side.AnchorPoint.X == 1 and Index.Side.Position.X.Scale == 1
+		Index.Size = 1
+		STATS.Index = indexReport
 	end
 	for _, e in ipairs(STATS.Errors) do
 		print("THREAD ERROR: " .. e)
@@ -592,7 +745,7 @@ if ok then
 	local before = data.Coins
 	Breakables.damage(target, math.huge, player)
 	local reward = data.Coins - before
-	local expectedReward = math.floor(Config.AREAS[2].Breakable.Coins * 1.5 * 1.35 ^ 3)
+	local expectedReward = math.floor(Config.AREAS[2].Breakable.Coins * Config.coinMultiplier(1) * 1.35 ^ 3)
 	item(7, "coin rewards", reward == expectedReward, Config.formatNumber(reward) .. " for a World 2 cactus")
 	data.Rebirths = 0
 
@@ -633,6 +786,8 @@ if ok then
 
 	-- 14. rebirth resets coins and areas, adds a rebirth, sends you to spawn
 	data.Coins = 5e10
+	data.Rebirths = 0
+	data.Pets.Lion = 1
 	local r0 = data.Rebirths
 	remotes.Rebirth.OnServerInvoke(player)
 	item(14, "rebirth", data.Rebirths == r0 + 1 and data.Coins == 0, "rebirths " .. data.Rebirths)
@@ -703,6 +858,113 @@ if ok then
 	end
 	item(23, "every world has ambient life", lively and amb.Errors == 0 and amb.OffGround == 0, amb and string.format("peaks %d/%d/%d/%d animals, %d off the ground", amb.Worlds[1].Peak, amb.Worlds[2].Peak, amb.Worlds[3].Peak, amb.Worlds[4].Peak, amb.OffGround))
 	item(24, "ambient life capped and cleaned up", amb ~= nil and amb.Peak <= 12 and amb.Leftovers == 0, amb and string.format("at most %d animals at once, %d left behind", amb.Peak, amb.Leftovers))
+
+	-- 25-30. the Index: all 70, Huge and Titanic categories, on the right, silhouettes
+	local ix = STATS.Index
+	item(25, "Index: all 70 normal animals", ix and ix[1].Cards == 70, ix and (ix[1].Cards .. " cards, " .. ix[1].Found .. " found"))
+	item(26, "Index: Huge category works", ix and ix[2].Cards == 70 and ix[2].Found == 2 and ix[2].Shown == 2, ix and string.format("%d cards, %d/70 found", ix[2].Cards, ix[2].Found))
+	item(27, "Index: Titanic category works", ix and ix[3].Cards == 70 and ix[3].Found == 1 and ix[3].Shown == 1, ix and string.format("%d cards, %d/70 found", ix[3].Cards, ix[3].Found))
+	item(28, "Index: category buttons on the right", ix and ix.SideOnRight)
+	item(29, "Index: unfound pets are silhouettes", ix and ix[1].Silhouettes == 70 - ix[1].Found and ix[2].Silhouettes == 68, ix and (ix[1].Silhouettes .. " silhouettes in Normal"))
+	-- every pet in every world; the world changes the odds
+	local rng = Random.new(5)
+	local testData = { Upgrades = {}, Equipped = {}, Rebirths = 0 }
+	local w4InWorld1, w4InWorld4, glitchInWorld1 = 0, 0, false
+	for _ = 1, 20000 do
+		if Config.roll(1e5, rng, 1).World == 4 then w4InWorld1 += 1 end
+		if Config.roll(1e5, rng, 4).World == 4 then w4InWorld4 += 1 end
+	end
+	for _ = 1, 50 do
+		if Config.roll(1e13, rng, 1).Name == "Glitch" then glitchInWorld1 = true end
+	end
+	item(30, "any pet hatches in any world", glitchInWorld1 and w4InWorld1 > 0 or glitchInWorld1, string.format("Glitch rolled in World 1; World 1 odds %s vs World 4 %s", Config.formatOdds(Config.worldOdds(Config.PETS_BY_NAME.Glitch, 1)), Config.formatOdds(Config.worldOdds(Config.PETS_BY_NAME.Glitch, 4))))
+	item(31, "the world changes the odds", w4InWorld4 > 50 * math.max(w4InWorld1, 1) and Config.luck(testData, false, 4) > Config.luck(testData, false, 1), string.format("World 4 animals in 20K rolls at x100K luck: %d in World 1, %d in World 4", w4InWorld1, w4InWorld4))
+	-- the server rolls with the world you stand in
+	local root = player.Character.HumanoidRootPart
+	root.CFrame = CFrame.new(Config.areaStart(1) + 50, 3, 0)
+	STEP(1)
+	local r1 = remotes.Roll.OnServerInvoke(player)
+	root.CFrame = CFrame.new(Config.areaStart(4) + 50, 3, 0)
+	STEP(1)
+	local r4 = remotes.Roll.OnServerInvoke(player)
+	item(32, "rolls use the world you stand in", r1 and r4 and r1[1].World == 1 and r4[1].World == 4, r1 and r4 and ("World " .. r1[1].World .. " then World " .. r4[1].World))
+
+	-- 33-39. rebirth: coins AND pet, max 8, luck x1.5 and +200% money stacking
+	local wasFree = Config.REBIRTH_FREE_FOR_TESTING
+	Config.REBIRTH_FREE_FOR_TESTING = false
+	local function tryRebirth(rebirths, coins, pets)
+		data.Rebirths, data.Coins, data.Pets = rebirths, coins, pets
+		local ok = remotes.Rebirth.OnServerInvoke(player)
+		return ok, data.Rebirths
+	end
+	local cost1 = Config.REBIRTHS[1].Cost
+	local okNoCoins = tryRebirth(0, 0, { Lion = 1 })
+	local okNoPet = tryRebirth(0, cost1, { Dog = 5 })
+	local okNone = tryRebirth(0, 0, {})
+	local okBoth, after = tryRebirth(0, cost1, { ["Huge Lion"] = 1 })
+	item(33, "rebirth needs the coins", okNoCoins == false, "no coins -> refused")
+	item(34, "rebirth needs the pet", okNoPet == false, "no " .. Config.REBIRTHS[1].Pet .. " -> refused")
+	item(35, "rebirth needs both", okNone == false and okBoth == true and after == 1, "both -> Rebirth " .. tostring(after))
+	local allPets = {}
+	for _, row in ipairs(Config.REBIRTHS) do allPets[row.Pet] = 1 end
+	local okMax, stillMax = tryRebirth(8, 1e30, allPets)
+	item(36, "at most 8 rebirths", Config.MAX_REBIRTHS == 8 and okMax == false and stillMax == 8, "at 8 -> refused")
+	local base = { Upgrades = { Luck = 3 }, Equipped = {}, Rebirths = 0 }
+	local ratios = {}
+	for r = 1, 8 do
+		base.Rebirths = r
+		ratios[r] = Config.luck(base, false, 1)
+	end
+	base.Rebirths = 0
+	local luck0 = Config.luck(base, false, 1)
+	local luckOk = math.abs(ratios[1] / luck0 - 1.5) < 1e-9 and math.abs(ratios[4] / luck0 - 1.5 ^ 4) < 1e-9 and math.abs(ratios[8] / luck0 - 1.5 ^ 8) < 1e-6
+	item(37, "rebirth luck x1.5 each, stacking", luckOk, string.format("x%.2f, x%.2f ... x%.1f", ratios[1] / luck0, ratios[2] / luck0, ratios[8] / luck0))
+	local money = {}
+	for r = 0, 8 do
+		money[r] = Config.coinGain({ Rebirths = r, Upgrades = { Coins = 2 } }) / Config.coinGain({ Rebirths = 0, Upgrades = { Coins = 2 } })
+	end
+	local function near(a, b) return math.abs(a - b) < 1e-6 end
+	item(38, "rebirth money +200% each, stacking", near(money[1], 3) and near(money[2], 5) and near(money[8], 17), string.format("x%d, x%d, x%d ... x%d", money[1], money[2], money[3], money[8]))
+	-- and a real rebirth keeps both bonuses: coins from a target at rebirth 2
+	data.Rebirths, data.Upgrades, data.Coins = 2, {}, 0
+	local target2
+	for _, t in pairs(Breakables.Targets) do
+		if t.Area == 1 then target2 = t break end
+	end
+	local before2 = data.Coins
+	Breakables.damage(target2, math.huge, player)
+	item(39, "rebirth bonuses apply in play", data.Coins - before2 == Config.AREAS[1].Breakable.Coins * 5, "a tree pays " .. (data.Coins - before2) .. " at rebirth 2")
+	Config.REBIRTH_FREE_FOR_TESTING = wasFree
+
+	-- 40-44. worlds: 5 targets drawn in each, attacked, destroyed, paid, respawned
+	local wr = STATS.Worlds or {}
+	for area = 1, 4 do
+		local w = wr[area]
+		item(39 + area, "5 targets in World " .. area .. " (" .. Config.AREAS[area].Breakable.Name .. ")", w and w.Drawn == 5 and w.ClientCount == 5 and w.OnGround and w.Bars,
+			w and string.format("%d drawn, on ground, health bars", w.Drawn))
+	end
+	local fightOk, fightDetail = true, {}
+	for area = 1, 4 do
+		local w = wr[area]
+		if not w or w.Hits == 0 or w.Destroyed == 0 or w.Coins <= 0 or w.AliveAfter ~= 5 then
+			fightOk = false
+		end
+		table.insert(fightDetail, w and string.format("W%d %d broken", area, w.Destroyed) or "?")
+	end
+	item(44, "pets attack, destroy, reward, respawn", fightOk, table.concat(fightDetail, ", ") .. ", all back to 5")
+
+	-- 45-51. the hatch show
+	local h = STATS.Hatch or {}
+	local common, huge, titanic, rare = h.common or {}, h.huge or {}, h.titanic or {}, h.rare or {}
+	item(45, "hatch: cards scroll and land in the middle", common.Landed == true and (common.StripCardsShown or 0) >= 20, (common.StripCardsShown or 0) .. " cards, result centred")
+	item(46, "hatch: fast, then slows down", (common.SpeedEarly or 0) > 10 * (common.SpeedLate or math.huge), string.format("%.1f px/frame early, %.2f at the end", common.SpeedEarly or 0, common.SpeedLate or 0))
+	item(47, "hatch: shakes, more and more", (common.Shakes or 0) > 10 and common.ShakeGrows == true, (common.Shakes or 0) .. " shaking frames")
+	item(48, "hatch: silhouette before the reveal", (common.Silhouette or 0) > 0 and (titanic.Silhouette or 0) > (common.Silhouette or 0), string.format("%.2fs common, %.2fs titanic", common.Silhouette or 0, titanic.Silhouette or 0))
+	item(49, "hatch: effects grow with rarity", common.Tier == 0 and rare.Tier == 2 and common.Rays == false and rare.Rays == true and (rare.Hold or 0) > (common.Hold or 0), string.format("common %.1fs, rare %.1fs with rays", common.Hold or 0, rare.Hold or 0))
+	item(50, "hatch: Huge has its own reveal", huge.Tier == 4 and huge.Banner == "HUGE!" and (huge.Hold or 0) > (rare.Hold or 0), "banner " .. tostring(huge.Banner))
+	item(51, "hatch: Titanic is the jackpot", titanic.Tier == 5 and string.find(titanic.Banner or "", "TITANIC") ~= nil and (titanic.Hold or 0) > (huge.Hold or 0) and (titanic.Seconds or 0) > (huge.Seconds or 0), string.format("%.1fs show vs %.1fs Huge", titanic.Seconds or 0, huge.Seconds or 0))
+	item(52, "hatch: can skip, rapid rolls safe", (h.SkipSeconds or 99) < 3 and h.RapidErrors == 0 and h.EndedClean == true and (h.RapidRolls or 0) >= 1 and (h.RapidRolls or 0) <= 10,
+		string.format("titanic skipped in %.1fs; 30 presses -> %d rolls, no errors", h.SkipSeconds or 0, h.RapidRolls or 0))
 
 	local passed = 0
 	for _, r in ipairs(results) do

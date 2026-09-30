@@ -1,18 +1,21 @@
--- UI theme and helpers: soft, futuristic glass panels, gradient buttons and
--- simple line icons drawn with frames (no image assets needed).
+-- UI theme and helpers. The look is friendly and cartoon-like: a rounded,
+-- bubbly font, candy-coloured gradient buttons with a dark cartoon outline
+-- and a shine on top, soft see-through panels, and simple icons drawn with
+-- frames (no image assets needed).
 local TweenService = game:GetService("TweenService")
 
 local Ui = {}
 
 -- Theme --------------------------------------------------------------------------
 
-Ui.FONT = Enum.Font.GothamBold
-Ui.FONT_MEDIUM = Enum.Font.GothamMedium
+Ui.FONT = Enum.Font.FredokaOne -- round and friendly, for titles, buttons, numbers
+Ui.FONT_MEDIUM = Enum.Font.GothamBold -- small print stays crisp
 
-Ui.GLASS = Color3.fromRGB(22, 25, 48)
-Ui.GLASS_LIGHT = Color3.fromRGB(36, 40, 72)
-Ui.TEXT = Color3.fromRGB(240, 242, 255)
-Ui.MUTED = Color3.fromRGB(150, 156, 195)
+Ui.GLASS = Color3.fromRGB(40, 32, 88)
+Ui.GLASS_LIGHT = Color3.fromRGB(70, 60, 135)
+Ui.INK = Color3.fromRGB(30, 20, 60) -- cartoon outlines
+Ui.TEXT = Color3.fromRGB(250, 248, 255)
+Ui.MUTED = Color3.fromRGB(175, 170, 220)
 -- the game's main colour: a warm orange -> hot pink gradient on the main action
 Ui.PRIMARY_A = Color3.fromRGB(255, 145, 60)
 Ui.PRIMARY_B = Color3.fromRGB(255, 60, 140)
@@ -80,7 +83,7 @@ function Ui.glass(props, children)
 	props.BackgroundTransparency = props.BackgroundTransparency or Ui.PANEL_TRANSPARENCY
 	local frame = Ui.new("Frame", props, children)
 	Ui.corner(radius).Parent = frame
-	local edge = Ui.stroke(Color3.new(1, 1, 1), 1.5, 0.82)
+	local edge = Ui.stroke(Color3.new(1, 1, 1), 2, 0.7)
 	edge.Name = "Edge"
 	edge.Parent = frame
 	-- soft sheen: slightly more see-through at the bottom
@@ -325,14 +328,22 @@ end
 -- Buttons ------------------------------------------------------------------------
 
 local STYLES = {
-	primary = { A = Ui.PRIMARY_A, B = Ui.PRIMARY_B, EdgeT = 0.55 },
-	glass = { Fill = Ui.GLASS, FillT = 0.18, EdgeT = 0.8 },
-	success = { A = Color3.fromRGB(60, 220, 150), B = Color3.fromRGB(40, 190, 215), EdgeT = 0.6 },
-	danger = { A = Color3.fromRGB(255, 95, 110), B = Color3.fromRGB(230, 60, 140), EdgeT = 0.6 },
-	disabled = { Fill = Ui.GLASS_LIGHT, FillT = 0.35, EdgeT = 0.9 },
+	primary = { A = Ui.PRIMARY_A, B = Ui.PRIMARY_B, EdgeT = 0.1 },
+	glass = { Fill = Ui.GLASS, FillT = 0.12, EdgeT = 0.75, Edge = Color3.new(1, 1, 1) },
+	success = { A = Color3.fromRGB(110, 235, 120), B = Color3.fromRGB(30, 190, 150), EdgeT = 0.1 },
+	danger = { A = Color3.fromRGB(255, 110, 120), B = Color3.fromRGB(230, 55, 120), EdgeT = 0.1 },
+	disabled = { Fill = Color3.fromRGB(85, 80, 125), FillT = 0.3, EdgeT = 0.6 },
+	blue = { A = Color3.fromRGB(90, 200, 255), B = Color3.fromRGB(70, 110, 255), EdgeT = 0.1 },
+	green = { A = Color3.fromRGB(150, 235, 90), B = Color3.fromRGB(50, 185, 110), EdgeT = 0.1 },
+	purple = { A = Color3.fromRGB(215, 130, 255), B = Color3.fromRGB(130, 80, 245), EdgeT = 0.1 },
+	gold = { A = Color3.fromRGB(255, 225, 90), B = Color3.fromRGB(255, 150, 40), EdgeT = 0.1 },
+	orange = { A = Color3.fromRGB(255, 185, 80), B = Color3.fromRGB(255, 110, 70), EdgeT = 0.1 },
+	gray = { A = Color3.fromRGB(170, 175, 215), B = Color3.fromRGB(110, 110, 170), EdgeT = 0.1 },
 }
+Ui.STYLES = STYLES
 
--- Restyles a button: "primary", "glass", "success", "danger" or "disabled"
+-- Restyles a button: "primary", "glass", "success", "danger", "disabled",
+-- or a colour: "blue", "green", "purple", "gold", "orange", "gray"
 function Ui.setStyle(button, styleName)
 	if button:GetAttribute("Style") == styleName then
 		return
@@ -351,6 +362,12 @@ function Ui.setStyle(button, styleName)
 		fill.Enabled = false
 	end
 	button.Edge.Transparency = style.EdgeT
+	button.Edge.Color = style.Edge or Ui.INK
+	local shine = button:FindFirstChild("Shine")
+	if shine then
+		shine.Visible = style.A ~= nil
+	end
+	button.Content.Label.TextStrokeTransparency = if style.A then 0.55 else 1
 	local color = if styleName == "disabled" then Ui.MUTED else Ui.TEXT
 	local content = button.Content
 	content.Label.TextColor3 = color
@@ -399,9 +416,19 @@ function Ui.button(props, onClick, styleName)
 	button.AutoButtonColor = false
 	button:SetAttribute("IconSize", iconSize)
 	Ui.new("UIGradient", { Name = "Fill", Parent = button })
-	local edge = Ui.stroke(Color3.new(1, 1, 1), 1.5, 0.8)
+	local edge = Ui.stroke(Ui.INK, 2.5, 0.1)
 	edge.Name = "Edge"
 	edge.Parent = button
+	-- a soft shine across the top, like a candy
+	Ui.new("Frame", {
+		Name = "Shine",
+		Position = UDim2.new(0, 5, 0, 3),
+		Size = UDim2.new(1, -10, 0.42, 0),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.78,
+		ZIndex = 0,
+		Parent = button,
+	}, { Ui.corner(math.max(radius - 3, 4)) })
 
 	local content = Ui.new("Frame", {
 		Name = "Content",
@@ -425,6 +452,7 @@ function Ui.button(props, onClick, styleName)
 		TextScaled = false,
 		TextSize = textSize,
 		Text = text,
+		TextStrokeColor3 = Ui.INK,
 		Visible = text ~= "",
 		Parent = content,
 	})
@@ -477,10 +505,10 @@ function Ui.dockButton(props, onClick)
 		Position = UDim2.new(0, -10, 0, size + 3),
 		Size = UDim2.new(1, 20, 0, 14),
 		TextScaled = false,
-		TextSize = 12,
+		TextSize = 14,
 		Text = props.Label or "",
-		TextStrokeTransparency = 0.5,
-		TextStrokeColor3 = Color3.fromRGB(10, 12, 30),
+		TextStrokeTransparency = 0.2,
+		TextStrokeColor3 = Ui.INK,
 		Parent = holder,
 	})
 	return holder, button
