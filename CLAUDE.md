@@ -32,9 +32,9 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 60-point player checklist (incl. levels, rebirth
-  keeping worlds, the vertical hatch, flex rolls never faking a result; (spawning, rolling, pets
-  fighting, coin jumps/landings/respawns, rewards, damage, luck, sizes,
+- The sim ends with a 60-point player checklist (spawning, rolling, pets
+  fighting, levels and EXP, rebirth keeping worlds, the vertical hatch, flex
+  rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
