@@ -1,0 +1,9 @@
+# Place files built by Rojo
+/*.rbxl
+/*.rbxlx
+
+# Roblox Studio lock files
+/*.rbxl.lock
+/*.rbxlx.lock
+
+sourcemap.json
