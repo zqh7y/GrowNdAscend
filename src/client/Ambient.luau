@@ -93,7 +93,7 @@ local DESPAWN_RANGE = 95
 Ambient.SOUNDS = {
 	Chirp = "rbxasset://sounds/electronicpingshort.wav",
 	Crack = "rbxasset://sounds/snap.mp3",
-	Wind = "rbxasset://sounds/swoosh.wav",
+	Wind = "", -- put a Creator Store wind sound id here (swoosh.wav isn't allowed in games)
 }
 Ambient.LOOPS = { "", "", "", "" }
 
@@ -194,7 +194,7 @@ end
 -- Sounds -----------------------------------------------------------------------------------------
 
 local function sound(name, at, pitch, volume)
-	if not State.Settings.Sounds then
+	if not State.Settings.Sounds or (Ambient.SOUNDS[name] or "") == "" then
 		return
 	end
 	local holder = Instance.new("Attachment")
