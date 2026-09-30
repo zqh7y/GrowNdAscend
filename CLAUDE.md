@@ -26,7 +26,17 @@ for how it plays and where the code lives.
   runtime errors outside Studio and print part counts per area:
   `python3 tools/sim/bundle.py . && luau tools/sim/run.luau`. It must print
   "server started OK". It checks types and sizes, not how things look.
+- The sim also plays as a fake player: rolls, buys upgrades, fuses, opens
+  every panel and lets the pets fight. Every step must run without a
+  "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
+  adding features.
 - Keep the map around 8-9K parts in total (the sim prints the counts).
+- Gameplay numbers live in `Config`: add pets to `PETS`, sizes to `SIZES`,
+  upgrade branches to `UPGRADES` (the upgrade tree draws itself from it).
+  Don't hard-code sizes or upgrade ids elsewhere.
+- The server owns positions and health of living coins and all combat;
+  the client only animates (Living.luau, Pets.luau) from attributes and the
+  PetHits / CoinPop events.
 - The map is built in code at server start (`src/server/World`). Every area
   is 100 x 70 studs; keep new props inside that footprint.
 - Art direction: kid-friendly, bright and highly detailed. `Build.part`

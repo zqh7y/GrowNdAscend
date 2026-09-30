@@ -26,5 +26,7 @@ end
 require(script.Leaderboards)
 require(script.Rolling)
 require(script.Breakables)
+require(script.Combat)
+require(script.Upgrades)
 require(script.Progress)
 require(script.Fusion)

@@ -1,5 +1,5 @@
--- Rolling pets and equipping them. The server picks every roll; the client
--- only asks and plays the reveal.
+-- Rolling pets and equipping them. The server picks every roll (pet and
+-- size); the client only asks and plays the reveal.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -18,6 +18,7 @@ end
 
 local rollFunction = remote("RemoteFunction", "Roll")
 local equipFunction = remote("RemoteFunction", "Equip")
+local equipBestFunction = remote("RemoteFunction", "EquipBest")
 
 local random = Random.new()
 local lastRoll = {} -- [player] = os.clock() of their last roll
@@ -33,6 +34,34 @@ end
 
 PlayerData.Loaded.Event:Connect(onLoaded)
 
+-- Equips the strongest pets the player owns, as many as they have slots for
+local function equipBest(data)
+	local owned = {}
+	for name, count in pairs(data.Pets) do
+		for _ = 1, math.min(count, Config.maxEquipped(data)) do
+			table.insert(owned, name)
+		end
+	end
+	table.sort(owned, function(a, b)
+		return Config.petPower(a) > Config.petPower(b)
+	end)
+	data.Equipped = {}
+	for i = 1, math.min(#owned, Config.maxEquipped(data)) do
+		table.insert(data.Equipped, owned[i])
+	end
+end
+
+-- How many of this pet are equipped
+local function equippedCount(data, name)
+	local n = 0
+	for _, equipped in ipairs(data.Equipped) do
+		if equipped == name then
+			n += 1
+		end
+	end
+	return n
+end
+
 rollFunction.OnServerInvoke = function(player)
 	local data = PlayerData.get(player)
 	if not data then
@@ -40,54 +69,67 @@ rollFunction.OnServerInvoke = function(player)
 	end
 	local now = os.clock()
 	-- a little slack for network jitter
-	if lastRoll[player] and now - lastRoll[player] < Config.ROLL_COOLDOWN * 0.9 then
+	if lastRoll[player] and now - lastRoll[player] < Config.rollCooldown(data) * 0.85 then
 		return nil
 	end
 	lastRoll[player] = now
 
-	data.Rolls += 1
-	local isBonus = data.Rolls % Config.BONUS_EVERY == 0
-	local luck = Config.luck(data.Equipped, isBonus)
-	local pet = Config.roll(luck, random)
+	local results = {}
+	local sizeLuck = Config.sizeLuck(data)
+	for _ = 1, Config.rollsAtOnce(data) do
+		data.Rolls += 1
+		local isBonus = data.Rolls % Config.BONUS_EVERY == 0
+		local pet = Config.roll(Config.luck(data, isBonus), random)
+		local sizeIndex = Config.rollSize(sizeLuck * (if isBonus then Config.BONUS_LUCK else 1), random)
+		local name = Config.petName(pet.Name, sizeIndex)
 
-	local isFirst = data.Pets[pet.Name] == nil -- 0 (all fused away) still counts as found
-	data.Pets[pet.Name] = (data.Pets[pet.Name] or 0) + 1
-	local best = data.Best and Config.PETS_BY_NAME[data.Best]
-	local isNewBest = not best or pet.Odds > best.Odds
-	if isNewBest then
-		data.Best = pet.Name
+		local isFirst = data.Pets[pet.Name] == nil and data.Pets[name] == nil
+		data.Pets[name] = (data.Pets[name] or 0) + 1
+		local best = data.Best and Config.PETS_BY_NAME[data.Best]
+		if not best or pet.Odds > best.Odds then
+			data.Best = pet.Name
+		end
+		table.insert(results, { Pet = pet.Name, Size = sizeIndex, Name = name, Bonus = isBonus, First = isFirst })
 	end
 
+	-- Auto Hatch level 3 keeps the strongest team equipped
+	if Config.upgradeLevel(data, "AutoHatch") >= 3 then
+		equipBest(data)
+	end
 	PlayerData.updateStrongest(player)
 	PlayerData.sync(player)
-	return {
-		Pet = pet.Name,
-		Bonus = isBonus,
-		Luck = luck,
-		NewBest = isNewBest,
-		First = isFirst,
-	}
+	return results
 end
 
--- Equips the pet, or unequips it if it's already equipped
-equipFunction.OnServerInvoke = function(player, name)
+-- Equips a pet, or unequips it. Several copies of the same pet can be
+-- equipped if you own them.
+equipFunction.OnServerInvoke = function(player, name, unequip)
 	local data = PlayerData.get(player)
-	if not data or type(name) ~= "string" then
-		return false
-	end
-	local pet, huge = Config.petInfo(name)
-	local owned = pet and (if huge then data.Huges[pet.Name] else data.Pets[pet.Name])
-	if not owned or owned <= 0 then
+	if not data or type(name) ~= "string" or not Config.petInfo(name) then
 		return false
 	end
 	local index = table.find(data.Equipped, name)
-	if index then
+	if unequip then
+		if not index then
+			return false
+		end
 		table.remove(data.Equipped, index)
-	elseif #data.Equipped < Config.MAX_EQUIPPED then
-		table.insert(data.Equipped, name)
 	else
+		if equippedCount(data, name) >= (data.Pets[name] or 0) or #data.Equipped >= Config.maxEquipped(data) then
+			return false
+		end
+		table.insert(data.Equipped, name)
+	end
+	PlayerData.sync(player)
+	return true
+end
+
+equipBestFunction.OnServerInvoke = function(player)
+	local data = PlayerData.get(player)
+	if not data then
 		return false
 	end
+	equipBest(data)
 	PlayerData.sync(player)
 	return true
 end

@@ -186,6 +186,9 @@ end
 function C3.ToHSV(c)
 	return 0.3, 0.5, math.max(c.R, c.G, c.B)
 end
+function C3.ToHex(c)
+	return string.format("%02x%02x%02x", c.R * 255, c.G * 255, c.B * 255)
+end
 function C3.Lerp(a, b, t)
 	assert(getmetatable(b) == C3, "Color3:Lerp needs a Color3")
 	return Color3.new(a.R + (b.R - a.R) * t, a.G + (b.G - a.G) * t, a.B + (b.B - a.B) * t)
@@ -198,11 +201,49 @@ local function valueType(name)
 	end
 	return t
 end
-UDim = valueType("UDim")
-UDim2 = valueType("UDim2")
-UDim2.fromOffset = UDim2.new
-UDim2.fromScale = UDim2.new
-Vector2 = valueType("Vector2")
+UDim = {}
+function UDim.new(scale, offset)
+	return { Scale = scale or 0, Offset = offset or 0 }
+end
+local U2 = {}
+U2.__index = U2
+UDim2 = {}
+function UDim2.new(xs, xo, ys, yo)
+	for _, v in ipairs({ xs or 0, xo or 0, ys or 0, yo or 0 }) do
+		assert(type(v) == "number" and v == v, "UDim2 needs numbers")
+	end
+	return setmetatable({ X = UDim.new(xs, xo), Y = UDim.new(ys, yo) }, U2)
+end
+function UDim2.fromOffset(x, y)
+	return UDim2.new(0, x, 0, y)
+end
+function UDim2.fromScale(x, y)
+	return UDim2.new(x, 0, y, 0)
+end
+U2.__add = function(a, b)
+	return UDim2.new(a.X.Scale + b.X.Scale, a.X.Offset + b.X.Offset, a.Y.Scale + b.Y.Scale, a.Y.Offset + b.Y.Offset)
+end
+U2.__sub = function(a, b)
+	return UDim2.new(a.X.Scale - b.X.Scale, a.X.Offset - b.X.Offset, a.Y.Scale - b.Y.Scale, a.Y.Offset - b.Y.Offset)
+end
+local V2 = {}
+V2.__index = V2
+Vector2 = {}
+function Vector2.new(x, y)
+	return setmetatable({ X = x or 0, Y = y or 0 }, V2)
+end
+V2.__add = function(a, b) return Vector2.new(a.X + b.X, a.Y + b.Y) end
+V2.__sub = function(a, b) return Vector2.new(a.X - b.X, a.Y - b.Y) end
+V2.__mul = function(a, b)
+	if type(a) == "number" then a, b = b, a end
+	return Vector2.new(a.X * b, a.Y * b)
+end
+V2.__div = function(a, b) return Vector2.new(a.X / b, a.Y / b) end
+V2.__index = function(v, k)
+	if k == "Magnitude" then return math.sqrt(v.X * v.X + v.Y * v.Y) end
+	return V2[k]
+end
+ColorSequenceKeypoint = valueType("ColorSequenceKeypoint")
 NumberSequence = valueType("NumberSequence")
 NumberSequenceKeypoint = valueType("NumberSequenceKeypoint")
 ColorSequence = valueType("ColorSequence")
@@ -261,13 +302,19 @@ end
 STATS = { Parts = 0, ByClass = {}, Errors = {} }
 
 local function signal()
+	local callbacks = {}
 	return {
 		Connect = function(self, fn)
 			assert(type(fn) == "function", "Connect needs a function")
+			table.insert(callbacks, fn)
 			return { Disconnect = function() end }
 		end,
 		Wait = function() end,
-		Fire = function() end,
+		Fire = function(self, ...)
+			for _, fn in ipairs(callbacks) do
+				task.spawn(fn, ...)
+			end
+		end,
 	}
 end
 
@@ -403,8 +450,9 @@ function methods:SetMaterialColor(mat, color)
 	assert(type(mat) == "table" and getmetatable(color) == C3, "SetMaterialColor args")
 end
 -- services
+PLAYERS = {}
 function methods:GetPlayers()
-	return {}
+	return table.clone(PLAYERS)
 end
 function methods:GetDataStore()
 	return { GetAsync = function() error("no API access") end, SetAsync = function() end }
@@ -412,25 +460,92 @@ end
 function methods:GetOrderedDataStore()
 	return { GetSortedAsync = function() error("no API access") end, SetAsync = function() end }
 end
-function methods:AddTag(inst, tag)
-	assert(type(tag) == "string", "AddTag")
+local TAGS = {} -- [tag] = { instances }
+local TAG_SIGNALS = {}
+local function tagSignals(tag)
+	TAG_SIGNALS[tag] = TAG_SIGNALS[tag] or { Added = signal(), Removed = signal() }
+	return TAG_SIGNALS[tag]
 end
-function methods:Create()
-	return { Play = function() end }
+function methods:AddTag(inst, tag)
+	assert(type(tag) == "string" and getmetatable(inst) == InstMT, "AddTag")
+	TAGS[tag] = TAGS[tag] or {}
+	table.insert(TAGS[tag], inst)
+	rawget(inst, "_attrs")["__tag_" .. tag] = true
+	tagSignals(tag).Added:Fire(inst)
+end
+function methods:GetTagged(tag)
+	local list = {}
+	for _, inst in ipairs(TAGS[tag] or {}) do
+		if rawget(inst, "_props").Parent then
+			table.insert(list, inst)
+		end
+	end
+	return list
+end
+function methods:GetInstanceAddedSignal(tag)
+	return tagSignals(tag).Added
+end
+function methods:GetInstanceRemovedSignal(tag)
+	return tagSignals(tag).Removed
+end
+function methods:Create(inst, info, goals)
+	assert(getmetatable(inst) == InstMT, "Tween target must be an Instance")
+	assert(type(goals) == "table", "Tween goals")
+	return { Play = function() end, Cancel = function() end, Completed = signal() }
 end
 function methods:GetPlayerByUserId()
 	return nil
 end
-function methods:FireClient() end
+function methods:FireClient(player, ...)
+	if self.ClassName == "RemoteEvent" then
+		self.OnClientEvent:Fire(...)
+	end
+end
+function methods:FireAllClients(...)
+	self.OnClientEvent:Fire(...)
+end
+function methods:InvokeServer(...)
+	assert(self.ClassName == "RemoteFunction", "InvokeServer on " .. self.ClassName)
+	assert(self.OnServerInvoke, "no server handler for " .. self.Name)
+	return self.OnServerInvoke(LOCAL_PLAYER, ...)
+end
+function methods:GetPropertyChangedSignal(name)
+	assert(type(name) == "string", "GetPropertyChangedSignal")
+	return self.Changed
+end
+function methods:WorldToViewportPoint(v)
+	assert(isV(v), "WorldToViewportPoint needs a Vector3")
+	return Vector3.new(400, 300, 10), true
+end
+function methods:Play() end
+function methods:Stop() end
+function methods:ClearAllChildren()
+	for _, c in ipairs(self:GetChildren()) do
+		c.Parent = nil
+	end
+end
+function methods:GetScale()
+	return 1
+end
+function methods:GetServerTimeNow()
+	return CLOCK
+end
 function methods:BindToClose(fn)
 	assert(type(fn) == "function", "BindToClose")
 end
 function methods:LoadCharacter() end
+function methods:Emit(n)
+	assert(self.ClassName == "ParticleEmitter", "Emit on " .. self.ClassName)
+end
 function methods:GetNameFromUserIdAsync()
 	return "Player"
 end
-function methods:FireAllClients() end
-function methods:Fire() end
+function methods:Fire(...)
+	-- BindableEvents: fire the Event signal's callbacks
+	if self.ClassName == "BindableEvent" then
+		self.Event:Fire(...)
+	end
+end
 
 InstMT.__index = function(self, k)
 	local props = rawget(self, "_props")
@@ -439,6 +554,12 @@ InstMT.__index = function(self, k)
 	end
 	if k == "Position" and props.CFrame then
 		return props.CFrame.Position
+	end
+	if k == "AbsolutePosition" or k == "AbsoluteSize" then
+		return Vector2.new(100, 50)
+	end
+	if k == "ViewportSize" then
+		return Vector2.new(1280, 760)
 	end
 	if methods[k] then
 		return methods[k]
@@ -501,6 +622,16 @@ function Instance.new(class, parent)
 		rawget(inst, "_props").Color = Color3.new(0.5, 0.5, 0.5)
 		rawget(inst, "_props").Transparency = 0
 	end
+	if GUI[class] then
+		local props = rawget(inst, "_props")
+		props.BackgroundTransparency = 0
+		props.Visible = true
+		props.Rotation = 0
+		props.Position = UDim2.new(0, 0, 0, 0)
+		props.Size = UDim2.new(0, 100, 0, 100)
+		props.TextTransparency = 0
+		props.Text = ""
+	end
 	STATS.ByClass[class] = (STATS.ByClass[class] or 0) + 1
 	if parent then
 		inst.Parent = parent
@@ -525,23 +656,51 @@ terrain.Name = "Terrain"
 terrain.Parent = workspace
 rawset(rawget(workspace, "_props"), "Terrain", terrain)
 
--- task: spawned threads run until they wait, then stop (loops run once)
+-- task: a fake clock. Threads that wait are resumed by STEP(dt).
+CLOCK = 0
+local realOs = os
+os = setmetatable({ clock = function() return CLOCK end, time = function() return math.floor(CLOCK) + 1000000 end }, { __index = realOs })
+local timers = {} -- { Wake, Thread, Args }
 task = {}
-function task.spawn(fn, ...)
-	local co = coroutine.create(fn)
+local function resume(co, ...)
 	local ok, err = coroutine.resume(co, ...)
 	if not ok then
-		table.insert(STATS.Errors, "task.spawn: " .. tostring(err))
+		table.insert(STATS.Errors, "thread: " .. tostring(err) .. "\n" .. debug.traceback(co))
 	end
+end
+function task.spawn(fn, ...)
+	local co = if type(fn) == "thread" then fn else coroutine.create(fn)
+	resume(co, ...)
 	return co
 end
-function task.wait()
-	if coroutine.isyieldable() then
-		coroutine.yield()
+function task.wait(n)
+	local co = coroutine.running()
+	if not coroutine.isyieldable() then
+		return 0
 	end
-	return 0
+	table.insert(timers, { Wake = CLOCK + (n or 0.03), Thread = co })
+	coroutine.yield()
+	return n or 0
 end
-function task.delay() end
+function task.delay(n, fn, ...)
+	table.insert(timers, { Wake = CLOCK + (n or 0), Thread = coroutine.create(fn), Args = table.pack(...) })
+end
+function STEP(dt)
+	CLOCK += dt
+	local due = {}
+	for i = #timers, 1, -1 do
+		if timers[i].Wake <= CLOCK then
+			table.insert(due, table.remove(timers, i))
+		end
+	end
+	for _, t in ipairs(due) do
+		if t.Args then
+			resume(t.Thread, table.unpack(t.Args, 1, t.Args.n))
+		else
+			resume(t.Thread)
+		end
+	end
+end
 function task.defer(fn, ...)
 	return task.spawn(fn, ...)
 end

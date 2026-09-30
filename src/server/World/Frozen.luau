@@ -467,7 +467,7 @@ end
 
 -- a clear cube with bright bevelled edges, a snowy top and a sparkle
 local function cube(model, rng, center, size)
-	local cf = CFrame.new(center) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 90)), 0)
+	local cf = CFrame.new(center) -- square to its hop direction, so the face sits on the front
 	local props = iceProps(rng, 0.25)
 	props.Size = Vector3.one * size
 	props.CFrame = cf
@@ -510,6 +510,9 @@ function Frozen.breakable(parent, position, rng)
 			Build.part(model, { Size = Vector3.new(1.2, 1.2, 1.2), CFrame = cf * CFrame.Angles(math.rad(45), 0, math.rad(45)), Color = gem, Material = Enum.Material.Neon, CanCollide = false })
 		end
 	end
+	-- a face on the front, the way it hops (the model turns as it moves)
+	local size = body.Size.X
+	Build.face(model, CFrame.new(body.Position + Vector3.new(0, 0.1 * size, -size / 2 - 0.05)), size / 4)
 	model.PrimaryPart = body
 	return model
 end

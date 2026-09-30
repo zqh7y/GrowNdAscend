@@ -515,7 +515,7 @@ local function fusionMachine(parent, center)
 		label.TextScaled = true
 		label.TextColor3 = if k == 1 then Color3.new(1, 1, 1) else Color3.fromRGB(255, 200, 230)
 		label.TextStrokeTransparency = 0.4
-		label.Text = if k == 1 then "PET FUSION" else "5 pets → 1 HUGE pet"
+		label.Text = if k == 1 then "PET FUSION" else "5 pets → 1 BIGGER pet"
 		label.Parent = gui
 	end
 
@@ -794,7 +794,13 @@ function Sahara.breakable(parent, position, rng)
 	for k = 1, 2 do
 		Build.ball(model, position + Vector3.new(k * 1.1 - 1.8, 0.3, 1.3), 0.6, { Color = Color3.fromRGB(215, 170, 120) })
 	end
-	model.PrimaryPart = pick(rng, kinds)(model, rng, position, color)
+	local kind = pick(rng, kinds)
+	model.PrimaryPart = kind(model, rng, position, color)
+	-- a face on the front of the body
+	local faceAt = if kind == barrel then position + Vector3.new(0, 1.8, -1.75)
+		elseif kind == pricklyPear then position + Vector3.new(0, 1.7, -0.35)
+		else position + Vector3.new(0, 3.6, -1)
+	Build.face(model, CFrame.new(faceAt), 0.85)
 	return model
 end
 

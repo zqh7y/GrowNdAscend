@@ -635,6 +635,7 @@ function Forest.breakable(parent, position, rng)
 		local a = k / 4 * math.pi * 2 + rng:NextNumber(-0.4, 0.4)
 		Build.ball(model, top + Vector3.new(math.cos(a) * 1.6, rng:NextNumber(-0.6, 0.6), math.sin(a) * 1.6), 0.6, { Color = fruit })
 	end
+	Build.face(model, CFrame.new(top + Vector3.new(0, -0.2, -1.75)), 0.9)
 	model.PrimaryPart = trunkPart
 	return model
 end

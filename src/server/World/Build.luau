@@ -72,6 +72,22 @@ function Build.leafCluster(parent, rng, center, size, color, detail)
 	end
 end
 
+-- A cute face for living coins: `cf` is the middle of the face, looking
+-- along its -Z (the way the coin hops), `size` scales it
+function Build.face(parent, cf, size)
+	size = size or 1
+	local ink = Color3.fromRGB(45, 45, 70)
+	for _, x in ipairs({ -0.38, 0.38 }) do
+		Build.ball(parent, (cf * CFrame.new(x * size, 0.1 * size, 0)).Position, 0.42 * size, { Color = ink, CanCollide = false })
+		Build.ball(parent, (cf * CFrame.new(x * size - 0.07 * size, 0.2 * size, -0.12 * size)).Position, 0.15 * size, { Color = Color3.new(1, 1, 1), CanCollide = false })
+		Build.ball(parent, (cf * CFrame.new(x * size * 1.55, -0.22 * size, 0.05 * size)).Position, 0.34 * size, { Color = Color3.fromRGB(255, 150, 180), CanCollide = false })
+	end
+	-- a smile: three little dots in a curve
+	for k = -1, 1 do
+		Build.ball(parent, (cf * CFrame.new(k * 0.16 * size, (-0.32 + math.abs(k) * 0.07) * size, 0)).Position, 0.13 * size, { Color = ink, CanCollide = false })
+	end
+end
+
 -- A rock made of a few tilted blocks; `cap` (optional) is a colour for moss
 -- or snow on top
 function Build.rock(parent, rng, base, size, color, cap)

@@ -20,6 +20,7 @@ Ui.ACCENT = Color3.fromRGB(80, 220, 255)
 Ui.SUCCESS = Color3.fromRGB(70, 225, 160)
 Ui.DANGER = Color3.fromRGB(255, 85, 110)
 Ui.GOLD = Color3.fromRGB(255, 205, 80)
+Ui.PANEL_TRANSPARENCY = 0.3 -- glassy panels; text on them stays fully opaque
 
 -- Basics -------------------------------------------------------------------------
 
@@ -76,7 +77,7 @@ function Ui.glass(props, children)
 	local radius = props.Radius or 18
 	props.Radius = nil
 	props.BackgroundColor3 = props.BackgroundColor3 or Ui.GLASS
-	props.BackgroundTransparency = props.BackgroundTransparency or 0.18
+	props.BackgroundTransparency = props.BackgroundTransparency or Ui.PANEL_TRANSPARENCY
 	local frame = Ui.new("Frame", props, children)
 	Ui.corner(radius).Parent = frame
 	local edge = Ui.stroke(Color3.new(1, 1, 1), 1.5, 0.82)
@@ -198,6 +199,97 @@ function Ui.icons.spark(parent, color)
 		})
 	end
 	dot(parent, 0.5, 0.5, 0.34, color)
+end
+
+-- gold coin with a ring and a shine
+function Ui.icons.coin(parent, color)
+	local coin = dot(parent, 0.5, 0.5, 0.92, color)
+	Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.58, 0.58),
+		BackgroundTransparency = 1,
+		Parent = coin,
+	}, { Ui.corner(0.5), Ui.stroke(color:Lerp(Color3.new(0, 0, 0), 0.25), 2) })
+	dot(coin, 0.32, 0.3, 0.18, Color3.new(1, 1, 1))
+end
+
+-- a sword pointing up and to the right
+function Ui.icons.sword(parent, color)
+	local holder = Ui.new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Rotation = 45, Parent = parent })
+	bar(holder, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0.02), Size = UDim2.fromScale(0.16, 0.62), BackgroundColor3 = color })
+	bar(holder, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.68), Size = UDim2.fromScale(0.52, 0.12), BackgroundColor3 = color })
+	bar(holder, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0.72), Size = UDim2.fromScale(0.13, 0.26), BackgroundColor3 = color })
+end
+
+-- four-leaf clover
+function Ui.icons.clover(parent, color)
+	for _, p in ipairs({ { 0.5, 0.26 }, { 0.26, 0.5 }, { 0.74, 0.5 }, { 0.5, 0.74 } }) do
+		dot(parent, p[1], p[2], 0.44, color)
+	end
+	dot(parent, 0.5, 0.5, 0.2, color:Lerp(Color3.new(1, 1, 1), 0.4))
+end
+
+-- lightning bolt
+function Ui.icons.bolt(parent, color)
+	bar(parent, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.56, 0.3), Size = UDim2.fromScale(0.2, 0.5), Rotation = 25, BackgroundColor3 = color })
+	bar(parent, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.5, 0.16), Rotation = -10, BackgroundColor3 = color })
+	bar(parent, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.44, 0.7), Size = UDim2.fromScale(0.2, 0.5), Rotation = 25, BackgroundColor3 = color })
+end
+
+-- a small square and a big one with an arrow between (size)
+function Ui.icons.grow(parent, color)
+	outline(parent, 0.3, 0.7, 0.3, 0.25, color)
+	outline(parent, 0.62, 0.38, 0.62, 0.2, color)
+	bar(parent, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.4, 0.12), Rotation = -45, BackgroundColor3 = color })
+end
+
+-- paw print
+function Ui.icons.paw(parent, color)
+	local pad = dot(parent, 0.5, 0.66, 0.5, color)
+	pad.Size = UDim2.fromScale(0.52, 0.42)
+	for _, p in ipairs({ { 0.2, 0.42 }, { 0.37, 0.2 }, { 0.63, 0.2 }, { 0.8, 0.42 } }) do
+		dot(parent, p[1], p[2], 0.22, color)
+	end
+end
+
+-- round tree with a trunk (the upgrade tree)
+function Ui.icons.tree(parent, color)
+	bar(parent, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(0.5, 0.98), Size = UDim2.fromScale(0.18, 0.42), BackgroundColor3 = color })
+	dot(parent, 0.5, 0.36, 0.58, color)
+	dot(parent, 0.27, 0.5, 0.36, color)
+	dot(parent, 0.73, 0.5, 0.36, color)
+end
+
+-- gear (settings)
+function Ui.icons.gear(parent, color)
+	for k = 0, 7 do
+		bar(parent, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.2, 0.96),
+			Rotation = k * 22.5,
+			BackgroundColor3 = color,
+		}).UICorner.CornerRadius = UDim.new(0.2, 0)
+	end
+	dot(parent, 0.5, 0.5, 0.72, color)
+	local hole = dot(parent, 0.5, 0.5, 0.3, color)
+	hole.BackgroundTransparency = 1
+	Ui.stroke(color, 2).Parent = hole
+end
+
+-- five-point star, drawn as a sparkle with a round centre (rebirth)
+function Ui.icons.star(parent, color)
+	for k = 0, 4 do
+		bar(parent, {
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.fromScale(0.5, 0.55),
+			Size = UDim2.fromScale(0.2, 0.5),
+			Rotation = k * 72,
+			BackgroundColor3 = color,
+		})
+	end
+	dot(parent, 0.5, 0.55, 0.42, color)
 end
 
 -- A standalone icon of the given pixel size
@@ -340,6 +432,39 @@ function Ui.button(props, onClick, styleName)
 	button.MouseButton1Up:Connect(settle)
 	button.Activated:Connect(onClick)
 	return button
+end
+
+-- A compact square icon button with a small label underneath (the dock).
+-- Returns the holder (for layout) and the button.
+function Ui.dockButton(props, onClick)
+	local size = props.Size or 56
+	local holder = Ui.new("Frame", {
+		Name = props.Name or props.Label or "DockButton",
+		LayoutOrder = props.LayoutOrder or 0,
+		Size = UDim2.fromOffset(size, size + 18),
+		BackgroundTransparency = 1,
+		Parent = props.Parent,
+	})
+	local button = Ui.button({
+		Size = UDim2.fromOffset(size, size),
+		Radius = math.floor(size * 0.32),
+		Icon = props.Icon,
+		IconSize = props.IconSize or math.floor(size * 0.5),
+		Text = "",
+		Parent = holder,
+	}, onClick, props.Style or "glass")
+	Ui.new("TextLabel", {
+		Name = "Caption",
+		Position = UDim2.new(0, -10, 0, size + 3),
+		Size = UDim2.new(1, 20, 0, 14),
+		TextScaled = false,
+		TextSize = 12,
+		Text = props.Label or "",
+		TextStrokeTransparency = 0.5,
+		TextStrokeColor3 = Color3.fromRGB(10, 12, 30),
+		Parent = holder,
+	})
+	return holder, button
 end
 
 -- Shows a panel (or a modal's dark background) and eases its box in

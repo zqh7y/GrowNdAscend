@@ -21,15 +21,15 @@ PlayerData.Loaded = Instance.new("BindableEvent")
 
 local DEFAULT = {
 	Rolls = 0,
-	Pets = {}, -- [pet name] = how many you've rolled
+	Pets = {}, -- [pet name with size, e.g. "Huge Tiger"] = how many you have
 	Equipped = {}, -- names of the pets following you (they add luck)
 	Best = nil, -- name of the rarest pet ever rolled
 	Coins = 0,
 	Unlocked = 1, -- highest area unlocked
 	Rebirths = 0,
 	Playtime = 0, -- seconds played
-	Huges = {}, -- [pet name] = how many huge versions you own
-	Fusion = nil, -- { Pet = name, Ends = os.time() } while the machine is fusing
+	Upgrades = {}, -- [upgrade id] = level bought in the upgrade tree
+	Fusion = nil, -- { Pet = name going in, Ends = os.time() } while the machine is fusing
 	Strongest = 0, -- power of the strongest pet ever owned
 }
 
@@ -49,12 +49,22 @@ local function load(player)
 	local data = table.clone(DEFAULT)
 	data.Pets = {}
 	data.Equipped = {}
-	data.Huges = {}
+	data.Upgrades = {}
 	if ok and saved then
 		for k, v in pairs(saved) do
 			data[k] = v
 		end
 	end
+	-- older saves kept huge pets in their own list; now every size lives in Pets
+	if data.Huges then
+		for name, count in pairs(data.Huges) do
+			local key = Config.petName(name, 2)
+			data.Pets[key] = (data.Pets[key] or 0) + count
+		end
+		data.Huges = nil
+	end
+	-- older fusions stored the result's base name; that's also the input now
+	-- (a normal pet fuses into its huge), so they carry on as they were
 
 	-- shows Rolls on the player list
 	local stats = Instance.new("Folder")
@@ -111,7 +121,7 @@ function PlayerData.sync(player)
 		Coins = data.Coins,
 		Unlocked = data.Unlocked,
 		Rebirths = data.Rebirths,
-		Huges = data.Huges,
+		Upgrades = data.Upgrades,
 		Fusion = data.Fusion,
 		ServerTime = os.time(),
 	})
@@ -123,11 +133,10 @@ function PlayerData.updateStrongest(player)
 	if not data then
 		return
 	end
-	for name in pairs(data.Pets) do
-		data.Strongest = math.max(data.Strongest, Config.petPower(name))
-	end
-	for name in pairs(data.Huges) do
-		data.Strongest = math.max(data.Strongest, Config.petPower(Config.HUGE_PREFIX .. name))
+	for name, count in pairs(data.Pets) do
+		if count > 0 then
+			data.Strongest = math.max(data.Strongest, Config.petPower(name))
+		end
 	end
 end
 

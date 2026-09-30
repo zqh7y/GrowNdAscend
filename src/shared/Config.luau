@@ -1,5 +1,8 @@
--- Pets, rarities, luck and formatting, shared by the server and the client.
+-- Pets, rarities, sizes, luck, upgrades, combat and formatting, shared by the
+-- server and the client so the UI always shows exactly what the server does.
 local Config = {}
+
+-- Pets -------------------------------------------------------------------------
 
 -- Every pet you can roll, from most common to rarest. Odds is "1 in Odds".
 Config.PETS = {
@@ -50,28 +53,84 @@ function Config.rarity(odds)
 	return Config.RARITIES[#Config.RARITIES]
 end
 
--- Rolling --------------------------------------------------------------------
+-- Sizes ---------------------------------------------------------------------------
 
-Config.ROLL_COOLDOWN = 1 -- seconds between rolls
-Config.BONUS_EVERY = 10 -- every 10th roll has bonus luck
-Config.BONUS_LUCK = 2
-Config.MAX_EQUIPPED = 3
-Config.AUTO_ROLL_AT = 50 -- rolls needed to unlock auto roll
-Config.BIG_ROLL = 1000 -- rolls this rare (1 in 1000+) get the big reveal
-
--- Equipped pets add luck: rarer pets add more (a 1 in 1000 pet is +45%,
--- its huge version twice that). Config.petInfo is defined further down.
-function Config.petLuck(pet)
-	return math.log10(pet.Odds) * 0.15
+-- Every roll also gets a size. To add a size (Giant, Massive, Colossal...),
+-- add a row here in order from smallest to biggest: nothing else hard-codes
+-- sizes. Chance is "1 in Chance" before Size Luck; Scale is how big the pet
+-- is drawn; Power and Luck multiply the pet's power and the luck it gives.
+Config.SIZES = {
+	{ Name = "Normal", Chance = 1, Scale = 1, Power = 1, Luck = 1, Color = Color3.fromRGB(240, 242, 255) },
+	{ Name = "Huge", Chance = 100, Scale = 2.5, Power = 10, Luck = 2, Color = Color3.fromRGB(255, 205, 60) },
+	{ Name = "Titanic", Chance = 1000, Scale = 5, Power = 100, Luck = 4, Color = Color3.fromRGB(255, 90, 200) },
+}
+for i, size in ipairs(Config.SIZES) do
+	size.Index = i
+	-- "Huge " is put in front of the pet's name ("Huge Tiger"); Normal has none
+	size.Prefix = if i == 1 then "" else size.Name .. " "
 end
 
-function Config.luck(equipped, isBonus)
-	local luck = 1
-	for _, name in ipairs(equipped) do
-		local pet, huge = Config.petInfo(name)
-		if pet then
-			luck += Config.petLuck(pet) * (if huge then 2 else 1)
+-- The saved/equipped name of a pet of a size: "Tiger", "Huge Tiger", ...
+function Config.petName(petName, sizeIndex)
+	return Config.SIZES[sizeIndex or 1].Prefix .. petName
+end
+
+-- "Titanic Tiger" -> Tiger's info, the Titanic size row
+function Config.petInfo(name)
+	if type(name) ~= "string" then
+		return nil, nil
+	end
+	for i = #Config.SIZES, 2, -1 do
+		local prefix = Config.SIZES[i].Prefix
+		if name:sub(1, #prefix) == prefix then
+			return Config.PETS_BY_NAME[name:sub(#prefix + 1)], Config.SIZES[i]
 		end
+	end
+	return Config.PETS_BY_NAME[name], Config.SIZES[1]
+end
+
+-- Rolls a size, rarest first; sizeLuck multiplies every non-normal chance
+function Config.rollSize(sizeLuck, random)
+	for i = #Config.SIZES, 2, -1 do
+		if random:NextNumber() < sizeLuck / Config.SIZES[i].Chance then
+			return i
+		end
+	end
+	return 1
+end
+
+-- Power and luck -------------------------------------------------------------------
+
+-- How hard a pet hits (rarer and bigger = stronger)
+function Config.petPower(name)
+	local pet, size = Config.petInfo(name)
+	if not pet then
+		return 0
+	end
+	return math.max(1, math.floor(math.sqrt(pet.Odds))) * size.Power
+end
+
+-- Equipped pets add luck: rarer pets add more (a 1 in 1000 pet is +45%),
+-- bigger sizes multiply it
+function Config.petLuck(name)
+	local pet, size = Config.petInfo(name)
+	if not pet then
+		return 0
+	end
+	return math.log10(pet.Odds) * 0.15 * size.Luck
+end
+
+-- Rolling --------------------------------------------------------------------------
+
+Config.BONUS_EVERY = 10 -- every 10th roll has bonus luck
+Config.BONUS_LUCK = 2
+Config.BIG_ROLL = 1000 -- rolls this rare (1 in 1000+), or any big size, get the big reveal
+Config.FUSE_COPIES = 5 -- the fusion machine turns 5 of a pet into 1 of the next size
+
+function Config.luck(data, isBonus)
+	local luck = Config.upgradeValue(data, "Luck")
+	for _, name in ipairs(data.Equipped) do
+		luck += Config.petLuck(name)
 	end
 	if isBonus then
 		luck *= Config.BONUS_LUCK
@@ -91,46 +150,233 @@ function Config.roll(luck, random)
 	return Config.PETS[1]
 end
 
--- Pet power and huge pets ------------------------------------------------------
-
-Config.HUGE_PREFIX = "Huge "
-Config.HUGE_POWER = 10 -- huge pets are 10x stronger
-Config.FUSE_COPIES = 5 -- copies of a pet the fusion machine needs for a huge
-
--- "Huge Tiger" -> Tiger's info, true
-function Config.petInfo(name)
-	if type(name) ~= "string" then
-		return nil, false
-	end
-	if name:sub(1, #Config.HUGE_PREFIX) == Config.HUGE_PREFIX then
-		return Config.PETS_BY_NAME[name:sub(#Config.HUGE_PREFIX + 1)], true
-	end
-	return Config.PETS_BY_NAME[name], false
+-- Seconds the fusion machine takes: rarer pets and bigger sizes take longer
+function Config.fuseTime(name)
+	local pet, size = Config.petInfo(name)
+	return (30 + (pet.Index - 1) * 20) * size.Index
 end
 
--- How hard a pet hits breakables (rarer = stronger)
-function Config.petPower(name)
-	local pet, huge = Config.petInfo(name)
-	if not pet then
-		return 0
-	end
-	local power = math.max(1, math.floor(math.sqrt(pet.Odds)))
-	return if huge then power * Config.HUGE_POWER else power
+-- Upgrades ---------------------------------------------------------------------------
+
+-- The upgrade tree. Each row is one branch; add a row to add a branch. Value
+-- gives the effect at a level (level 0 = not bought), Cost the price of the
+-- next level, Requires another branch's level before this one can start.
+-- Branches are drawn in this order, left to right.
+Config.UPGRADES = {
+	{
+		Id = "Coins",
+		Name = "Coins",
+		Icon = "coin",
+		Color = Color3.fromRGB(255, 200, 50),
+		Max = 10,
+		Describe = "More coins from everything your pets break",
+		Value = function(level)
+			return 1 + level * 0.25
+		end,
+		Format = function(value)
+			return "x" .. string.format("%.2f", value):gsub("%.?0+$", "") .. " coins"
+		end,
+		Cost = function(level)
+			return math.floor(25 * 2.2 ^ level)
+		end,
+	},
+	{
+		Id = "Damage",
+		Name = "Damage",
+		Icon = "sword",
+		Color = Color3.fromRGB(255, 95, 95),
+		Max = 10,
+		Describe = "Your pets hit harder",
+		Value = function(level)
+			return 1 + level * 0.2
+		end,
+		Format = function(value)
+			return "x" .. string.format("%.1f", value):gsub("%.?0+$", "") .. " damage"
+		end,
+		Cost = function(level)
+			return math.floor(30 * 2.2 ^ level)
+		end,
+	},
+	{
+		Id = "Luck",
+		Name = "Luck",
+		Icon = "clover",
+		Color = Color3.fromRGB(80, 220, 120),
+		Max = 10,
+		Describe = "Better chance of rare pets",
+		Value = function(level)
+			return 1 + level * 0.1
+		end,
+		Format = function(value)
+			return "x" .. string.format("%.1f", value):gsub("%.?0+$", "") .. " luck"
+		end,
+		Cost = function(level)
+			return math.floor(50 * 2.4 ^ level)
+		end,
+		Requires = { "Coins", 1 },
+	},
+	{
+		Id = "RollSpeed",
+		Name = "Roll Speed",
+		Icon = "bolt",
+		Color = Color3.fromRGB(80, 200, 255),
+		Max = 10,
+		Describe = "Less waiting between rolls",
+		Value = function(level)
+			return math.max(0.3, 1 - level * 0.07)
+		end,
+		Format = function(value)
+			return string.format("%.2f", value) .. "s per roll"
+		end,
+		Cost = function(level)
+			return math.floor(40 * 2.3 ^ level)
+		end,
+	},
+	{
+		Id = "Rolls",
+		Name = "Rolls at Once",
+		Icon = "dice",
+		Color = Color3.fromRGB(170, 120, 255),
+		Max = 4,
+		Describe = "Roll more pets with every click",
+		Value = function(level)
+			return 1 + level
+		end,
+		Format = function(value)
+			return value .. (if value == 1 then " pet" else " pets") .. " per roll"
+		end,
+		Cost = function(level)
+			return math.floor(500 * 6 ^ level)
+		end,
+		Requires = { "RollSpeed", 2 },
+	},
+	{
+		Id = "AutoHatch",
+		Name = "Auto Hatch",
+		Icon = "loop",
+		Color = Color3.fromRGB(60, 210, 200),
+		Max = 3,
+		Describe = "Rolls for you: unlock, then faster reveals, then auto-equip best",
+		Value = function(level)
+			return level
+		end,
+		Format = function(value)
+			return ({ [0] = "Locked", "Auto roll", "+ quick reveals", "+ auto-equip best" })[value]
+		end,
+		Cost = function(level)
+			return ({ 150, 5000, 50000 })[level + 1] or math.huge
+		end,
+		Requires = { "RollSpeed", 1 },
+	},
+	{
+		Id = "SizeLuck",
+		Name = "Size Luck",
+		Icon = "grow",
+		Color = Color3.fromRGB(255, 120, 200),
+		Max = 10,
+		Describe = "Better chance of Huge and Titanic pets",
+		Value = function(level)
+			return 1 + level * 0.15
+		end,
+		Format = function(value)
+			return "x" .. string.format("%.2f", value):gsub("%.?0+$", "") .. " size luck"
+		end,
+		Cost = function(level)
+			return math.floor(2000 * 3 ^ level)
+		end,
+		Requires = { "Luck", 2 },
+	},
+	{
+		Id = "Slots",
+		Name = "Pet Slots",
+		Icon = "paw",
+		Color = Color3.fromRGB(255, 150, 70),
+		Max = 3,
+		Describe = "Equip more pets at once",
+		Value = function(level)
+			return 3 + level
+		end,
+		Format = function(value)
+			return value .. " pets equipped"
+		end,
+		Cost = function(level)
+			return ({ 1000, 20000, 300000 })[level + 1] or math.huge
+		end,
+		Requires = { "Damage", 2 },
+	},
+}
+Config.UPGRADES_BY_ID = {}
+for _, upgrade in ipairs(Config.UPGRADES) do
+	Config.UPGRADES_BY_ID[upgrade.Id] = upgrade
 end
 
--- Damage per hit: 1 plus the power of every equipped pet
-function Config.hitDamage(equipped)
-	local damage = 1
-	for _, name in ipairs(equipped) do
-		damage += Config.petPower(name)
-	end
-	return damage
+function Config.upgradeLevel(data, id)
+	return (data.Upgrades and data.Upgrades[id]) or 0
 end
 
--- Seconds the fusion machine takes: rarer pets take longer
-function Config.fuseTime(pet)
-	return 30 + (pet.Index - 1) * 20
+function Config.upgradeValue(data, id)
+	return Config.UPGRADES_BY_ID[id].Value(Config.upgradeLevel(data, id))
 end
+
+-- Can this upgrade be bought now? Returns ok, reason
+function Config.canUpgrade(data, id)
+	local upgrade = Config.UPGRADES_BY_ID[id]
+	if not upgrade then
+		return false, "Unknown upgrade"
+	end
+	local level = Config.upgradeLevel(data, id)
+	if level >= upgrade.Max then
+		return false, "Maxed out!"
+	end
+	if upgrade.Requires and Config.upgradeLevel(data, upgrade.Requires[1]) < upgrade.Requires[2] then
+		local need = Config.UPGRADES_BY_ID[upgrade.Requires[1]]
+		return false, "Needs " .. need.Name .. " level " .. upgrade.Requires[2]
+	end
+	return true, nil
+end
+
+-- Things upgrades change -------------------------------------------------------------
+
+function Config.rollCooldown(data)
+	return Config.upgradeValue(data, "RollSpeed")
+end
+
+function Config.rollsAtOnce(data)
+	return Config.upgradeValue(data, "Rolls")
+end
+
+function Config.maxEquipped(data)
+	return Config.upgradeValue(data, "Slots")
+end
+
+function Config.sizeLuck(data)
+	return Config.upgradeValue(data, "SizeLuck")
+end
+
+-- Combat: pets fight the living coins -------------------------------------------------
+
+Config.PET_HIT_EVERY = 0.6 -- seconds between a pet's hits
+Config.PET_SPEED = 45 -- studs per second a pet runs to its target
+Config.FIGHT_RADIUS = 40 -- pets go after coins this close to the player
+
+function Config.hitDamage(data, name)
+	return Config.petPower(name) * Config.upgradeValue(data, "Damage")
+end
+
+-- Everything the team deals per second (shown on the team bar)
+function Config.teamDamage(data)
+	local total = 0
+	for _, name in ipairs(data.Equipped) do
+		total += Config.hitDamage(data, name) / Config.PET_HIT_EVERY
+	end
+	return total
+end
+
+-- Living coins hop around their home spot
+Config.HOP_EVERY = { 0.8, 1.3 } -- seconds between hops
+Config.HOP_DISTANCE = { 4, 6 } -- studs per hop
+Config.HOP_TIME = 0.45 -- seconds in the air
+Config.WANDER = 8 -- how far from home they wander
 
 -- Areas --------------------------------------------------------------------------
 
@@ -144,7 +390,7 @@ Config.AREAS = {
 		Name = "Forest",
 		Cost = 0,
 		Color = Color3.fromRGB(110, 210, 90),
-		Breakable = { Name = "Small Tree", Health = 12, Coins = 3 },
+		Breakable = { Name = "Tree", Health = 12, Coins = 3 },
 	},
 	{
 		Name = "Sahara",
@@ -207,9 +453,14 @@ function Config.coinMultiplier(rebirths)
 	return 1 + rebirths * Config.REBIRTH_BONUS
 end
 
+-- All coin bonuses together: rebirths and the Coins upgrade
+function Config.coinGain(data)
+	return Config.coinMultiplier(data.Rebirths) * Config.upgradeValue(data, "Coins")
+end
+
 -- Formatting -------------------------------------------------------------------
 
-local SUFFIXES = { "", "K", "M", "B", "T" }
+local SUFFIXES = { "", "K", "M", "B", "T", "Qa", "Qi" }
 
 function Config.formatNumber(n)
 	if n < 1000 then
