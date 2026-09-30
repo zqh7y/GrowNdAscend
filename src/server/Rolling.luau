@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local PlayerData = require(script.Parent.PlayerData)
-local Leaderboard = require(script.Parent.Leaderboard)
+local Leaderboard = require(script.Parent.Leaderboards)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 
@@ -16,30 +16,18 @@ local function remote(className, name)
 	return r
 end
 
-local stateEvent = remote("RemoteEvent", "State") -- server -> client: the player's data
 local rollFunction = remote("RemoteFunction", "Roll")
 local equipFunction = remote("RemoteFunction", "Equip")
 
 local random = Random.new()
 local lastRoll = {} -- [player] = os.clock() of their last roll
 
-local function sendState(player)
-	local data = PlayerData.get(player)
-	if data then
-		stateEvent:FireClient(player, {
-			Rolls = data.Rolls,
-			Pets = data.Pets,
-			Equipped = data.Equipped,
-			Best = data.Best,
-		})
-	end
-end
-
 local function onLoaded(player)
 	if not PlayerData.get(player) then
 		return
 	end
-	sendState(player)
+	PlayerData.updateStrongest(player)
+	PlayerData.sync(player)
 	Leaderboard.send(player)
 end
 
@@ -62,6 +50,7 @@ rollFunction.OnServerInvoke = function(player)
 	local luck = Config.luck(data.Equipped, isBonus)
 	local pet = Config.roll(luck, random)
 
+	local isFirst = data.Pets[pet.Name] == nil -- 0 (all fused away) still counts as found
 	data.Pets[pet.Name] = (data.Pets[pet.Name] or 0) + 1
 	local best = data.Best and Config.PETS_BY_NAME[data.Best]
 	local isNewBest = not best or pet.Odds > best.Odds
@@ -69,25 +58,26 @@ rollFunction.OnServerInvoke = function(player)
 		data.Best = pet.Name
 	end
 
-	local stats = player:FindFirstChild("leaderstats")
-	if stats then
-		stats.Rolls.Value = data.Rolls
-	end
-
-	sendState(player)
+	PlayerData.updateStrongest(player)
+	PlayerData.sync(player)
 	return {
 		Pet = pet.Name,
 		Bonus = isBonus,
 		Luck = luck,
 		NewBest = isNewBest,
-		First = data.Pets[pet.Name] == 1,
+		First = isFirst,
 	}
 end
 
 -- Equips the pet, or unequips it if it's already equipped
 equipFunction.OnServerInvoke = function(player, name)
 	local data = PlayerData.get(player)
-	if not data or type(name) ~= "string" or not data.Pets[name] then
+	if not data or type(name) ~= "string" then
+		return false
+	end
+	local pet, huge = Config.petInfo(name)
+	local owned = pet and (if huge then data.Huges[pet.Name] else data.Pets[pet.Name])
+	if not owned or owned <= 0 then
 		return false
 	end
 	local index = table.find(data.Equipped, name)
@@ -98,7 +88,7 @@ equipFunction.OnServerInvoke = function(player, name)
 	else
 		return false
 	end
-	sendState(player)
+	PlayerData.sync(player)
 	return true
 end
 

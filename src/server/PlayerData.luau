@@ -2,6 +2,13 @@
 -- PlayerData.get directly.
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+
+local stateEvent = Instance.new("RemoteEvent")
+stateEvent.Name = "State" -- server -> client: the player's data
+stateEvent.Parent = ReplicatedStorage:WaitForChild("Remotes")
 
 local store = DataStoreService:GetDataStore("RngData_v1")
 local AUTOSAVE_SECONDS = 60
@@ -17,6 +24,13 @@ local DEFAULT = {
 	Pets = {}, -- [pet name] = how many you've rolled
 	Equipped = {}, -- names of the pets following you (they add luck)
 	Best = nil, -- name of the rarest pet ever rolled
+	Coins = 0,
+	Unlocked = 1, -- highest area unlocked
+	Rebirths = 0,
+	Playtime = 0, -- seconds played
+	Huges = {}, -- [pet name] = how many huge versions you own
+	Fusion = nil, -- { Pet = name, Ends = os.time() } while the machine is fusing
+	Strongest = 0, -- power of the strongest pet ever owned
 }
 
 local sessionData = {} -- [player] = data while they're in game
@@ -35,6 +49,7 @@ local function load(player)
 	local data = table.clone(DEFAULT)
 	data.Pets = {}
 	data.Equipped = {}
+	data.Huges = {}
 	if ok and saved then
 		for k, v in pairs(saved) do
 			data[k] = v
@@ -48,6 +63,10 @@ local function load(player)
 	rolls.Name = "Rolls"
 	rolls.Value = data.Rolls
 	rolls.Parent = stats
+	local coins = Instance.new("StringValue")
+	coins.Name = "Coins"
+	coins.Value = Config.formatNumber(data.Coins)
+	coins.Parent = stats
 	stats.Parent = player
 
 	if player.Parent then
@@ -71,6 +90,45 @@ end
 
 function PlayerData.get(player)
 	return sessionData[player]
+end
+
+-- Sends the player's data to their client and updates the player list
+function PlayerData.sync(player)
+	local data = sessionData[player]
+	if not data then
+		return
+	end
+	local stats = player:FindFirstChild("leaderstats")
+	if stats then
+		stats.Rolls.Value = data.Rolls
+		stats.Coins.Value = Config.formatNumber(data.Coins)
+	end
+	stateEvent:FireClient(player, {
+		Rolls = data.Rolls,
+		Pets = data.Pets,
+		Equipped = data.Equipped,
+		Best = data.Best,
+		Coins = data.Coins,
+		Unlocked = data.Unlocked,
+		Rebirths = data.Rebirths,
+		Huges = data.Huges,
+		Fusion = data.Fusion,
+		ServerTime = os.time(),
+	})
+end
+
+-- Recomputes the strongest pet power (for the leaderboard) after pets change
+function PlayerData.updateStrongest(player)
+	local data = sessionData[player]
+	if not data then
+		return
+	end
+	for name in pairs(data.Pets) do
+		data.Strongest = math.max(data.Strongest, Config.petPower(name))
+	end
+	for name in pairs(data.Huges) do
+		data.Strongest = math.max(data.Strongest, Config.petPower(Config.HUGE_PREFIX .. name))
+	end
 end
 
 -- Runs fn(player, data) when a player leaves, before their data is dropped
@@ -113,6 +171,19 @@ game:BindToClose(function()
 			break
 		end
 		task.wait(0.1)
+	end
+end)
+
+-- count playtime
+task.spawn(function()
+	local last = os.clock()
+	while true do
+		task.wait(5)
+		local now = os.clock()
+		for _, data in pairs(sessionData) do
+			data.Playtime += now - last
+		end
+		last = now
 	end
 end)
 

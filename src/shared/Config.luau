@@ -59,7 +59,8 @@ Config.MAX_EQUIPPED = 3
 Config.AUTO_ROLL_AT = 50 -- rolls needed to unlock auto roll
 Config.BIG_ROLL = 1000 -- rolls this rare (1 in 1000+) get the big reveal
 
--- Equipped pets add luck: rarer pets add more (a 1 in 1000 pet is +45%)
+-- Equipped pets add luck: rarer pets add more (a 1 in 1000 pet is +45%,
+-- its huge version twice that). Config.petInfo is defined further down.
 function Config.petLuck(pet)
 	return math.log10(pet.Odds) * 0.15
 end
@@ -67,9 +68,9 @@ end
 function Config.luck(equipped, isBonus)
 	local luck = 1
 	for _, name in ipairs(equipped) do
-		local pet = Config.PETS_BY_NAME[name]
+		local pet, huge = Config.petInfo(name)
 		if pet then
-			luck += Config.petLuck(pet)
+			luck += Config.petLuck(pet) * (if huge then 2 else 1)
 		end
 	end
 	if isBonus then
@@ -88,6 +89,98 @@ function Config.roll(luck, random)
 		end
 	end
 	return Config.PETS[1]
+end
+
+-- Pet power and huge pets ------------------------------------------------------
+
+Config.HUGE_PREFIX = "Huge "
+Config.HUGE_POWER = 10 -- huge pets are 10x stronger
+Config.FUSE_COPIES = 5 -- copies of a pet the fusion machine needs for a huge
+
+-- "Huge Tiger" -> Tiger's info, true
+function Config.petInfo(name)
+	if type(name) ~= "string" then
+		return nil, false
+	end
+	if name:sub(1, #Config.HUGE_PREFIX) == Config.HUGE_PREFIX then
+		return Config.PETS_BY_NAME[name:sub(#Config.HUGE_PREFIX + 1)], true
+	end
+	return Config.PETS_BY_NAME[name], false
+end
+
+-- How hard a pet hits breakables (rarer = stronger)
+function Config.petPower(name)
+	local pet, huge = Config.petInfo(name)
+	if not pet then
+		return 0
+	end
+	local power = math.max(1, math.floor(math.sqrt(pet.Odds)))
+	return if huge then power * Config.HUGE_POWER else power
+end
+
+-- Damage per hit: 1 plus the power of every equipped pet
+function Config.hitDamage(equipped)
+	local damage = 1
+	for _, name in ipairs(equipped) do
+		damage += Config.petPower(name)
+	end
+	return damage
+end
+
+-- Seconds the fusion machine takes: rarer pets take longer
+function Config.fuseTime(pet)
+	return 30 + (pet.Index - 1) * 20
+end
+
+-- Areas --------------------------------------------------------------------------
+
+-- The map is 4 areas in a straight line along +X. Each is AREA_LENGTH long;
+-- players can walk anywhere with |Z| < AREA_HALF_WIDTH.
+Config.AREA_LENGTH = 200
+Config.AREA_HALF_WIDTH = 70
+
+Config.AREAS = {
+	{
+		Name = "Forest",
+		Cost = 0,
+		Color = Color3.fromRGB(110, 210, 90),
+		Breakable = { Name = "Small Tree", Health = 12, Coins = 3 },
+	},
+	{
+		Name = "Sahara",
+		Cost = 300,
+		Color = Color3.fromRGB(240, 190, 90),
+		Breakable = { Name = "Cactus", Health = 150, Coins = 25 },
+	},
+	{
+		Name = "Frozen Peaks",
+		Cost = 6000,
+		Color = Color3.fromRGB(140, 215, 255),
+		Breakable = { Name = "Ice Cube", Health = 1500, Coins = 200 },
+	},
+	{
+		Name = "Sakura Jungle",
+		Cost = 100000,
+		Color = Color3.fromRGB(255, 150, 200),
+		Breakable = { Name = "Sushi", Health = 15000, Coins = 1800 },
+	},
+}
+
+-- X where area i starts
+function Config.areaStart(i)
+	return (i - 1) * Config.AREA_LENGTH
+end
+
+-- Rebirth -------------------------------------------------------------------------
+
+Config.REBIRTH_BONUS = 0.5 -- +50% coins per rebirth
+
+function Config.rebirthCost(rebirths)
+	return 1e6 * (rebirths + 1)
+end
+
+function Config.coinMultiplier(rebirths)
+	return 1 + rebirths * Config.REBIRTH_BONUS
 end
 
 -- Formatting -------------------------------------------------------------------

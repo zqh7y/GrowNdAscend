@@ -29,11 +29,12 @@ local function part(parent, props)
 	return p
 end
 
-local function build(pet)
+local function build(name)
+	local pet, huge = Config.petInfo(name)
 	local rarity = Config.rarity(pet.Odds)
 	local rarityIndex = table.find(Config.RARITIES, rarity)
 	local model = Instance.new("Model")
-	model.Name = "Pet_" .. pet.Name
+	model.Name = "Pet_" .. name
 
 	local body = part(model, { Name = "Body", Shape = Enum.PartType.Ball, Size = Vector3.new(1.8, 1.8, 1.8), Color = pet.Color })
 	part(model, { Name = "Head", Shape = Enum.PartType.Ball, Size = Vector3.new(1.4, 1.4, 1.4), Color = pet.Color, CFrame = CFrame.new(0, 1.1, -0.45) })
@@ -75,12 +76,15 @@ local function build(pet)
 	label.Size = UDim2.fromScale(1, 1)
 	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
-	label.Text = pet.Name
-	label.TextColor3 = rarity.Color
+	label.Text = name
+	label.TextColor3 = if huge then Color3.fromRGB(255, 205, 80) else rarity.Color
 	label.TextStrokeTransparency = 0.3
 	label.Parent = tag
 
 	model.Parent = workspace
+	if huge then
+		model:ScaleTo(2)
+	end
 	return model
 end
 
@@ -97,9 +101,8 @@ function Pets.update(equipped)
 	end
 	followers = {}
 	for _, name in ipairs(equipped) do
-		local pet = Config.PETS_BY_NAME[name]
-		if pet then
-			table.insert(followers, kept[name] or { Name = name, Model = build(pet) })
+		if Config.petInfo(name) then
+			table.insert(followers, kept[name] or { Name = name, Model = build(name) })
 		end
 	end
 end
@@ -113,7 +116,7 @@ RunService.RenderStepped:Connect(function(dt)
 	local count = #followers
 	for i, follower in ipairs(followers) do
 		-- spread in an arc behind the player
-		local side = (i - (count + 1) / 2) * 3.2
+		local side = (i - (count + 1) / 2) * 4.5
 		local bob = math.sin(t * 4 + i) * 0.25
 		local goal = root.CFrame * CFrame.new(side, -1.6 + bob, 5)
 		local look = CFrame.lookAt(goal.Position, goal.Position + root.CFrame.LookVector)

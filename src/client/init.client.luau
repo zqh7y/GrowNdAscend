@@ -1,5 +1,6 @@
--- Client entry point: the Roll button (bottom middle), the reveal, auto roll,
--- the pets panel and the Most Rolls leaderboard.
+-- Client entry point: coins and rolls, the Roll button (bottom middle), the
+-- reveal, auto roll, the pets panel, the Most Rolls leaderboard, rebirths,
+-- the fusion machine screen, coin pops and toast messages.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -15,8 +16,15 @@ local stateEvent = remotes:WaitForChild("State")
 local rollFunction = remotes:WaitForChild("Roll")
 local equipFunction = remotes:WaitForChild("Equip")
 local leaderboardEvent = remotes:WaitForChild("Leaderboard")
+local notifyEvent = remotes:WaitForChild("Notify")
+local coinEvent = remotes:WaitForChild("CoinPop")
+local rebirthFunction = remotes:WaitForChild("Rebirth")
+local fusionOpenEvent = remotes:WaitForChild("FusionOpen")
+local fuseStartFunction = remotes:WaitForChild("FuseStart")
+local fuseCollectFunction = remotes:WaitForChild("FuseCollect")
 
 local state = nil -- latest data from the server
+local clockOffset = 0 -- server os.time() minus ours, for the fusion timer
 local rolling = false
 local autoRoll = false
 
@@ -47,24 +55,63 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitScre
 local statsBox = Ui.glass({
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 16),
-	Size = UDim2.fromOffset(340, 72),
+	Size = UDim2.fromOffset(340, 96),
 	Radius = 22,
 	Parent = gui,
 })
-local rollsText = Ui.new("TextLabel", {
+-- coins: a drawn gold coin and the amount
+local coinRow = Ui.new("Frame", {
 	Position = UDim2.fromOffset(0, 10),
-	Size = UDim2.new(1, 0, 0, 30),
+	Size = UDim2.new(1, 0, 0, 36),
+	BackgroundTransparency = 1,
+	Parent = statsBox,
+}, {
+	Ui.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+local coinIcon = Ui.new("Frame", {
+	LayoutOrder = 0,
+	Size = UDim2.fromOffset(26, 26),
+	BackgroundColor3 = Ui.GOLD,
+	Parent = coinRow,
+}, { Ui.corner(0.5), Ui.stroke(Color3.fromRGB(255, 240, 180), 2, 0.2) })
+Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.5),
+	Size = UDim2.fromScale(0.5, 0.5),
+	BackgroundTransparency = 1,
+	Parent = coinIcon,
+}, { Ui.corner(0.5), Ui.stroke(Color3.fromRGB(200, 140, 30), 2) })
+local coinsText = Ui.new("TextLabel", {
+	LayoutOrder = 1,
+	AutomaticSize = Enum.AutomaticSize.X,
+	Size = UDim2.fromOffset(0, 32),
 	TextScaled = false,
-	TextSize = 28,
+	TextSize = 30,
+	Text = "0",
+	TextColor3 = Ui.GOLD,
+	Parent = coinRow,
+})
+local rollsText = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 52),
+	Size = UDim2.new(1, 0, 0, 16),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 15,
 	Text = "0 ROLLS",
 	Parent = statsBox,
 })
 local bestText = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 44),
-	Size = UDim2.new(1, 0, 0, 18),
+	Position = UDim2.fromOffset(0, 72),
+	Size = UDim2.new(1, 0, 0, 14),
 	Font = Ui.FONT_MEDIUM,
 	TextScaled = false,
-	TextSize = 15,
+	TextSize = 13,
 	Text = "BEST  ·  nothing yet",
 	TextColor3 = Ui.MUTED,
 	Parent = statsBox,
@@ -152,15 +199,16 @@ local bigOdds = Ui.new("TextLabel", {
 })
 local bigScale = Ui.new("UIScale", { Parent = flash })
 
-local function bigReveal(pet)
+-- displayName is set for huge pets ("Huge Tiger")
+local function bigReveal(pet, displayName)
 	local rarity = Config.rarity(pet.Odds)
 	flashGlow.Color = ColorSequence.new(Color3.new(0, 0, 0), rarity.Color:Lerp(Color3.new(0, 0, 0), 0.4))
 	flash.BackgroundColor3 = Color3.new(1, 1, 1)
 	flash.BackgroundTransparency = 0
 	flash.Visible = true
-	bigRarity.Text = rarity.Name:upper()
-	bigRarity.TextColor3 = rarity.Color
-	bigName.Text = pet.Name
+	bigRarity.Text = (if displayName then "HUGE  ·  " else "") .. rarity.Name:upper()
+	bigRarity.TextColor3 = if displayName then Ui.GOLD else rarity.Color
+	bigName.Text = displayName or pet.Name
 	bigName.TextColor3 = Color3.new(1, 1, 1)
 	bigOdds.Text = Config.formatOdds(pet.Odds)
 	bigScale.Scale = 0.6
@@ -443,56 +491,63 @@ local petsGrid = scrollList(petsBox, 72, Ui.new("UIGridLayout", {
 	SortOrder = Enum.SortOrder.LayoutOrder,
 }))
 
-local petCells = {} -- [pet name] = { Name, Count, Luck, Equip }
-for _, pet in ipairs(Config.PETS) do
-	local rarity = Config.rarity(pet.Odds)
-	local frame = Ui.new("Frame", {
-		LayoutOrder = -pet.Index, -- rarest first
-		BackgroundColor3 = Ui.GLASS_LIGHT,
-		BackgroundTransparency = 0.3,
-		ZIndex = 32,
-		Parent = petsGrid,
-	}, { Ui.corner(16), Ui.padding(10), Ui.stroke(rarity.Color, 1.5, 0.45) })
-	-- rarity colour strip along the top
-	Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, -4),
-		Size = UDim2.new(0.4, 0, 0, 3),
-		BackgroundColor3 = rarity.Color,
-		ZIndex = 33,
-		Parent = frame,
-	}, { Ui.corner(0.5) })
-	local function line(y, size, font, text, color)
-		return Ui.new("TextLabel", {
-			Position = UDim2.fromOffset(0, y),
-			Size = UDim2.new(1, 0, 0, size + 2),
-			Font = font,
-			TextScaled = false,
-			TextSize = size,
-			Text = text,
-			TextColor3 = color,
+local petCells = {} -- [pet name or "Huge " .. name] = { Frame, Name, Count, Stats, Equip }
+for _, huge in ipairs({ false, true }) do
+	for _, pet in ipairs(Config.PETS) do
+		local name = if huge then Config.HUGE_PREFIX .. pet.Name else pet.Name
+		local rarity = Config.rarity(pet.Odds)
+		local frame = Ui.new("Frame", {
+			LayoutOrder = if huge then -1000 - pet.Index else -pet.Index, -- huges first, then rarest first
+			BackgroundColor3 = Ui.GLASS_LIGHT,
+			BackgroundTransparency = 0.3,
+			Visible = not huge, -- huge cells only show once you own one
+			ZIndex = 32,
+			Parent = petsGrid,
+		}, { Ui.corner(16), Ui.padding(10), Ui.stroke(if huge then Ui.GOLD else rarity.Color, if huge then 2.5 else 1.5, if huge then 0.1 else 0.45) })
+		-- rarity colour strip along the top
+		Ui.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, -4),
+			Size = UDim2.new(0.4, 0, 0, 3),
+			BackgroundColor3 = if huge then Ui.GOLD else rarity.Color,
 			ZIndex = 33,
 			Parent = frame,
-		})
+		}, { Ui.corner(0.5) })
+		local function line(y, size, font, text, color)
+			return Ui.new("TextLabel", {
+				Position = UDim2.fromOffset(0, y),
+				Size = UDim2.new(1, 0, 0, size + 2),
+				Font = font,
+				TextScaled = false,
+				TextSize = size,
+				Text = text,
+				TextColor3 = color,
+				ZIndex = 33,
+				Parent = frame,
+			})
+		end
+		local nameLabel = line(6, if huge then 16 else 19, Ui.FONT, "", Ui.TEXT)
+		line(32, 12, Ui.FONT, (if huge then "HUGE  ·  " else "") .. rarity.Name:upper(), if huge then Ui.GOLD else rarity.Color)
+		line(50, 13, Ui.FONT_MEDIUM, Config.formatOdds(pet.Odds), Ui.MUTED)
+		local countLabel = line(70, 13, Ui.FONT_MEDIUM, "", Ui.MUTED)
+		local luck = Config.petLuck(pet) * (if huge then 2 else 1)
+		local statsLabel = line(90, 12, Ui.FONT_MEDIUM,
+			Config.formatNumber(Config.petPower(name)) .. " POWER  ·  +" .. math.floor(luck * 100 + 0.5) .. "% LUCK",
+			Ui.SUCCESS)
+		local equip = Ui.button({
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 34),
+			Radius = 12,
+			Text = "EQUIP",
+			TextSize = 14,
+			ZIndex = 33,
+			Parent = frame,
+		}, function()
+			equipFunction:InvokeServer(name)
+		end, "success")
+		petCells[name] = { Frame = frame, Name = nameLabel, Count = countLabel, Stats = statsLabel, Equip = equip }
 	end
-	local nameLabel = line(6, 19, Ui.FONT, "", Ui.TEXT)
-	line(32, 12, Ui.FONT, rarity.Name:upper(), rarity.Color)
-	line(50, 13, Ui.FONT_MEDIUM, Config.formatOdds(pet.Odds), Ui.MUTED)
-	local countLabel = line(70, 13, Ui.FONT_MEDIUM, "", Ui.MUTED)
-	local luckLabel = line(90, 13, Ui.FONT_MEDIUM, "+" .. math.floor(Config.petLuck(pet) * 100 + 0.5) .. "% LUCK", Ui.SUCCESS)
-	local equip = Ui.button({
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 1, 0),
-		Size = UDim2.new(1, 0, 0, 34),
-		Radius = 12,
-		Text = "EQUIP",
-		TextSize = 14,
-		ZIndex = 33,
-		Parent = frame,
-	}, function()
-		equipFunction:InvokeServer(pet.Name)
-	end, "success")
-	petCells[pet.Name] = { Name = nameLabel, Count = countLabel, Luck = luckLabel, Equip = equip }
 end
 
 local function refreshPets()
@@ -500,33 +555,41 @@ local function refreshPets()
 		return
 	end
 	local found = 0
-	for _, pet in ipairs(Config.PETS) do
-		local cell = petCells[pet.Name]
-		local owned = state.Pets[pet.Name] or 0
-		local equipped = table.find(state.Equipped, pet.Name) ~= nil
-		if owned > 0 then
-			found += 1
-			cell.Name.Text = pet.Name
-			cell.Name.TextColor3 = Ui.TEXT
-			cell.Count.Text = "ROLLED x" .. Config.formatNumber(owned)
-			cell.Luck.Visible = true
-			cell.Equip.Visible = true
-			Ui.setText(cell.Equip, if equipped then "UNEQUIP" else "EQUIP")
-			Ui.setStyle(cell.Equip, if equipped
-				then "danger"
-				elseif #state.Equipped >= Config.MAX_EQUIPPED then "disabled"
-				else "success")
-		else
-			-- not found yet: show only the odds, as something to chase
-			cell.Name.Text = "???"
-			cell.Name.TextColor3 = Ui.MUTED
-			cell.Count.Text = "NOT FOUND YET"
-			cell.Luck.Visible = false
-			cell.Equip.Visible = false
+	for _, huge in ipairs({ false, true }) do
+		for _, pet in ipairs(Config.PETS) do
+			local name = if huge then Config.HUGE_PREFIX .. pet.Name else pet.Name
+			local cell = petCells[name]
+			local owned = (if huge then state.Huges[pet.Name] else state.Pets[pet.Name]) or 0
+			local everFound = huge or state.Pets[pet.Name] ~= nil -- 0 left after fusing still counts as found
+			local equipped = table.find(state.Equipped, name) ~= nil
+			if huge then
+				cell.Frame.Visible = owned > 0
+			elseif everFound then
+				found += 1
+			end
+			if everFound then
+				cell.Name.Text = name
+				cell.Name.TextColor3 = if huge then Ui.GOLD else Ui.TEXT
+				cell.Count.Text = if huge then "OWNED x" .. owned else "ROLLED x" .. Config.formatNumber(owned)
+				cell.Stats.Visible = true
+				cell.Equip.Visible = owned > 0
+				Ui.setText(cell.Equip, if equipped then "UNEQUIP" else "EQUIP")
+				Ui.setStyle(cell.Equip, if equipped
+					then "danger"
+					elseif #state.Equipped >= Config.MAX_EQUIPPED then "disabled"
+					else "success")
+			else
+				-- not found yet: show only the odds, as something to chase
+				cell.Name.Text = "???"
+				cell.Name.TextColor3 = Ui.MUTED
+				cell.Count.Text = "NOT FOUND YET"
+				cell.Stats.Visible = false
+				cell.Equip.Visible = false
+			end
 		end
 	end
 	petsTitle.Text = "Pets  ·  " .. found .. "/" .. #Config.PETS
-	equipHint.Text = "Equipped " .. #state.Equipped .. "/" .. Config.MAX_EQUIPPED .. "  ·  rarer pets give more luck"
+	equipHint.Text = "Equipped " .. #state.Equipped .. "/" .. Config.MAX_EQUIPPED .. "  ·  pets hit breakables and add luck"
 end
 
 -- Leaderboard ----------------------------------------------------------------------
@@ -554,12 +617,18 @@ local function sideButton(y, text, icon, onClick)
 	}, onClick, "glass")
 end
 
-sideButton(-36, "PETS", "grid", function()
+sideButton(-68, "PETS", "grid", function()
 	refreshPets()
 	Ui.popIn(petsModal)
 end)
-local boardButton = sideButton(36, "TOP", "podium", function()
+local boardButton = sideButton(0, "TOP", "podium", function()
 	Ui.popIn(boardModal)
+end)
+local rebirthModal -- built below
+local refreshRebirth
+sideButton(68, "REBIRTH", "loop", function()
+	refreshRebirth()
+	Ui.popIn(rebirthModal)
 end)
 
 local MEDALS = { Ui.GOLD, Color3.fromRGB(200, 210, 225), Color3.fromRGB(225, 150, 95) }
@@ -627,10 +696,326 @@ leaderboardEvent.OnClientEvent:Connect(function(entries)
 	Ui.setText(boardButton, if myRank then "TOP  #" .. myRank else "TOP")
 end)
 
+-- Toasts ------------------------------------------------------------------------------
+
+local toast = Ui.glass({
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 124),
+	Size = UDim2.fromOffset(0, 40),
+	AutomaticSize = Enum.AutomaticSize.X,
+	Radius = 20,
+	Visible = false,
+	ZIndex = 25,
+	Parent = gui,
+}, { Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 22), PaddingRight = UDim.new(0, 22) }) })
+local toastText = Ui.new("TextLabel", {
+	AutomaticSize = Enum.AutomaticSize.X,
+	Size = UDim2.fromOffset(0, 40),
+	TextScaled = false,
+	TextSize = 17,
+	ZIndex = 26,
+	Parent = toast,
+})
+local toastId = 0
+local TOAST_COLORS = { danger = Ui.DANGER, success = Ui.SUCCESS }
+
+local function showToast(text, style)
+	toastId += 1
+	local id = toastId
+	toastText.Text = text
+	toast.Edge.Color = TOAST_COLORS[style] or Ui.ACCENT
+	toast.Edge.Transparency = 0.1
+	Ui.popIn(toast)
+	task.delay(2.5, function()
+		if toastId == id then
+			toast.Visible = false
+		end
+	end)
+end
+notifyEvent.OnClientEvent:Connect(showToast)
+
+-- Coins popping out of broken things ---------------------------------------------------
+
+local coinScale = Ui.new("UIScale", { Parent = coinRow })
+
+coinEvent.OnClientEvent:Connect(function(position, coins)
+	local anchor = Instance.new("Part")
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.one
+	anchor.CFrame = CFrame.new(position)
+	anchor.Parent = workspace
+	local billboard = Ui.new("BillboardGui", {
+		Size = UDim2.fromOffset(160, 40),
+		AlwaysOnTop = true,
+		Adornee = anchor,
+		Parent = anchor,
+	})
+	local label = Ui.new("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		TextScaled = false,
+		TextSize = 26,
+		Text = "+" .. Config.formatNumber(coins),
+		TextColor3 = Ui.GOLD,
+		TextStrokeColor3 = Color3.fromRGB(90, 55, 0),
+		TextStrokeTransparency = 0.2,
+		Parent = billboard,
+	})
+	TweenService:Create(billboard, TweenInfo.new(1, Enum.EasingStyle.Quad), { StudsOffsetWorldSpace = Vector3.new(0, 5, 0) }):Play()
+	TweenService:Create(label, TweenInfo.new(1, Enum.EasingStyle.Quad), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	task.delay(1, function()
+		anchor:Destroy()
+	end)
+	-- the coin counter punches
+	coinScale.Scale = 1.15
+	TweenService:Create(coinScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+end)
+
+-- Rebirth ------------------------------------------------------------------------------
+
+local rebirthBox
+rebirthModal, rebirthBox = modal(460, 330)
+title(rebirthBox, "Rebirth")
+subtitle(rebirthBox, "Reset your coins and areas. You keep all your pets.")
+local rebirthBonus = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 84),
+	Size = UDim2.new(1, 0, 0, 40),
+	TextScaled = false,
+	TextSize = 34,
+	TextColor3 = Ui.GOLD,
+	ZIndex = 32,
+	Parent = rebirthBox,
+})
+Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 128),
+	Size = UDim2.new(1, 0, 0, 18),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 15,
+	Text = "COINS FROM EVERYTHING, FOREVER",
+	TextColor3 = Ui.MUTED,
+	ZIndex = 32,
+	Parent = rebirthBox,
+})
+local rebirthCost = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 162),
+	Size = UDim2.new(1, 0, 0, 20),
+	TextScaled = false,
+	TextSize = 17,
+	ZIndex = 32,
+	Parent = rebirthBox,
+})
+local rebirthButton = Ui.button({
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, 0),
+	Size = UDim2.new(1, 0, 0, 60),
+	Radius = 20,
+	Text = "REBIRTH",
+	Icon = "loop",
+	TextSize = 22,
+	ZIndex = 33,
+	Parent = rebirthBox,
+}, function()
+	if rebirthFunction:InvokeServer() then
+		rebirthModal.Visible = false
+	end
+end, "primary")
+
+function refreshRebirth()
+	if not state then
+		return
+	end
+	local cost = Config.rebirthCost(state.Rebirths)
+	rebirthBonus.Text = "x" .. Config.coinMultiplier(state.Rebirths) .. "  →  x" .. Config.coinMultiplier(state.Rebirths + 1)
+	rebirthCost.Text = "COSTS " .. Config.formatNumber(cost) .. " COINS  ·  YOU HAVE " .. Config.formatNumber(state.Coins)
+	rebirthCost.TextColor3 = if state.Coins >= cost then Ui.SUCCESS else Ui.MUTED
+	Ui.setStyle(rebirthButton, if state.Coins >= cost then "primary" else "disabled")
+end
+
+-- Fusion machine -----------------------------------------------------------------------
+
+local fusionModal, fusionBox = modal(560, 520)
+title(fusionBox, "Pet Fusion")
+subtitle(fusionBox, "Put in " .. Config.FUSE_COPIES .. " of the same pet, get a HUGE one with 10x power")
+
+-- shown while the machine is working
+local fusingCard = Ui.new("Frame", {
+	Position = UDim2.fromOffset(0, 76),
+	Size = UDim2.new(1, 0, 0, 190),
+	BackgroundColor3 = Ui.GLASS_LIGHT,
+	BackgroundTransparency = 0.3,
+	Visible = false,
+	ZIndex = 32,
+	Parent = fusionBox,
+}, { Ui.corner(18), Ui.padding(18) })
+local fusingName = Ui.new("TextLabel", {
+	Size = UDim2.new(1, 0, 0, 30),
+	TextScaled = false,
+	TextSize = 26,
+	TextColor3 = Ui.GOLD,
+	ZIndex = 33,
+	Parent = fusingCard,
+})
+local fusingTimer = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 40),
+	Size = UDim2.new(1, 0, 0, 22),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 18,
+	TextColor3 = Ui.MUTED,
+	ZIndex = 33,
+	Parent = fusingCard,
+})
+local fusingBarBack = Ui.new("Frame", {
+	Position = UDim2.fromOffset(0, 74),
+	Size = UDim2.new(1, 0, 0, 12),
+	BackgroundColor3 = Ui.GLASS,
+	ZIndex = 33,
+	Parent = fusingCard,
+}, { Ui.corner(0.5) })
+local fusingBar = Ui.new("Frame", {
+	Size = UDim2.fromScale(0, 1),
+	BackgroundColor3 = Color3.new(1, 1, 1),
+	ZIndex = 34,
+	Parent = fusingBarBack,
+}, { Ui.corner(0.5), Ui.new("UIGradient", { Color = ColorSequence.new(Ui.PRIMARY_A, Ui.PRIMARY_B) }) })
+local collectButton = Ui.button({
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, 0),
+	Size = UDim2.new(1, 0, 0, 52),
+	Radius = 18,
+	Text = "COLLECT",
+	TextSize = 20,
+	ZIndex = 34,
+	Parent = fusingCard,
+}, function()
+	local huge = fuseCollectFunction:InvokeServer()
+	if huge then
+		showToast(huge .. " is yours!", "success")
+		local pet = Config.petInfo(huge)
+		fusionModal.Visible = false
+		task.spawn(bigReveal, pet, huge)
+	end
+end, "disabled")
+
+-- shown when the machine is free: pets you have enough copies of
+local fuseList = scrollList(fusionBox, 76, Ui.new("UIListLayout", {
+	Padding = UDim.new(0, 8),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+}))
+local fuseEmpty = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 120),
+	Size = UDim2.new(1, 0, 0, 20),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 16,
+	Text = "Roll " .. Config.FUSE_COPIES .. " of the same pet to fuse it",
+	TextColor3 = Ui.MUTED,
+	ZIndex = 33,
+	Parent = fusionBox,
+})
+
+local function refreshFusion()
+	if not state then
+		return
+	end
+	local fusion = state.Fusion
+	fusingCard.Visible = fusion ~= nil
+	fuseList.Visible = fusion == nil
+	if fusion then
+		fuseEmpty.Visible = false
+		local pet = Config.PETS_BY_NAME[fusion.Pet]
+		local total = Config.fuseTime(pet)
+		local left = math.max(fusion.Ends - (os.time() + clockOffset), 0)
+		fusingName.Text = "HUGE " .. fusion.Pet:upper()
+		fusingTimer.Text = if left > 0 then string.format("Ready in %d:%02d", left // 60, left % 60) else "Ready!"
+		fusingBar.Size = UDim2.fromScale(1 - left / total, 1)
+		Ui.setStyle(collectButton, if left > 0 then "disabled" else "primary")
+		return
+	end
+
+	for _, child in ipairs(fuseList:GetChildren()) do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	local count = 0
+	for _, pet in ipairs(Config.PETS) do
+		local owned = state.Pets[pet.Name] or 0
+		if owned >= Config.FUSE_COPIES then
+			count += 1
+			local row = Ui.new("Frame", {
+				LayoutOrder = -pet.Index,
+				Size = UDim2.new(1, 0, 0, 58),
+				BackgroundColor3 = Ui.GLASS_LIGHT,
+				BackgroundTransparency = 0.35,
+				ZIndex = 32,
+				Parent = fuseList,
+			}, { Ui.corner(14), Ui.stroke(Config.rarity(pet.Odds).Color, 1.5, 0.5) })
+			Ui.new("TextLabel", {
+				Position = UDim2.fromOffset(16, 8),
+				Size = UDim2.new(1, -170, 0, 22),
+				TextScaled = false,
+				TextSize = 19,
+				Text = pet.Name,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ZIndex = 33,
+				Parent = row,
+			})
+			local seconds = Config.fuseTime(pet)
+			Ui.new("TextLabel", {
+				Position = UDim2.fromOffset(16, 32),
+				Size = UDim2.new(1, -170, 0, 16),
+				Font = Ui.FONT_MEDIUM,
+				TextScaled = false,
+				TextSize = 13,
+				Text = "x" .. owned .. " owned  ·  " .. string.format("%d:%02d", seconds // 60, seconds % 60) .. "  ·  "
+					.. Config.formatNumber(Config.petPower(Config.HUGE_PREFIX .. pet.Name)) .. " power",
+				TextColor3 = Ui.MUTED,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ZIndex = 33,
+				Parent = row,
+			})
+			Ui.button({
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -10, 0.5, 0),
+				Size = UDim2.fromOffset(130, 40),
+				Radius = 14,
+				Text = "FUSE " .. Config.FUSE_COPIES,
+				TextSize = 15,
+				ZIndex = 34,
+				Parent = row,
+			}, function()
+				fuseStartFunction:InvokeServer(pet.Name)
+			end, "primary")
+		end
+	end
+	fuseEmpty.Visible = count == 0
+end
+
+fusionOpenEvent.OnClientEvent:Connect(function()
+	refreshFusion()
+	Ui.popIn(fusionModal)
+end)
+
+-- keep the timer ticking while the screen is open
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		if fusionModal.Visible and state and state.Fusion then
+			refreshFusion()
+		end
+	end
+end)
+
 -- Updates ------------------------------------------------------------------------
 
 stateEvent.OnClientEvent:Connect(function(newState)
 	state = newState
+	clockOffset = state.ServerTime - os.time()
+	coinsText.Text = Config.formatNumber(state.Coins)
 	rollsText.Text = commas(state.Rolls) .. (if state.Rolls == 1 then " ROLL" else " ROLLS")
 	local best = state.Best and Config.PETS_BY_NAME[state.Best]
 	if best then
@@ -642,5 +1027,11 @@ stateEvent.OnClientEvent:Connect(function(newState)
 	refreshAuto()
 	if petsModal.Visible then
 		refreshPets()
+	end
+	if rebirthModal.Visible then
+		refreshRebirth()
+	end
+	if fusionModal.Visible then
+		refreshFusion()
 	end
 end)
