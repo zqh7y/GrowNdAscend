@@ -527,6 +527,10 @@ function methods:FillCylinder(cf, height, radius, mat)
 	table.insert(TERRAIN_OPS, { Kind = "cylinder", C = p, R = radius, Y0 = p.Y - height / 2, Y1 = p.Y + height / 2, Air = mat.Name == "Air" })
 end
 -- the surface height at (x, z) after all the fills, or nil
+-- Roblox's real terrain surface doesn't come out at exactly Y = 0 (in the
+-- game it was 1.63), so the mock's ground sits a little higher too: code
+-- that assumes Y = 0 fails here the way it fails in Roblox
+TERRAIN_OFFSET = 1.63
 function TERRAIN_HEIGHT(x, z)
 	local h = nil
 	for _, op in ipairs(TERRAIN_OPS) do
@@ -555,7 +559,7 @@ function TERRAIN_HEIGHT(x, z)
 			end
 		end
 	end
-	return h
+	return h and h + TERRAIN_OFFSET
 end
 function methods:Raycast(origin, direction, params)
 	assert(isV(origin) and isV(direction), "Raycast needs Vector3s")

@@ -39,10 +39,16 @@ end
 
 -- True if the ground around (x, z) is flat and at walking height (not on a
 -- drift, a hill's edge or in a pond)
+-- (flat compared with the ground's own height there: Roblox's terrain
+-- surface doesn't come out at exactly Y = 0, so never assume it does)
 function World.flatGround(x, z, radius)
-	for _, offset in ipairs({ { 0, 0 }, { radius, 0 }, { -radius, 0 }, { 0, radius }, { 0, -radius } }) do
+	local center = World.groundAt(x, z)
+	if not center then
+		return false
+	end
+	for _, offset in ipairs({ { radius, 0 }, { -radius, 0 }, { 0, radius }, { 0, -radius } }) do
 		local y = World.groundAt(x + offset[1], z + offset[2])
-		if not y or math.abs(y) > 0.6 then
+		if not y or math.abs(y - center) > 0.6 then
 			return false
 		end
 	end

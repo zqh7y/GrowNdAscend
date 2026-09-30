@@ -21,7 +21,7 @@ if World then
 			worst = math.max(worst, TERRAIN_HEIGHT(x, z) or -math.huge)
 		end
 	end
-	check(worst <= 0.01, "terrain sticks up to " .. worst .. " inside the playable strip")
+	check(worst <= TERRAIN_OFFSET + 0.01, "terrain sticks up to " .. worst .. " inside the playable strip")
 	print(string.format("highest terrain inside the playable strip: %.2f", worst))
 	-- the spawn pad and every area's spawn point sit on the ground
 	local pad = workspace.Map.Spawn
@@ -849,7 +849,7 @@ if ok then
 				worst = math.max(worst, TERRAIN_HEIGHT(x, z) or -math.huge)
 			end
 		end
-		return worst <= 0.01
+		return worst <= TERRAIN_OFFSET + 0.01
 	end)(), "no terrain above the ground in the play area")
 
 	-- 21-24: animals, the index, and the living worlds

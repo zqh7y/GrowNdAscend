@@ -32,8 +32,8 @@ local NEAR = 160 -- coins further than this from the camera update less often
 -- nothing is found.
 local Ground = require(script.Parent.Ground)
 local function onGround(position)
-	local y = Ground.at(position.X, position.Z, position.Y + 8, 60)
-	return if y then Vector3.new(position.X, y, position.Z) else position
+	local y = Ground.at(position.X, position.Z, position.Y + 20, 80)
+	return if y then Vector3.new(position.X, y, position.Z) else position, y ~= nil
 end
 
 local visuals = Instance.new("Folder")
@@ -322,9 +322,15 @@ RunService.RenderStepped:Connect(function(dt)
 		local from = data:GetAttribute("HopFrom")
 		local to = data:GetAttribute("HopTo")
 		-- measure the ground under both ends of the jump (once per jump)
-		if coin.HopKey ~= to then
+		-- (again every second until both are found: right after joining the
+		-- terrain may not have loaded on this screen yet)
+		if coin.HopKey ~= to or (not coin.Measured and clock >= (coin.NextMeasure or 0)) then
 			coin.HopKey = to
-			coin.From, coin.To = onGround(from), onGround(to)
+			local foundFrom, foundTo
+			coin.From, foundFrom = onGround(from)
+			coin.To, foundTo = onGround(to)
+			coin.Measured = foundFrom and foundTo
+			coin.NextMeasure = clock + 1
 		end
 		from, to = coin.From, coin.To
 		local start = data:GetAttribute("HopStart") or 0
