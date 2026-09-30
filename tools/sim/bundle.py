@@ -10,7 +10,11 @@ def add(key, path):
     src = open(path).read()
     mods[key] = path
     out.append(f"__src[{key!r}] = function(script)\n{src}\nend\n")
-add("Config", f"{root}/src/shared/Config.luau")
+shared_mods = []
+for f in sorted(os.listdir(f"{root}/src/shared")):
+    if f.endswith(".luau"):
+        add("Shared/" + f[:-5], f"{root}/src/shared/{f}")
+        shared_mods.append(f[:-5])
 for f in sorted(os.listdir(f"{root}/src/server")):
     p = f"{root}/src/server/{f}"
     if f.endswith(".luau"):
@@ -40,12 +44,15 @@ local function module(name, parent, key)
 end
 local rs = game:GetService("ReplicatedStorage")
 local shared = Instance.new("Folder"); shared.Name = "Shared"; shared.Parent = rs
-module("Config", shared, "Config")
+''')
+for name in shared_mods:
+    out.append(f'module({name!r}, shared, "Shared/{name}")\n')
+out.append(r'''
 local sss = game:GetService("ServerScriptService")
 local server = module("Server", sss, "init")
 ''')
 for key in mods:
-    if key in ("Config", "init"): continue
+    if key == "init" or key.startswith("Shared/"): continue
     if key.startswith("World/") or key.startswith("Client/"):
         continue
     out.append(f'module({key!r}, server, {key!r})\n')

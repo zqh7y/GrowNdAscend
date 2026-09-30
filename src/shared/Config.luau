@@ -27,9 +27,22 @@ Config.PETS = {
 	{ Name = "Galaxy Whale", Odds = 1000000, Color = Color3.fromRGB(70, 60, 200) },
 	{ Name = "Glitch", Odds = 10000000, Color = Color3.fromRGB(0, 255, 140) },
 }
+-- Power grows a little faster than rarity: power = 1M x (odds / 1000)^1.17,
+-- so a Dog is ~700, a Tiger 1M, a Galaxy Whale ~3.2B and a Glitch ~48B.
+-- (tools/economy/simulate.py checks this curve against the progression targets)
+Config.POWER_AT_1000 = 1e6
+Config.POWER_CURVE = 1.17
+
+local function roundTo3(n)
+	local digits = math.floor(math.log10(n)) - 2
+	local unit = 10 ^ math.max(digits, 0)
+	return math.floor(n / unit + 0.5) * unit
+end
+
 Config.PETS_BY_NAME = {}
 for i, pet in ipairs(Config.PETS) do
 	pet.Index = i
+	pet.Power = roundTo3(Config.POWER_AT_1000 * (pet.Odds / 1000) ^ Config.POWER_CURVE)
 	Config.PETS_BY_NAME[pet.Name] = pet
 end
 
@@ -59,10 +72,12 @@ end
 -- add a row here in order from smallest to biggest: nothing else hard-codes
 -- sizes. Chance is "1 in Chance" before Size Luck; Scale is how big the pet
 -- is drawn; Power and Luck multiply the pet's power and the luck it gives.
+--
+-- The best pet in the game is a Titanic Glitch: 48B x 100 = ~4.8T.
 Config.SIZES = {
 	{ Name = "Normal", Chance = 1, Scale = 1, Power = 1, Luck = 1, Color = Color3.fromRGB(240, 242, 255) },
-	{ Name = "Huge", Chance = 100, Scale = 2.5, Power = 10, Luck = 2, Color = Color3.fromRGB(255, 205, 60) },
-	{ Name = "Titanic", Chance = 1000, Scale = 5, Power = 100, Luck = 4, Color = Color3.fromRGB(255, 90, 200) },
+	{ Name = "Huge", Chance = 100, Scale = 2, Power = 10, Luck = 2, Color = Color3.fromRGB(255, 205, 60) },
+	{ Name = "Titanic", Chance = 1000, Scale = 3.4, Power = 100, Luck = 4, Color = Color3.fromRGB(255, 90, 200) },
 }
 for i, size in ipairs(Config.SIZES) do
 	size.Index = i
@@ -107,17 +122,17 @@ function Config.petPower(name)
 	if not pet then
 		return 0
 	end
-	return math.max(1, math.floor(math.sqrt(pet.Odds))) * size.Power
+	return pet.Power * size.Power
 end
 
--- Equipped pets add luck: rarer pets add more (a 1 in 1000 pet is +45%),
--- bigger sizes multiply it
+-- Equipped pets add a little luck on top of the Luck upgrade: rarer pets
+-- add more (a 1 in 1000 pet is +15%), bigger sizes multiply it
 function Config.petLuck(name)
 	local pet, size = Config.petInfo(name)
 	if not pet then
 		return 0
 	end
-	return math.log10(pet.Odds) * 0.15 * size.Luck
+	return math.log10(pet.Odds) * 0.05 * size.Luck
 end
 
 -- Rolling --------------------------------------------------------------------------
@@ -127,11 +142,14 @@ Config.BONUS_LUCK = 2
 Config.BIG_ROLL = 1000 -- rolls this rare (1 in 1000+), or any big size, get the big reveal
 Config.FUSE_COPIES = 5 -- the fusion machine turns 5 of a pet into 1 of the next size
 
+-- Total luck: the Luck upgrade (the big one), times a bonus from the
+-- equipped pets, times 2 on every 10th roll
 function Config.luck(data, isBonus)
-	local luck = Config.upgradeValue(data, "Luck")
+	local fromPets = 1
 	for _, name in ipairs(data.Equipped) do
-		luck += Config.petLuck(name)
+		fromPets += Config.petLuck(name)
 	end
+	local luck = Config.upgradeValue(data, "Luck") * fromPets
 	if isBonus then
 		luck *= Config.BONUS_LUCK
 	end
@@ -162,22 +180,32 @@ end
 -- gives the effect at a level (level 0 = not bought), Cost the price of the
 -- next level, Requires another branch's level before this one can start.
 -- Branches are drawn in this order, left to right.
+-- Numbers come from tools/economy/simulate.py: with these an active player
+-- reaches World 4 in about 40 minutes with ~1B pets.
+local function multiplier(value)
+	if value < 100 then
+		return "x" .. (string.format("%.2f", value):gsub("%.?0+$", ""))
+	end
+	return "x" .. Config.formatNumber(value)
+end
+
 Config.UPGRADES = {
 	{
 		Id = "Coins",
 		Name = "Coins",
 		Icon = "coin",
 		Color = Color3.fromRGB(255, 200, 50),
-		Max = 10,
+		Max = 20,
 		Describe = "More coins from everything your pets break",
+		Step = "+35% coins",
 		Value = function(level)
-			return 1 + level * 0.25
+			return 1.35 ^ level
 		end,
 		Format = function(value)
-			return "x" .. string.format("%.2f", value):gsub("%.?0+$", "") .. " coins"
+			return multiplier(value) .. " coins"
 		end,
 		Cost = function(level)
-			return math.floor(25 * 2.2 ^ level)
+			return math.floor(40 * 3.1 ^ level)
 		end,
 	},
 	{
@@ -185,16 +213,17 @@ Config.UPGRADES = {
 		Name = "Damage",
 		Icon = "sword",
 		Color = Color3.fromRGB(255, 95, 95),
-		Max = 10,
+		Max = 20,
 		Describe = "Your pets hit harder",
+		Step = "+35% damage",
 		Value = function(level)
-			return 1 + level * 0.2
+			return 1.35 ^ level
 		end,
 		Format = function(value)
-			return "x" .. string.format("%.1f", value):gsub("%.?0+$", "") .. " damage"
+			return multiplier(value) .. " damage"
 		end,
 		Cost = function(level)
-			return math.floor(30 * 2.2 ^ level)
+			return math.floor(60 * 3.1 ^ level)
 		end,
 	},
 	{
@@ -202,16 +231,17 @@ Config.UPGRADES = {
 		Name = "Luck",
 		Icon = "clover",
 		Color = Color3.fromRGB(80, 220, 120),
-		Max = 10,
+		Max = 25,
 		Describe = "Better chance of rare pets",
+		Step = "+25% luck",
 		Value = function(level)
-			return 1 + level * 0.1
+			return 1.25 ^ level
 		end,
 		Format = function(value)
-			return "x" .. string.format("%.1f", value):gsub("%.?0+$", "") .. " luck"
+			return multiplier(value) .. " luck"
 		end,
 		Cost = function(level)
-			return math.floor(50 * 2.4 ^ level)
+			return math.floor(150 * 3.4 ^ level)
 		end,
 		Requires = { "Coins", 1 },
 	},
@@ -220,16 +250,17 @@ Config.UPGRADES = {
 		Name = "Roll Speed",
 		Icon = "bolt",
 		Color = Color3.fromRGB(80, 200, 255),
-		Max = 10,
+		Max = 13,
 		Describe = "Less waiting between rolls",
+		Step = "-0.05s per roll",
 		Value = function(level)
-			return math.max(0.3, 1 - level * 0.07)
+			return math.max(0.35, 1 - level * 0.05)
 		end,
 		Format = function(value)
 			return string.format("%.2f", value) .. "s per roll"
 		end,
 		Cost = function(level)
-			return math.floor(40 * 2.3 ^ level)
+			return math.floor(80 * 3.3 ^ level)
 		end,
 	},
 	{
@@ -239,6 +270,7 @@ Config.UPGRADES = {
 		Color = Color3.fromRGB(170, 120, 255),
 		Max = 4,
 		Describe = "Roll more pets with every click",
+		Step = "+1 pet per roll",
 		Value = function(level)
 			return 1 + level
 		end,
@@ -246,7 +278,7 @@ Config.UPGRADES = {
 			return value .. (if value == 1 then " pet" else " pets") .. " per roll"
 		end,
 		Cost = function(level)
-			return math.floor(500 * 6 ^ level)
+			return math.floor(3000 * 60 ^ level)
 		end,
 		Requires = { "RollSpeed", 2 },
 	},
@@ -256,7 +288,8 @@ Config.UPGRADES = {
 		Icon = "loop",
 		Color = Color3.fromRGB(60, 210, 200),
 		Max = 3,
-		Describe = "Rolls for you: unlock, then faster reveals, then auto-equip best",
+		Describe = "Rolls for you: unlock, then quick reveals, then auto-equip best",
+		Step = "next auto feature",
 		Value = function(level)
 			return level
 		end,
@@ -264,7 +297,7 @@ Config.UPGRADES = {
 			return ({ [0] = "Locked", "Auto roll", "+ quick reveals", "+ auto-equip best" })[value]
 		end,
 		Cost = function(level)
-			return ({ 150, 5000, 50000 })[level + 1] or math.huge
+			return ({ 400, 2e5, 5e7 })[level + 1] or math.huge
 		end,
 		Requires = { "RollSpeed", 1 },
 	},
@@ -273,16 +306,17 @@ Config.UPGRADES = {
 		Name = "Size Luck",
 		Icon = "grow",
 		Color = Color3.fromRGB(255, 120, 200),
-		Max = 10,
+		Max = 15,
 		Describe = "Better chance of Huge and Titanic pets",
+		Step = "+12% size luck",
 		Value = function(level)
-			return 1 + level * 0.15
+			return 1.12 ^ level
 		end,
 		Format = function(value)
-			return "x" .. string.format("%.2f", value):gsub("%.?0+$", "") .. " size luck"
+			return multiplier(value) .. " size luck"
 		end,
 		Cost = function(level)
-			return math.floor(2000 * 3 ^ level)
+			return math.floor(1e5 * 4 ^ level)
 		end,
 		Requires = { "Luck", 2 },
 	},
@@ -293,6 +327,7 @@ Config.UPGRADES = {
 		Color = Color3.fromRGB(255, 150, 70),
 		Max = 3,
 		Describe = "Equip more pets at once",
+		Step = "+1 pet equipped",
 		Value = function(level)
 			return 3 + level
 		end,
@@ -300,7 +335,7 @@ Config.UPGRADES = {
 			return value .. " pets equipped"
 		end,
 		Cost = function(level)
-			return ({ 1000, 20000, 300000 })[level + 1] or math.huge
+			return ({ 2000, 5e6, 5e9 })[level + 1] or math.huge
 		end,
 		Requires = { "Damage", 2 },
 	},
@@ -372,11 +407,9 @@ function Config.teamDamage(data)
 	return total
 end
 
--- Living coins hop around their home spot
-Config.HOP_EVERY = { 0.8, 1.3 } -- seconds between hops
-Config.HOP_DISTANCE = { 4, 6 } -- studs per hop
-Config.HOP_TIME = 0.45 -- seconds in the air
-Config.WANDER = 8 -- how far from home they wander
+-- Living coins wander this far from their home spot (how they jump is in
+-- shared/Coins.luau)
+Config.WANDER = 8
 
 -- Areas --------------------------------------------------------------------------
 
@@ -390,25 +423,25 @@ Config.AREAS = {
 		Name = "Forest",
 		Cost = 0,
 		Color = Color3.fromRGB(110, 210, 90),
-		Breakable = { Name = "Tree", Health = 12, Coins = 3 },
+		Breakable = { Name = "Tree", Health = 5e3, Coins = 20 },
 	},
 	{
 		Name = "Sahara",
-		Cost = 300,
+		Cost = 4e3,
 		Color = Color3.fromRGB(240, 190, 90),
-		Breakable = { Name = "Cactus", Health = 150, Coins = 25 },
+		Breakable = { Name = "Cactus", Health = 6e7, Coins = 400 },
 	},
 	{
 		Name = "Frozen Peaks",
-		Cost = 6000,
+		Cost = 6e5,
 		Color = Color3.fromRGB(140, 215, 255),
-		Breakable = { Name = "Ice Cube", Health = 1500, Coins = 200 },
+		Breakable = { Name = "Ice Cube", Health = 4e9, Coins = 2.5e4 },
 	},
 	{
 		Name = "Sakura Jungle",
-		Cost = 100000,
+		Cost = 2.2e8,
 		Color = Color3.fromRGB(255, 150, 200),
-		Breakable = { Name = "Sushi", Health = 15000, Coins = 1800 },
+		Breakable = { Name = "Sushi", Health = 2.5e11, Coins = 1.5e6 },
 	},
 }
 
@@ -446,7 +479,7 @@ function Config.rebirthCost(rebirths)
 	if Config.REBIRTH_FREE_FOR_TESTING then
 		return 0
 	end
-	return 1e6 * (rebirths + 1)
+	return 2e10 * 5 ^ rebirths -- about 10 minutes of World 4 coins at first
 end
 
 function Config.coinMultiplier(rebirths)

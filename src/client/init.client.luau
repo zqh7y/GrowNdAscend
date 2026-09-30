@@ -2,6 +2,9 @@
 -- fight messages into visuals (pets lunging, coins flashing, damage numbers,
 -- coins flying into the counter).
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 
 local State = require(script.State)
 local Screen = require(script.Screen)
@@ -32,7 +35,8 @@ State.remote("PetHits").OnClientEvent:Connect(function(targetId, hits)
 end)
 
 -- a break: coins pop out and fly into the counter
-State.remote("CoinPop").OnClientEvent:Connect(function(position, coins)
+State.remote("CoinPop").OnClientEvent:Connect(function(position, coins, area)
+	Effects.burst(position, Config.AREAS[area].Color)
 	Effects.coins(position, coins)
 end)
 

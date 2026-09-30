@@ -62,7 +62,7 @@ rebirthFunction.OnServerInvoke = function(player)
 	-- back to the start
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if root then
-		root.CFrame = CFrame.new(World.SPAWN) * CFrame.Angles(0, math.rad(-90), 0)
+		root.CFrame = World.Spawns[1]
 	end
 	notifyEvent:FireClient(player, "Rebirth " .. data.Rebirths .. "!  Coins x" .. Config.coinMultiplier(data.Rebirths), "success")
 	return true

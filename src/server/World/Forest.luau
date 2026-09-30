@@ -3,7 +3,7 @@
 -- fallen logs, a fountain on each side, hills with a cottage and a windmill
 -- behind them, and the three leaderboards side by side. The green terrain is
 -- the grass (no separate grass pieces). Breakable: small trees.
-local Build = require(script.Parent.Build)
+local Build = require(game:GetService("ReplicatedStorage").Shared.Build)
 
 local Forest = {}
 
@@ -619,25 +619,6 @@ function Forest.build(ctx)
 			Build.rock(deco, rng, base, rng:NextNumber(1.6, 2.6), STONE, MOSS)
 		end
 	end
-end
-
--- Small tree: the Forest's breakable (a few different looks)
-function Forest.breakable(parent, position, rng)
-	local model = Build.model(parent, "Small Tree")
-	local leaves = pick(rng, LEAF_GREENS)
-	local trunkPart = Build.cylinder(model, position, 2.4, 0.8, { Color = BARK })
-	Build.cylinder(model, position, 0.4, 1.3, { Color = BARK }) -- root flare
-	local top = position + Vector3.new(0, 3.6, 0)
-	Build.leafCluster(model, rng, top, 3.6, leaves)
-	-- apples, oranges or cherries so it reads as "worth something"
-	local fruit = pick(rng, { Color3.fromRGB(240, 50, 60), Color3.fromRGB(255, 150, 40), Color3.fromRGB(255, 80, 140) })
-	for k = 1, 4 do
-		local a = k / 4 * math.pi * 2 + rng:NextNumber(-0.4, 0.4)
-		Build.ball(model, top + Vector3.new(math.cos(a) * 1.6, rng:NextNumber(-0.6, 0.6), math.sin(a) * 1.6), 0.6, { Color = fruit })
-	end
-	Build.face(model, CFrame.new(top + Vector3.new(0, -0.2, -1.75)), 0.9)
-	model.PrimaryPart = trunkPart
-	return model
 end
 
 return Forest

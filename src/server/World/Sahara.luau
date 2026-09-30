@@ -2,9 +2,9 @@
 -- walls, Cleopatra's temple (a pylon gate with a winged sun disk, lotus
 -- columns, painted friezes, obelisks and her statue), the pet fusion
 -- machine, palms, pottery, a camel, sandstone rocks, and high walls of big
--- limestone blocks with raised faces, like the Western Wall. Breakable:
--- cactuses (saguaro, barrel and prickly pear).
-local Build = require(script.Parent.Build)
+-- limestone blocks with raised faces, like the Western Wall. (Its living
+-- coins, cactuses, are in shared/Coins.luau.)
+local Build = require(game:GetService("ReplicatedStorage").Shared.Build)
 
 local Sahara = {}
 
@@ -18,7 +18,6 @@ local LAPIS = Color3.fromRGB(45, 120, 235)
 local TURQUOISE = Color3.fromRGB(40, 200, 200)
 local RED = Color3.fromRGB(235, 80, 70)
 local WHITE = Color3.fromRGB(252, 250, 245)
-local CACTUS = Color3.fromRGB(80, 200, 95)
 local PALM_GREEN = Color3.fromRGB(85, 200, 80)
 
 local function pick(rng, list)
@@ -712,96 +711,6 @@ function Sahara.build(ctx)
 			Build.rock(deco, rng, base, rng:NextNumber(1.6, 2.8), Color3.fromRGB(235, 175, 110))
 		end
 	end
-end
-
--- Cactuses: the Sahara's breakables -----------------------------------------------------------
-
-local function ribbed(model, base, height, width, color)
-	local body = Build.cylinder(model, base, height, width, { Color = color })
-	Build.ball(model, base + Vector3.new(0, height, 0), width, { Color = color })
-	-- ribs down the sides
-	for k = 0, 5 do
-		local a = k / 6 * math.pi * 2
-		Build.block(model, base + Vector3.new(math.cos(a) * width * 0.45, 0, math.sin(a) * width * 0.45), Vector3.new(0.18, height, 0.18), {
-			Color = color:Lerp(Color3.new(0, 0, 0), 0.15),
-			CanCollide = false,
-		})
-	end
-	return body
-end
-
-local function saguaro(model, rng, position, color)
-	local body = ribbed(model, position, 5.5, 2, color)
-	for _, side in ipairs({ -1, 1 }) do
-		local y = if side < 0 then 2.4 else 3.3
-		local elbow = position + Vector3.new(side * 1.9, y, 0)
-		Build.limb(model, position + Vector3.new(0, y, 0), elbow, 1.3, { Color = color })
-		Build.ball(model, elbow, 1.3, { Color = color })
-		ribbed(model, elbow, rng:NextNumber(1.8, 2.6), 1.3, color)
-	end
-	Build.ball(model, position + Vector3.new(0, 6.4, 0), 0.9, { Color = Color3.fromRGB(255, 110, 170) })
-	return body
-end
-
-local function barrel(model, rng, position, color)
-	local body = Build.ball(model, position + Vector3.new(0, 1.7, 0), 3.6, { Color = color })
-	for k = 0, 7 do
-		local a = k / 8 * math.pi * 2
-		Build.part(model, {
-			Size = Vector3.new(0.2, 3, 0.2),
-			CFrame = CFrame.new(position + Vector3.new(math.cos(a) * 1.7, 1.7, math.sin(a) * 1.7)) * CFrame.Angles(0, -a, 0),
-			Color = color:Lerp(Color3.new(0, 0, 0), 0.15),
-			CanCollide = false,
-		})
-	end
-	-- crown of flowers
-	for k = 0, 4 do
-		local a = k / 5 * math.pi * 2
-		Build.ball(model, position + Vector3.new(math.cos(a) * 0.6, 3.4, math.sin(a) * 0.6), 0.6, { Color = pick(rng, { Color3.fromRGB(255, 205, 50), Color3.fromRGB(255, 110, 170) }) })
-	end
-	return body
-end
-
-local function pricklyPear(model, rng, position, color)
-	-- flat round paddles stacked on each other
-	local function paddle(center, yaw, tilt, size)
-		Build.part(model, {
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.5, size, size),
-			CFrame = CFrame.new(center) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(0, 0, math.rad(tilt)),
-			Color = Build.vary(rng, color, 0.03),
-		})
-		Build.ball(model, center + Vector3.new(0, size / 2, 0), 0.6, { Color = Color3.fromRGB(255, 80, 120) })
-	end
-	local body = Build.part(model, {
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.6, 3.2, 3.2),
-		CFrame = CFrame.new(position + Vector3.new(0, 1.6, 0)),
-		Color = color,
-	})
-	paddle(position + Vector3.new(1, 3.4, 0), 0.3, -20, 2.4)
-	paddle(position + Vector3.new(-1, 3.2, 0.2), -0.4, 25, 2.2)
-	paddle(position + Vector3.new(0, 4.6, 0), 1.4, 5, 2)
-	return body
-end
-
-function Sahara.breakable(parent, position, rng)
-	local kinds = { saguaro, barrel, pricklyPear }
-	local model = Build.model(parent, "Cactus")
-	local color = Build.vary(rng, CACTUS, 0.04)
-	-- a little sand mound and pebbles
-	Build.cylinder(model, position - Vector3.new(0, 0.1, 0), 0.4, 3.4, { Color = Color3.fromRGB(245, 210, 145) })
-	for k = 1, 2 do
-		Build.ball(model, position + Vector3.new(k * 1.1 - 1.8, 0.3, 1.3), 0.6, { Color = Color3.fromRGB(215, 170, 120) })
-	end
-	local kind = pick(rng, kinds)
-	model.PrimaryPart = kind(model, rng, position, color)
-	-- a face on the front of the body
-	local faceAt = if kind == barrel then position + Vector3.new(0, 1.8, -1.75)
-		elseif kind == pricklyPear then position + Vector3.new(0, 1.7, -0.35)
-		else position + Vector3.new(0, 3.6, -1)
-	Build.face(model, CFrame.new(faceAt), 0.85)
-	return model
 end
 
 return Sahara

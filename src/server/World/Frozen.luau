@@ -4,7 +4,7 @@
 -- snowman and a sled, an ice arch with icicles, ice walls, crystal clusters,
 -- snow-laden pines, snowy rocks and falling snow. Breakable: ice cubes (a
 -- few kinds: clear, with a frozen fish, with a gem, and a stack).
-local Build = require(script.Parent.Build)
+local Build = require(game:GetService("ReplicatedStorage").Shared.Build)
 
 local Frozen = {}
 
@@ -461,60 +461,6 @@ function Frozen.build(ctx)
 	snow.SpreadAngle = Vector2.new(20, 20)
 	snow.EmissionDirection = Enum.NormalId.Bottom
 	snow.Parent = sky
-end
-
--- Ice cubes: the Frozen Peaks' breakables ----------------------------------------------------------
-
--- a clear cube with bright bevelled edges, a snowy top and a sparkle
-local function cube(model, rng, center, size)
-	local cf = CFrame.new(center) -- square to its hop direction, so the face sits on the front
-	local props = iceProps(rng, 0.25)
-	props.Size = Vector3.one * size
-	props.CFrame = cf
-	local body = Build.part(model, props)
-	-- light edges down the four corners
-	for _, c in ipairs({ { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }) do
-		Build.part(model, {
-			Size = Vector3.new(0.25, size, 0.25),
-			CFrame = cf * CFrame.new(c[1] * size / 2, 0, c[2] * size / 2),
-			Color = Color3.fromRGB(225, 248, 255),
-			Material = Enum.Material.Glass,
-			Transparency = 0.05,
-			CanCollide = false,
-		})
-	end
-	Build.part(model, { Size = Vector3.new(size * 0.85, 0.3, size * 0.85), CFrame = cf * CFrame.new(0, size / 2 + 0.1, 0), Color = SNOW, CanCollide = false })
-	Build.part(model, { Size = Vector3.new(0.2, size * 0.6, 0.2), CFrame = cf * CFrame.new(size * 0.3, size * 0.05, -size / 2 - 0.02), Color = Color3.new(1, 1, 1), Material = Enum.Material.Neon, CanCollide = false })
-	return body, cf
-end
-
-function Frozen.breakable(parent, position, rng)
-	local model = Build.model(parent, "Ice Cube")
-	local kind = rng:NextInteger(1, 4)
-	local body, cf
-	if kind == 4 then
-		-- a stack: a big cube with a smaller one on top
-		body, cf = cube(model, rng, position + Vector3.new(0, 1.8, 0), 3.6)
-		cube(model, rng, position + Vector3.new(0.3, 4.5, 0.2), 2)
-	else
-		body, cf = cube(model, rng, position + Vector3.new(0, 2, 0), 4)
-		if kind == 2 then
-			-- a fish frozen inside
-			local fish = pick(rng, { ORANGE, Color3.fromRGB(255, 120, 170), Color3.fromRGB(110, 200, 255) })
-			Build.part(model, { Size = Vector3.new(0.8, 1, 2), CFrame = cf * CFrame.Angles(0, math.rad(30), 0), Color = fish, CanCollide = false })
-			Build.part(model, { Size = Vector3.new(0.2, 0.9, 0.7), CFrame = cf * CFrame.Angles(0, math.rad(30), 0) * CFrame.new(0, 0, 1.2), Color = fish, CanCollide = false })
-			Build.ball(model, (cf * CFrame.Angles(0, math.rad(30), 0) * CFrame.new(0.3, 0.2, -0.6)).Position, 0.25, { Color = NAVY, CanCollide = false })
-		elseif kind == 3 then
-			-- a glowing gem inside
-			local gem = pick(rng, { Color3.fromRGB(255, 90, 170), Color3.fromRGB(170, 110, 255), Color3.fromRGB(80, 230, 170) })
-			Build.part(model, { Size = Vector3.new(1.2, 1.2, 1.2), CFrame = cf * CFrame.Angles(math.rad(45), 0, math.rad(45)), Color = gem, Material = Enum.Material.Neon, CanCollide = false })
-		end
-	end
-	-- a face on the front, the way it hops (the model turns as it moves)
-	local size = body.Size.X
-	Build.face(model, CFrame.new(body.Position + Vector3.new(0, 0.1 * size, -size / 2 - 0.05)), size / 4)
-	model.PrimaryPart = body
-	return model
 end
 
 return Frozen

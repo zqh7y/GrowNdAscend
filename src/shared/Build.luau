@@ -1,4 +1,5 @@
--- Small helpers for building the map out of parts.
+-- Small helpers for building models out of parts (the map on the server,
+-- living coins on the client).
 local Build = {}
 
 local DEFAULTS = {

@@ -249,6 +249,10 @@ NumberSequenceKeypoint = valueType("NumberSequenceKeypoint")
 ColorSequence = valueType("ColorSequence")
 NumberRange = valueType("NumberRange")
 TweenInfo = valueType("TweenInfo")
+RaycastParams = {}
+function RaycastParams.new()
+	return {}
+end
 Region3 = {}
 function Region3.new(a, b)
 	assert(isV(a) and isV(b), "Region3.new needs Vector3s")
@@ -324,6 +328,7 @@ local SIGNALS = {
 	MouseClick = true, Triggered = true, Event = true, OnServerEvent = true, OnClientEvent = true, PlayerAdded = true,
 	PlayerRemoving = true, Changed = true, Activated = true, MouseEnter = true, MouseLeave = true,
 	MouseButton1Down = true, MouseButton1Up = true, Heartbeat = true, RenderStepped = true, CharacterAdded = true,
+	ChildAdded = true, ChildRemoved = true,
 }
 
 local InstMT = {}
@@ -421,6 +426,7 @@ function methods:GetPivot()
 end
 function methods:PivotTo(cf)
 	assert(isCF(cf), "PivotTo needs a CFrame")
+	rawget(self, "_props").DrawnAt = cf
 end
 function methods:ScaleTo(n)
 	assert(self.ClassName == "Model", "ScaleTo on non-model")
@@ -433,15 +439,60 @@ end
 function methods:Clone()
 	return Instance.new(self.ClassName)
 end
--- terrain
+-- terrain: every fill is remembered so raycasts can find the real surface
+TERRAIN_OPS = {}
 function methods:FillBlock(cf, size, mat)
 	assert(isCF(cf) and isV(size) and type(mat) == "table", "FillBlock args")
+	local p = cf.Position
+	table.insert(TERRAIN_OPS, { Kind = "block", X0 = p.X - size.X / 2, X1 = p.X + size.X / 2, Z0 = p.Z - size.Z / 2, Z1 = p.Z + size.Z / 2, Y0 = p.Y - size.Y / 2, Y1 = p.Y + size.Y / 2, Air = mat.Name == "Air" })
 end
 function methods:FillBall(center, radius, mat)
 	assert(isV(center) and type(radius) == "number" and type(mat) == "table", "FillBall args")
+	table.insert(TERRAIN_OPS, { Kind = "ball", C = center, R = radius, Air = mat.Name == "Air" })
 end
 function methods:FillCylinder(cf, height, radius, mat)
 	assert(isCF(cf) and type(height) == "number" and type(radius) == "number" and type(mat) == "table", "FillCylinder args")
+	local p = cf.Position
+	table.insert(TERRAIN_OPS, { Kind = "cylinder", C = p, R = radius, Y0 = p.Y - height / 2, Y1 = p.Y + height / 2, Air = mat.Name == "Air" })
+end
+-- the surface height at (x, z) after all the fills, or nil
+function TERRAIN_HEIGHT(x, z)
+	local h = nil
+	for _, op in ipairs(TERRAIN_OPS) do
+		local inside, top, bottom = false, nil, nil
+		if op.Kind == "block" then
+			inside = x >= op.X0 and x <= op.X1 and z >= op.Z0 and z <= op.Z1
+			top, bottom = op.Y1, op.Y0
+		elseif op.Kind == "ball" then
+			local d = math.sqrt((x - op.C.X) ^ 2 + (z - op.C.Z) ^ 2)
+			if d < op.R then
+				inside = true
+				local rise = math.sqrt(op.R ^ 2 - d ^ 2)
+				top, bottom = op.C.Y + rise, op.C.Y - rise
+			end
+		else
+			inside = math.sqrt((x - op.C.X) ^ 2 + (z - op.C.Z) ^ 2) < op.R
+			top, bottom = op.Y1, op.Y0
+		end
+		if inside then
+			if op.Air then
+				if h and h > bottom then
+					h = math.min(h, bottom)
+				end
+			else
+				h = math.max(h or -math.huge, top)
+			end
+		end
+	end
+	return h
+end
+function methods:Raycast(origin, direction, params)
+	assert(isV(origin) and isV(direction), "Raycast needs Vector3s")
+	local h = TERRAIN_HEIGHT(origin.X, origin.Z)
+	if h and h <= origin.Y and h >= origin.Y + direction.Y then
+		return { Position = Vector3.new(origin.X, h, origin.Z), Instance = workspace.Terrain }
+	end
+	return nil
 end
 function methods:ReplaceMaterial(region, res, from, to)
 	assert(type(region) == "table" and res == 4 and type(from) == "table" and type(to) == "table", "ReplaceMaterial args")
@@ -508,6 +559,10 @@ function methods:InvokeServer(...)
 	assert(self.ClassName == "RemoteFunction", "InvokeServer on " .. self.ClassName)
 	assert(self.OnServerInvoke, "no server handler for " .. self.Name)
 	return self.OnServerInvoke(LOCAL_PLAYER, ...)
+end
+function methods:GetAttributeChangedSignal(name)
+	assert(type(name) == "string", "GetAttributeChangedSignal")
+	return self.Changed
 end
 function methods:GetPropertyChangedSignal(name)
 	assert(type(name) == "string", "GetPropertyChangedSignal")
@@ -594,6 +649,13 @@ InstMT.__newindex = function(self, k, v)
 			table.insert(rawget(v, "_children"), self)
 		end
 		props.Parent = v
+		-- tell listeners (only if someone connected, like Roblox)
+		if old and rawget(old, "_props").ChildRemoved then
+			rawget(old, "_props").ChildRemoved:Fire(self)
+		end
+		if v and rawget(v, "_props").ChildAdded then
+			rawget(v, "_props").ChildAdded:Fire(self)
+		end
 		return
 	end
 	if k == "CFrame" then

@@ -110,6 +110,34 @@ function Effects.damage(position, amount, sizeIndex)
 	worldLabel(position + jitter, Config.formatNumber(amount), if sizeIndex and sizeIndex > 1 then size.Color else Color3.new(1, 1, 1), 20 + (sizeIndex or 1) * 3, 3, 0.7)
 end
 
+-- A burst of bits when a living coin breaks
+function Effects.burst(position, color)
+	local anchor = Instance.new("Part")
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.one
+	anchor.CFrame = CFrame.new(position)
+	anchor.Parent = Workspace
+	for _, spec in ipairs({ { color, 26, 0.7 }, { Ui.GOLD, 14, 0.5 }, { Color3.new(1, 1, 1), 8, 0.4 } }) do
+		local emitter = Instance.new("ParticleEmitter")
+		emitter.Color = ColorSequence.new(spec[1])
+		emitter.Size = NumberSequence.new(spec[3], 0)
+		emitter.Lifetime = NumberRange.new(0.5, 0.9)
+		emitter.Speed = NumberRange.new(10, 20)
+		emitter.SpreadAngle = Vector2.new(180, 180)
+		emitter.Acceleration = Vector3.new(0, -30, 0)
+		emitter.Rate = 0
+		emitter.Parent = anchor
+		emitter:Emit(spec[2])
+	end
+	task.delay(1.2, function()
+		anchor:Destroy()
+	end)
+end
+
 -- Coins flying into the counter ---------------------------------------------------------
 
 Effects.CoinTarget = nil -- the HUD's coin icon (set by the HUD)

@@ -4,7 +4,7 @@
 -- with a red arched bridge and a bamboo water spout, a five-tier pagoda, and
 -- Japanese walls (stone base, white plaster, timber, a curved tile roof and
 -- round windows). Breakable: sushi with happy faces (salmon, tuna, egg, maki).
-local Build = require(script.Parent.Build)
+local Build = require(game:GetService("ReplicatedStorage").Shared.Build)
 
 local Sakura = {}
 
@@ -539,86 +539,6 @@ function Sakura.build(ctx)
 			Build.rock(deco, rng, base, rng:NextNumber(1.6, 2.6), STONE, LEAF)
 		end
 	end
-end
-
--- Sushi: the Sakura Jungle's breakables, each with a happy face ------------------------------------
-
-local EYES = Color3.fromRGB(45, 45, 70)
-local BLUSH = Color3.fromRGB(255, 150, 180)
-
--- eyes and blush on the front of a piece of sushi
-local function face(model, cf, width)
-	for _, x in ipairs({ -0.35, 0.35 }) do
-		Build.ball(model, (cf * CFrame.new(x * width, 0.1, 0)).Position, 0.45, { Color = EYES, CanCollide = false })
-		Build.ball(model, (cf * CFrame.new(x * width - 0.08, 0.2, -0.12)).Position, 0.16, { Color = Color3.new(1, 1, 1), CanCollide = false })
-		Build.ball(model, (cf * CFrame.new(x * width * 1.5, -0.25, 0.02)).Position, 0.4, { Color = BLUSH, CanCollide = false })
-	end
-	Build.part(model, { Size = Vector3.new(0.5, 0.12, 0.1), CFrame = cf * CFrame.new(0, -0.35, 0), Color = EYES, CanCollide = false })
-end
-
-local function nigiri(model, rng, base, topping, stripes)
-	local rice = Build.part(model, { Name = "Rice", Size = Vector3.new(5.4, 2.4, 3.2), CFrame = base * CFrame.new(0, 1.2, 0), Color = Color3.fromRGB(252, 252, 248) })
-	-- rice grains on the sides
-	for _ = 1, 8 do
-		Build.ball(model, (base * CFrame.new(rng:NextNumber(-2.6, 2.6), rng:NextNumber(0.4, 2.2), -1.62)).Position, 0.35, { Color = Color3.fromRGB(245, 245, 238), CanCollide = false })
-	end
-	local fish = Build.part(model, { Size = Vector3.new(6, 1, 3.6), CFrame = base * CFrame.new(0, 2.8, 0), Color = topping })
-	if stripes then
-		for k = -2, 2 do
-			Build.part(model, {
-				Size = Vector3.new(0.25, 1.02, 3.62),
-				CFrame = fish.CFrame * CFrame.new(k * 1.1, 0, 0) * CFrame.Angles(0, math.rad(15), 0),
-				Color = topping:Lerp(Color3.new(1, 1, 1), 0.55),
-				CanCollide = false,
-			})
-		end
-	end
-	face(model, base * CFrame.new(0, 1.3, -1.62), 2.2)
-	return rice
-end
-
-local function tamago(model, rng, base)
-	local rice = nigiri(model, rng, base, Color3.fromRGB(255, 215, 70), false)
-	-- nori belt around the middle
-	Build.part(model, { Size = Vector3.new(1.3, 3.6, 3.8), CFrame = base * CFrame.new(0, 1.9, 0), Color = Color3.fromRGB(45, 80, 60), CanCollide = false })
-	return rice
-end
-
-local function maki(model, rng, base)
-	local roll = Build.part(model, {
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(3.4, 5, 5),
-		CFrame = base * CFrame.new(0, 1.7, 0) * CFrame.Angles(0, 0, math.rad(90)), -- standing on its end
-		Color = Color3.fromRGB(45, 80, 60),
-	})
-	Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(3.45, 4.1, 4.1), CFrame = roll.CFrame, Color = Color3.fromRGB(252, 252, 248) })
-	Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(3.5, 1.6, 1.6), CFrame = roll.CFrame, Color = pick(rng, { Color3.fromRGB(110, 210, 90), Color3.fromRGB(255, 120, 80) }) })
-	face(model, base * CFrame.new(0, 1.7, -2.5), 1.8)
-	return roll
-end
-
-function Sakura.breakable(parent, position, rng)
-	local model = Build.model(parent, "Sushi")
-	local base = CFrame.new(position) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 360)), 0)
-	-- a little wooden serving board
-	Build.part(model, { Size = Vector3.new(7, 0.4, 4.4), CFrame = base * CFrame.new(0, 0.2, 0), Color = Color3.fromRGB(215, 160, 100) })
-	for _, x in ipairs({ -2.6, 2.6 }) do
-		Build.part(model, { Size = Vector3.new(0.6, 0.4, 4), CFrame = base * CFrame.new(x, -0.1, 0), Color = Color3.fromRGB(190, 135, 80) })
-	end
-	local top = base * CFrame.new(0, 0.4, 0)
-	local kind = rng:NextInteger(1, 4)
-	local body
-	if kind == 1 then
-		body = nigiri(model, rng, top, Color3.fromRGB(255, 130, 80), true) -- salmon
-	elseif kind == 2 then
-		body = nigiri(model, rng, top, Color3.fromRGB(235, 70, 90), false) -- tuna
-	elseif kind == 3 then
-		body = tamago(model, rng, top)
-	else
-		body = maki(model, rng, top)
-	end
-	model.PrimaryPart = body
-	return model
 end
 
 return Sakura

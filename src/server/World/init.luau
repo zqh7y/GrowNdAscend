@@ -6,7 +6,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local Build = require(script.Build)
+local Build = require(ReplicatedStorage.Shared.Build)
 
 local World = {}
 
@@ -25,6 +25,29 @@ World.Gates = {} -- [i] = { Barrier, Sign, Button } for the gate into area i (i 
 World.Boards = {} -- [board id] = screen part (set by the Forest)
 World.Fusion = nil -- the fusion machine (set by the Sahara)
 World.SPAWN = Vector3.new(10, 4, 0)
+World.Spawns = {} -- [i] = CFrame on the ground at the start of area i, facing +X
+
+-- Height of the walkable terrain at (x, z), found by casting a ray down onto
+-- the terrain (not onto props), or nil if there's no ground there
+local groundRay = RaycastParams.new()
+groundRay.FilterType = Enum.RaycastFilterType.Include
+groundRay.FilterDescendantsInstances = { workspace.Terrain }
+function World.groundAt(x, z)
+	local hit = workspace:Raycast(Vector3.new(x, 200, z), Vector3.new(0, -400, 0), groundRay)
+	return if hit then hit.Position.Y else nil
+end
+
+-- True if the ground around (x, z) is flat and at walking height (not on a
+-- drift, a hill's edge or in a pond)
+function World.flatGround(x, z, radius)
+	for _, offset in ipairs({ { 0, 0 }, { radius, 0 }, { -radius, 0 }, { 0, radius }, { 0, -radius } }) do
+		local y = World.groundAt(x + offset[1], z + offset[2])
+		if not y or math.abs(y) > 0.6 then
+			return false
+		end
+	end
+	return true
+end
 
 -- Lighting and terrain colours ------------------------------------------------------
 
@@ -182,9 +205,11 @@ for i, area in ipairs(Config.AREAS) do
 	-- ground: the playable strip and the scenery on both sides
 	terrain:FillBlock(CFrame.new(x0 + LENGTH / 2, -6, 0), Vector3.new(LENGTH, 12, SIDE * 2), module.GROUND)
 
-	-- keep the gate paths clear
+	-- keep the gate paths and the spawn clear (a character that spawns inside
+	-- something gets pushed up on top of it)
 	space:add(Vector3.new(x0, 0, 0), 9)
 	space:add(Vector3.new(x0 + LENGTH, 0, 0), 9)
+	space:add(Vector3.new(x0 + 10, 0, 0), 9)
 
 	-- spots for this area's breakables, away from the decorations. Areas call
 	-- ctx.reserveSpots() after their big props and before the small ones, so
@@ -220,15 +245,42 @@ for i, area in ipairs(Config.AREAS) do
 	module.build(ctx)
 
 	reserveSpots() -- in case the area didn't
-	World.Areas[i] = { Folder = folder, Spots = spots, Module = module }
+	World.Areas[i] = { Folder = folder, Spots = spots, Module = module, Space = space }
 
 	if i >= 2 then
 		buildGate(i)
 	end
 end
 
+-- The playable strip is flat ground at Y = 0: clear any terrain that ended up
+-- above it (the edges of hills, drifts and banks), so nothing can bury a
+-- living coin or push the player up when they spawn. New areas get this for free.
+terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF * 2), Enum.Material.Air)
+
+-- Breakable spots were picked before the small props and some terrain; keep
+-- only the ones on flat ground and set them to its real height
+for _, area in ipairs(World.Areas) do
+	local valid = {}
+	for _, spot in ipairs(area.Spots) do
+		if World.flatGround(spot.X, spot.Z, 2.5) then
+			table.insert(valid, Vector3.new(spot.X, World.groundAt(spot.X, spot.Z), spot.Z))
+		end
+	end
+	area.Spots = valid
+end
+
+-- a spawn point on the ground at the start of every area
+for i = 1, #Config.AREAS do
+	local x = Config.areaStart(i) + 10
+	local y = World.groundAt(x, 0) or 0
+	World.Spawns[i] = CFrame.new(x, y + 3, 0) * CFrame.Angles(0, math.rad(-90), 0)
+end
+-- the spawn pad sits on the measured ground
+spawn.CFrame = CFrame.new(World.SPAWN.X, (World.groundAt(World.SPAWN.X, 0) or 0) + 0.5, 0) * CFrame.Angles(0, math.rad(-90), 0)
+
 -- the far end: a wall of hills so the map doesn't just stop
-terrain:FillBlock(CFrame.new(TOTAL + 24, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.LeafyGrass)
-terrain:FillBlock(CFrame.new(-28, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.Grass)
+-- (they start behind the end walls, so they never reach into the playable strip)
+terrain:FillBlock(CFrame.new(TOTAL + 32, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.LeafyGrass)
+terrain:FillBlock(CFrame.new(-32, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.Grass)
 
 return World
