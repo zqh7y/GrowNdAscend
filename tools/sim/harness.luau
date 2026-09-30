@@ -405,6 +405,85 @@ if ok then
 		try("Effects.coins", C("Effects").coins, Vector3.new(10, 2, 0), 12345)
 		try("Effects.confetti", C("Effects").confetti, 10)
 		frames(200)
+
+		-- ambient life: walk into each world and watch for 40 seconds
+		local Ambient = C("Ambient")
+		local Creature = C("Creature")
+		local rootPart = player.Character.HumanoidRootPart
+		local report = { Worlds = {}, Leftovers = 0, OffGround = 0, Errors = #STATS.Errors }
+		local previousArea = nil
+		for area = 1, 4 do
+			local x = __cache["Shared/Config"].areaStart(area) + 50
+			rootPart.CFrame = CFrame.new(x, 3, 0)
+			camera.CFrame = CFrame.lookAt(Vector3.new(x - 12, 10, 0), Vector3.new(x + 10, 3, 0))
+			local seen, peakAnimals, peakFalling, landed, swaying, leftover = {}, 0, 0, 0, 0, 0
+			local kindsBefore = table.clone(Ambient.Stats.Kinds)
+			local statsBefore = table.clone(Ambient.Stats)
+			local maxSway = 0
+			for f = 1, 1800 do
+				frames(1)
+				if f % 30 == 0 then
+					local animals = 0
+					for _, d in ipairs(workspace.Ambient:GetChildren()) do
+						if d:IsA("Model") then
+							animals += 1
+							seen[d.Name] = true
+						end
+					end
+					peakAnimals = math.max(peakAnimals, animals)
+					local _, falling = Ambient.count()
+					peakFalling = math.max(peakFalling, falling)
+					maxSway = math.max(maxSway, Ambient.Stats.Swaying)
+				end
+				-- 20 seconds in, nothing from the last world should be left
+				if f == 1200 and previousArea then
+					for _, d in ipairs(workspace.Ambient:GetChildren()) do
+						if d:IsA("Model") and d:GetAttribute("Area") ~= area then
+							leftover += 1
+						end
+					end
+				end
+			end
+			-- wild ground animals stand on the ground
+			for _, d in ipairs(workspace.Ambient:GetChildren()) do
+				if d:IsA("Model") and d.Name:sub(1, 5) == "Wild_" then
+					local species = PetModels.SPECIES[d.Name:sub(6)]
+					if species and species.Move ~= "fly" and species.Move ~= "hover" and species.Move ~= "swim" and species.Body ~= "bird" then
+						local p = d:GetPivot().Position
+						local ground = TERRAIN_HEIGHT(p.X, p.Z)
+						if ground and (p.Y < ground - 0.5 or p.Y > ground + 4) then
+							report.OffGround += 1
+						end
+					end
+				end
+			end
+			local names = {}
+			for n in pairs(seen) do
+				table.insert(names, n)
+			end
+			table.sort(names)
+			local spawned = {}
+			for kind, n in pairs(Ambient.Stats.Kinds) do
+				if n > (kindsBefore[kind] or 0) then
+					table.insert(spawned, kind .. " " .. (n - (kindsBefore[kind] or 0)))
+				end
+			end
+			table.sort(spawned)
+			local happened = string.format("landings %d, chirps %d, ice cracks %d, swaying up to %d",
+				Ambient.Stats.Landings - statsBefore.Landings, Ambient.Stats.Chirps - statsBefore.Chirps, Ambient.Stats.Cracks - statsBefore.Cracks, maxSway)
+			print(string.format("ambient world %d: peak %d animals, %d falling bits, %d left from the last world", area, peakAnimals, peakFalling, leftover))
+			print("    spawned: " .. table.concat(spawned, ", ") .. " | " .. happened)
+			print("    kinds: " .. table.concat(names, ", "))
+			report.Worlds[area] = { Peak = peakAnimals, Seen = seen, Falling = peakFalling, Sway = maxSway, Kinds = #spawned }
+			report.Leftovers += leftover
+			previousArea = area
+		end
+		report.Peak = Ambient.Stats.Peak
+		report.Errors = #STATS.Errors - report.Errors
+		print("ambient peak animals at once:", Ambient.Stats.Peak, "errors:", report.Errors)
+		STATS.Ambient = report
+		rootPart.CFrame = CFrame.new(__cache["Shared/Config"].areaStart(1) + 50, 3, 0)
+		frames(60)
 	end
 	for _, e in ipairs(STATS.Errors) do
 		print("THREAD ERROR: " .. e)
@@ -606,6 +685,24 @@ if ok then
 		end
 		return worst <= 0.01
 	end)(), "no terrain above the ground in the play area")
+
+	-- 21-24: animals, the index, and the living worlds
+	item(21, "pets move like their animal", STATS.MoveProblems == 0, "all 70 animals, normal and Titanic: walk/hop/waddle/fly/hover/swim/slither")
+	local Index = __cache["Client/Index"]
+	local Inventory = __cache["Client/Inventory"]
+	item(22, "separate Inventory and 70-animal Index", #Config.PETS == 70 and Index ~= nil and Inventory ~= nil and Index ~= Inventory, #Config.PETS .. " animals in the Index")
+	local amb = STATS.Ambient
+	local lively = amb ~= nil
+	if amb then
+		for area = 1, 4 do
+			local w = amb.Worlds[area]
+			if not w or w.Peak < 2 then
+				lively = false
+			end
+		end
+	end
+	item(23, "every world has ambient life", lively and amb.Errors == 0 and amb.OffGround == 0, amb and string.format("peaks %d/%d/%d/%d animals, %d off the ground", amb.Worlds[1].Peak, amb.Worlds[2].Peak, amb.Worlds[3].Peak, amb.Worlds[4].Peak, amb.OffGround))
+	item(24, "ambient life capped and cleaned up", amb ~= nil and amb.Peak <= 12 and amb.Leftovers == 0, amb and string.format("at most %d animals at once, %d left behind", amb.Peak, amb.Leftovers))
 
 	local passed = 0
 	for _, r in ipairs(results) do

@@ -10,7 +10,7 @@ for how it plays and where the code lives.
   game.** Set `Config.REBIRTH_FREE_FOR_TESTING = false` in
   `src/shared/Config.luau` (the normal cost is 1M coins x (rebirths + 1)).
 - **BEFORE THE FINAL VERSION: All areas are currently free and their gates
-  are open for testing. Restore the normal area costs (300 / 6K / 100K
+  are open for testing. Restore the normal area costs (4K / 600K / 220M
   coins) before releasing the final version of the game.** Set
   `Config.AREAS_FREE_FOR_TESTING = false` in `src/shared/Config.luau`.
   Saves made while testing keep every area unlocked, so also reset player
@@ -30,10 +30,11 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 20-point player checklist (spawning, rolling, pets
+- The sim ends with a 24-point player checklist (spawning, rolling, pets
   fighting, coin jumps/landings/respawns, rewards, damage, luck, sizes,
-  upgrades, rebirth, world gates, screen layout, ground). It must say
-  "checklist: 20/20 passed".
+  upgrades, rebirth, world gates, screen layout, ground, animal movement,
+  Inventory/Index, ambient life and its caps). It must say
+  "checklist: 24/24 passed".
 - Economy: `python3 tools/economy/simulate.py` simulates active players.
   Targets: World 4 around 40 minutes with ~1B pets; the best pet (Titanic
   Glitch) ~5T and an extreme jackpot. It mirrors the numbers in
@@ -65,3 +66,14 @@ for how it plays and where the code lives.
   ones (flowers, bushes, rocks), so there's always room for breakables.
 - Decorations can spin or bob with `Build.spin` / `Build.bob`; the client
   animates them (`src/client/Motion.luau`).
+- Animals: every species row lives in `PetModels.SPECIES` (body, features,
+  Move and Speed). Movement is `Creature.luau`, shared by pets and wild
+  animals; don't add a second follow system. New animals need a species row.
+- The Index counts base animals only (70); Huge/Titanic don't count.
+  `data.Discovered` is set when an animal is first hatched.
+- Ambient life (`Ambient.luau`) is client-only and capped: MAX_ANIMALS,
+  per-world caps in `Ambient.WORLDS`, one visitor at a time. Only the
+  player's current world is alive; things spawn out of view and are
+  removed when far or when the player changes world. Keep it that way for
+  performance. Background sound loops per world are empty hooks
+  (`Ambient.LOOPS`) for Creator Store ambience ids.

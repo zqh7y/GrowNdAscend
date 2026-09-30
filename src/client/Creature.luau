@@ -18,6 +18,9 @@
 --   c:step(dt, t)                        -- once per frame
 --   c:lunge()                            -- a hit
 --   c:teleport(position)
+-- Birds can also land: set c.FixedGround to a perch height (a treetop) and
+-- c.Landed = true, and they fold their wings and stand there; c.Height
+-- is how high a flyer flies above the ground.
 local Creature = {}
 Creature.__index = Creature
 
@@ -77,6 +80,9 @@ function Creature.new(model, rig, scale, animated)
 	self.GroundY = 0
 	self.NextRay = 0
 	self.Height = (HEIGHTS[rig.Move] or 0) * scale ^ 0.6
+	self.Altitude = self.Height -- eases towards Height (or 0 when landed)
+	self.Landed = false
+	self.FixedGround = nil
 
 	-- where every part sits relative to the pivot, and how each one moves
 	local s = scale
@@ -126,8 +132,9 @@ end
 
 function Creature:teleport(position)
 	self.Position = position
-	self.GroundY = Creature.ground(position.X, position.Z, position.Y) or position.Y
+	self.GroundY = self.FixedGround or Creature.ground(position.X, position.Z, position.Y) or position.Y
 	self.Position = Vector3.new(position.X, self.GroundY, position.Z)
+	self.Altitude = if self.Landed then 0 else self.Height
 end
 
 function Creature:moveTo(position, speedMultiplier)
@@ -224,14 +231,16 @@ function Creature:step(dt, t)
 
 	-- stay on the ground (checked a few times a second)
 	self.NextRay -= dt
-	if self.NextRay <= 0 then
+	if self.FixedGround then
+		self.GroundY = self.FixedGround
+	elseif self.NextRay <= 0 then
 		self.NextRay = 0.12
 		local y = Creature.ground(self.Position.X, self.Position.Z, self.GroundY + 2)
 		if y then
 			self.GroundY = y
 		end
 	end
-	local y = self.Position.Y + (self.GroundY - self.Position.Y) * math.min(dt * 12, 1)
+	local y = self.Position.Y + (self.GroundY - self.Position.Y) * math.min(dt * (if self:airborne() then 3 else 12), 1)
 	self.Position = Vector3.new(self.Position.X, y, self.Position.Z)
 
 	-- the body
@@ -239,24 +248,28 @@ function Creature:step(dt, t)
 	local lift, pitch, roll = 0, 0, 0
 	local phase = self.Gait
 	local move = self.Move
+	if self.Landed and (move == "fly" or move == "hover") then
+		move = "waddle" -- perched or walking about: wings folded
+	end
+	self.Altitude += ((if self.Landed then 0 else self.Height) - self.Altitude) * math.min(dt * 1.5, 1)
 	if move == "walk" then
 		lift = math.abs(math.sin(phase)) * 0.12 * s * math.min(moving, 1) + math.sin(t * 2 + self.Seed) * 0.03 * s
 		pitch = -math.sin(phase * 2) * 0.03 * moving
 	elseif move == "waddle" then
 		roll = math.sin(phase * 0.5) * 0.18 * math.min(moving, 1)
-		lift = math.abs(math.sin(phase * 0.5)) * 0.1 * s * math.min(moving, 1)
+		lift = self.Altitude + math.abs(math.sin(phase * 0.5)) * 0.1 * s * math.min(moving, 1)
 	elseif move == "hop" then
 		lift = hop * 1.3 * s ^ 0.7
 		pitch = if self.HopT then (0.5 - self.HopT) * 0.5 else 0
 	elseif move == "fly" then
-		lift = self.Height + math.sin(t * 2 + self.Seed) * 0.35 * s
+		lift = self.Altitude + math.sin(t * 2 + self.Seed) * 0.35 * s
 		pitch = -0.18 * math.min(moving, 1)
 		roll = math.sin(t * 0.9 + self.Seed) * 0.08
 	elseif move == "hover" then
-		lift = self.Height + math.sin(t * 3 + self.Seed) * 0.2 * s
+		lift = self.Altitude + math.sin(t * 3 + self.Seed) * 0.2 * s
 		pitch = -0.1 * math.min(moving, 1)
 	elseif move == "swim" then
-		lift = self.Height + math.sin(t * 1.6 + self.Seed) * 0.3 * s
+		lift = self.Altitude + math.sin(t * 1.6 + self.Seed) * 0.3 * s
 		roll = math.sin(t * 1.2 + self.Seed) * 0.07
 		pitch = math.cos(t * 1.6 + self.Seed) * 0.06
 	elseif move == "slither" then

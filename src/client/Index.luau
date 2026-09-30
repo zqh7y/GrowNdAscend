@@ -12,7 +12,7 @@ local Ui = require(script.Parent.Ui)
 local Index = {}
 
 local modal, box = Screen.modal(860, 620)
-local title = Screen.title(box, "Animal Index")
+Screen.title(box, "Animal Index")
 local hint = Screen.subtitle(box, "")
 
 -- overall progress bar
@@ -47,7 +47,8 @@ local tabRow = Ui.new("Frame", {
 	}),
 })
 local tabs = {}
-for world = 0, #Config.AREAS do
+for tab = 1, #Config.AREAS + 1 do
+	local world = tab - 1 -- 0 is "All"
 	tabs[world] = Ui.button({
 		LayoutOrder = world,
 		Size = UDim2.fromOffset(if world == 0 then 90 else 150, 34),
