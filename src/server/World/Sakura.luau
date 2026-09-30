@@ -1,6 +1,9 @@
--- Area 4: Sakura Jungle. Cherry blossom trees with falling petals, bamboo
--- groves, a stone path with torii gates, stone lanterns, a koi pond, a pagoda,
--- and low white Japanese walls with tiled tops on both sides. Breakable: sushi.
+-- Area 4: Sakura Jungle. Twisted cherry trees (and weeping ones) with
+-- falling petals, red maples, bamboo groves, ferns, hydrangeas, azaleas and
+-- irises, a stepping-stone path under torii gates, stone lanterns, a koi pond
+-- with a red arched bridge and a bamboo water spout, a five-tier pagoda, and
+-- Japanese walls (stone base, white plaster, timber, a curved tile roof and
+-- round windows). Breakable: sushi with happy faces (salmon, tuna, egg, maki).
 local Build = require(script.Parent.Build)
 
 local Sakura = {}
@@ -8,18 +11,26 @@ local Sakura = {}
 Sakura.GROUND = Enum.Material.LeafyGrass
 
 local BLOSSOM = Color3.fromRGB(255, 170, 210)
-local TRUNK = Color3.fromRGB(150, 95, 80)
+local BLOSSOM_LIGHT = Color3.fromRGB(255, 215, 235)
+local TRUNK = Color3.fromRGB(135, 85, 75)
 local TORII = Color3.fromRGB(245, 70, 60)
-local TORII_DARK = Color3.fromRGB(70, 72, 95) -- soft charcoal, not black
+local CHARCOAL = Color3.fromRGB(70, 72, 95) -- soft, not black
 local ROOF = Color3.fromRGB(80, 150, 220) -- sky-blue tiles
 local STONE = Color3.fromRGB(215, 215, 225)
+local PLASTER = Color3.fromRGB(252, 248, 240)
+local TIMBER = Color3.fromRGB(165, 105, 75)
 local BAMBOO = Color3.fromRGB(120, 205, 80)
+local LEAF = Color3.fromRGB(90, 195, 85)
 
-local function petals(parent)
+local function pick(rng, list)
+	return list[rng:NextInteger(1, #list)]
+end
+
+local function petals(parent, rate)
 	local emitter = Instance.new("ParticleEmitter")
-	emitter.Color = ColorSequence.new(Color3.fromRGB(255, 190, 215), Color3.fromRGB(255, 150, 190))
+	emitter.Color = ColorSequence.new(Color3.fromRGB(255, 195, 220), Color3.fromRGB(255, 150, 190))
 	emitter.Size = NumberSequence.new(0.25)
-	emitter.Rate = 4
+	emitter.Rate = rate or 4
 	emitter.Lifetime = NumberRange.new(5, 7)
 	emitter.Speed = NumberRange.new(0.5, 1.5)
 	emitter.Acceleration = Vector3.new(1.2, -1.2, 0.4)
@@ -29,187 +40,383 @@ local function petals(parent)
 	emitter.Parent = parent
 end
 
-local function sakuraTree(parent, rng, base, scale)
-	local model = Build.model(parent, "SakuraTree")
-	local height = 8 * scale
-	Build.cylinder(model, base, height, 1.8 * scale, { Color = TRUNK, Material = Enum.Material.Wood })
-	local top = base + Vector3.new(0, height, 0)
-	-- branches reaching out, each ending in a blossom cloud
-	for k = 1, 4 do
-		local yaw = k / 4 * 360 + rng:NextNumber(-25, 25)
-		local dir = CFrame.Angles(0, math.rad(yaw), 0) * CFrame.Angles(math.rad(50), 0, 0) -- tilted upward
-		local branchLength = rng:NextNumber(4, 6) * scale
-		Build.part(model, {
-			Size = Vector3.new(0.8 * scale, 0.8 * scale, branchLength),
-			CFrame = CFrame.new(top) * dir * CFrame.new(0, 0, -branchLength / 2),
-			Color = TRUNK,
-			Material = Enum.Material.Wood,
-		})
-		local tip = (CFrame.new(top) * dir * CFrame.new(0, 0, -branchLength)).Position
-		Build.ball(model, tip, rng:NextNumber(6, 8) * scale, { Color = Build.vary(rng, BLOSSOM, 0.05), Material = Enum.Material.Grass })
+-- Trees ---------------------------------------------------------------------------------
+
+-- a trunk that twists in three pieces; returns the top and the joints
+local function twistedTrunk(model, rng, base, height, width)
+	local points = { base - Vector3.new(0, 0.4, 0) }
+	local p = base
+	for k = 1, 3 do
+		p = p + Vector3.new(rng:NextNumber(-1.2, 1.2), height / 3, rng:NextNumber(-1.2, 1.2))
+		table.insert(points, p)
 	end
-	local crown = Build.ball(model, top + Vector3.new(0, 2 * scale, 0), 8 * scale, {
-		Color = Build.vary(rng, BLOSSOM, 0.05),
-		Material = Enum.Material.Grass,
-	})
-	petals(crown)
+	for k = 1, 3 do
+		local w = width * (1 - (k - 1) * 0.22)
+		Build.limb(model, points[k], points[k + 1], w, { Color = TRUNK })
+		Build.ball(model, points[k + 1], w * 0.95, { Color = TRUNK })
+	end
+	for k = 1, 3 do
+		local a = k / 3 * math.pi * 2 + rng:NextNumber(-0.4, 0.4)
+		local dir = Vector3.new(math.cos(a), 0, math.sin(a))
+		Build.limb(model, base + Vector3.new(0, width * 0.6, 0), base + dir * width * 1.1 - Vector3.new(0, 0.2, 0), width * 0.4, { Color = TRUNK })
+	end
+	return points
+end
+
+local function sakuraTree(parent, rng, base, s)
+	local model = Build.model(parent, "SakuraTree")
+	local points = twistedTrunk(model, rng, base, 9 * s, 1.8 * s)
+	local top = points[4]
+	-- branches from the upper joints, each splitting once, ending in blossoms
+	for k = 1, 4 do
+		local from = points[if k <= 2 then 3 else 4]
+		local a = k / 4 * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
+		local mid = from + Vector3.new(math.cos(a) * 3 * s, rng:NextNumber(1, 2) * s, math.sin(a) * 3 * s)
+		Build.limb(model, from, mid, 0.7 * s, { Color = TRUNK })
+		for j = -1, 1, 2 do
+			local b = a + j * 0.5
+			local tip = mid + Vector3.new(math.cos(b) * 2 * s, rng:NextNumber(0.8, 1.6) * s, math.sin(b) * 2 * s)
+			Build.limb(model, mid, tip, 0.4 * s, { Color = TRUNK })
+			Build.leafCluster(model, rng, tip, rng:NextNumber(3.8, 4.8) * s, if rng:NextNumber() < 0.5 then BLOSSOM else BLOSSOM_LIGHT, 2)
+		end
+	end
+	Build.leafCluster(model, rng, top + Vector3.new(0, 2 * s, 0), 6 * s, BLOSSOM)
+	petals(model:FindFirstChildWhichIsA("BasePart"), 5)
+	return model
+end
+
+-- a weeping cherry: strands of blossoms hanging down from a round crown
+local function weepingCherry(parent, rng, base, s)
+	local model = Build.model(parent, "WeepingCherry")
+	local points = twistedTrunk(model, rng, base, 8 * s, 1.5 * s)
+	local crown = points[4] + Vector3.new(0, 1.5 * s, 0)
+	Build.leafCluster(model, rng, crown, 6 * s, BLOSSOM)
+	for k = 0, 7 do
+		local a = k / 8 * math.pi * 2
+		local start = crown + Vector3.new(math.cos(a) * 3 * s, 0, math.sin(a) * 3 * s)
+		for j = 0, 3 do
+			Build.ball(model, start - Vector3.new(0, j * 1.1 * s, 0) + Vector3.new(math.cos(a), 0, math.sin(a)) * j * 0.35 * s, (1.3 - j * 0.12) * s, {
+				Color = if j % 2 == 0 then BLOSSOM else BLOSSOM_LIGHT,
+				CanCollide = false,
+			})
+		end
+	end
+	petals(model:FindFirstChildWhichIsA("BasePart"), 5)
+	return model
+end
+
+local function maple(parent, rng, base, s)
+	local model = Build.model(parent, "Maple")
+	local points = twistedTrunk(model, rng, base, 7 * s, 1.3 * s)
+	local color = pick(rng, { Color3.fromRGB(245, 80, 60), Color3.fromRGB(255, 130, 50), Color3.fromRGB(235, 60, 90) })
+	for k = 1, 3 do
+		local a = k / 3 * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
+		local tip = points[4] + Vector3.new(math.cos(a) * 2.6 * s, rng:NextNumber(0.5, 1.5) * s, math.sin(a) * 2.6 * s)
+		Build.limb(model, points[3], tip, 0.5 * s, { Color = TRUNK })
+		Build.leafCluster(model, rng, tip, 4.2 * s, color, 2)
+	end
+	Build.leafCluster(model, rng, points[4] + Vector3.new(0, 1.6 * s, 0), 5.5 * s, color)
 	return model
 end
 
 local function bambooCluster(parent, rng, base, count)
 	local model = Build.model(parent, "Bamboo")
-	for _ = 1, count do
-		local p = base + Vector3.new(rng:NextNumber(-3, 3), 0, rng:NextNumber(-3, 3))
-		local height = rng:NextNumber(16, 26)
-		local lean = CFrame.Angles(math.rad(rng:NextNumber(-5, 5)), 0, math.rad(rng:NextNumber(-5, 5)))
-		local color = Build.vary(rng, BAMBOO, 0.06)
+	for i = 1, count do
+		local p = base + Vector3.new(rng:NextNumber(-2.5, 2.5), 0, rng:NextNumber(-2.5, 2.5))
+		local height = rng:NextNumber(14, 24)
+		local lean = Vector3.new(rng:NextNumber(-1.2, 1.2), 0, rng:NextNumber(-1.2, 1.2))
+		local color = Build.vary(rng, if i % 4 == 0 then Color3.fromRGB(190, 215, 90) else BAMBOO, 0.05)
+		local width = rng:NextNumber(0.7, 1)
+		-- segments between the joints, each joint a slightly wider ring
+		local segment = 4.5
+		local previous = p - Vector3.new(0, 0.3, 0)
+		local y = 0
+		while y < height do
+			y = math.min(y + segment, height)
+			local q = p + Vector3.new(0, y, 0) + lean * (y / height) ^ 2
+			Build.limb(model, previous, q, width, { Color = color })
+			Build.ball(model, q, width * 1.12, { Color = color:Lerp(Color3.new(1, 1, 1), 0.15), CanCollide = false })
+			-- leaf sprays from the upper joints
+			if y > height - 3 * segment then
+				local a = rng:NextNumber(0, math.pi * 2)
+				for k = 0, 2 do
+					local b = a + k * 0.5
+					Build.ghost(Build.part(model, {
+						Size = Vector3.new(0.7, 0.12, 2.6),
+						CFrame = CFrame.new(q) * CFrame.Angles(0, b, 0) * CFrame.Angles(math.rad(-15 + k * 10), 0, 0) * CFrame.new(0, 0, -1.4),
+						Color = Build.vary(rng, LEAF, 0.05),
+					}))
+				end
+			end
+			previous = q
+		end
+	end
+	-- a young shoot at the base
+	Build.cylinder(model, base + Vector3.new(1.5, 0, -1.5), 1.2, 0.8, { Color = Color3.fromRGB(190, 170, 100) })
+	Build.cylinder(model, base + Vector3.new(1.5, 1.2, -1.5), 0.8, 0.5, { Color = Color3.fromRGB(190, 170, 100) })
+	return model
+end
+
+-- Plants ----------------------------------------------------------------------------------------
+
+local function fern(parent, rng, base)
+	local model = Build.model(parent, "Fern")
+	for k = 0, 6 do
+		local a = k / 7 * math.pi * 2 + rng:NextNumber(-0.2, 0.2)
 		Build.part(model, {
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(height, 0.8, 0.8),
-			CFrame = CFrame.new(p) * lean * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = color,
-			Material = Enum.Material.SmoothPlastic,
+			Size = Vector3.new(0.6, 0.1, 2.4),
+			CFrame = CFrame.new(base + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, a, 0) * CFrame.Angles(math.rad(30), 0, 0) * CFrame.new(0, 0, -1.1),
+			Color = Build.vary(rng, Color3.fromRGB(80, 190, 90), 0.05),
 		})
-		-- joints
-		for y = 3, height - 1, 3.5 do
-			Build.ghost(Build.part(model, {
-				Shape = Enum.PartType.Cylinder,
-				Size = Vector3.new(0.25, 0.95, 0.95),
-				CFrame = CFrame.new(p) * lean * CFrame.new(0, y, 0) * CFrame.Angles(0, 0, math.rad(90)),
-				Color = color:Lerp(Color3.new(0, 0, 0), 0.25),
-			}))
-		end
-		-- leaves at the top
-		local top = (CFrame.new(p) * lean * CFrame.new(0, height, 0)).Position
-		for k = 1, 3 do
-			Build.ghost(Build.wedge(model, CFrame.new(top) * CFrame.Angles(0, math.rad(k * 120 + rng:NextNumber(0, 40)), 0) * CFrame.Angles(math.rad(25), 0, 0) * CFrame.new(0, 0, -1.8), Vector3.new(0.9, 0.15, 3.6), {
-				Color = Color3.fromRGB(100, 200, 80),
-			}))
-		end
+	end
+	for _, p in ipairs(model:GetChildren()) do
+		Build.ghost(p)
 	end
 	return model
 end
+
+-- a round bush with flower balls dotted on it (hydrangea: blue/purple, azalea: pink)
+local function floweringBush(parent, rng, base, colors)
+	local model = Build.model(parent, "FloweringBush")
+	local center = base + Vector3.new(0, 1.3, 0)
+	Build.leafCluster(model, rng, center, 3.4, LEAF)
+	for _ = 1, 7 do
+		local a = rng:NextNumber(0, math.pi * 2)
+		local up = rng:NextNumber(0, 0.9)
+		local dir = Vector3.new(math.cos(a), up, math.sin(a)).Unit
+		local color = pick(rng, colors)
+		Build.ball(model, center + dir * 1.6, 1, { Color = color })
+		Build.ball(model, center + dir * 1.75 + Vector3.new(0, 0.2, 0), 0.6, { Color = color:Lerp(Color3.new(1, 1, 1), 0.3) })
+	end
+	return model
+end
+
+local function iris(parent, rng, base)
+	for _ = 1, 3 do
+		local p = base + Vector3.new(rng:NextNumber(-0.8, 0.8), 0, rng:NextNumber(-0.8, 0.8))
+		Build.ghost(Build.block(parent, p, Vector3.new(0.15, 2, 0.4), { Color = LEAF }))
+		for k = 0, 2 do
+			Build.ghost(Build.part(parent, {
+				Size = Vector3.new(0.35, 0.1, 0.6),
+				CFrame = CFrame.new(p + Vector3.new(0, 2, 0)) * CFrame.Angles(0, k / 3 * math.pi * 2, 0) * CFrame.Angles(math.rad(-40), 0, 0) * CFrame.new(0, 0, -0.3),
+				Color = Color3.fromRGB(150, 110, 255),
+			}))
+		end
+		Build.ghost(Build.ball(parent, p + Vector3.new(0, 2.1, 0), 0.25, { Color = Color3.fromRGB(255, 215, 60) }))
+	end
+end
+
+-- Japanese architecture ---------------------------------------------------------------------------
 
 local function torii(parent, x, width)
 	local model = Build.model(parent, "Torii")
 	for _, z in ipairs({ -width / 2, width / 2 }) do
-		Build.cylinder(model, Vector3.new(x, 0, z), 18, 1.8, { Color = TORII })
-		Build.cylinder(model, Vector3.new(x, 0, z), 1.2, 2.6, { Color = TORII_DARK })
+		Build.cylinder(model, Vector3.new(x, 0, z), 1.4, 2.6, { Color = CHARCOAL }) -- base
+		Build.cylinder(model, Vector3.new(x, 1.4, z), 16.4, 1.8, { Color = TORII })
 	end
-	Build.block(model, Vector3.new(x, 14, 0), Vector3.new(1.2, 1.2, width + 3), { Color = TORII })
-	-- top beam, tips curving up
-	Build.block(model, Vector3.new(x, 17.5, 0), Vector3.new(2, 1.4, width + 7), { Color = TORII })
-	Build.block(model, Vector3.new(x, 18.9, 0), Vector3.new(2.4, 1, width + 8), { Color = TORII_DARK })
-	for _, s in ipairs({ -1, 1 }) do
-		Build.wedge(model, CFrame.new(x, 19.9, s * (width / 2 + 4.5)) * CFrame.Angles(0, if s > 0 then 0 else math.rad(180), 0), Vector3.new(2.4, 1, 2), {
-			Color = TORII_DARK,
-		})
+	-- nuki: the tie beam, poking out past the pillars
+	Build.block(model, Vector3.new(x, 13.2, 0), Vector3.new(1.1, 1.1, width + 4), { Color = TORII })
+	-- plaque in the middle, with the area's name
+	Build.block(model, Vector3.new(x, 14.3, 0), Vector3.new(0.9, 3.4, 0.9), { Color = TORII })
+	local plaque = Build.block(model, Vector3.new(x, 14.6, 0), Vector3.new(1.3, 2.8, 2.2), { Color = CHARCOAL })
+	for _, face in ipairs({ Enum.NormalId.Left, Enum.NormalId.Right }) do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.Parent = plaque
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(1, 1)
+		label.Font = Enum.Font.GothamBlack
+		label.TextScaled = true
+		label.TextColor3 = Color3.fromRGB(255, 205, 50)
+		label.Text = "桜"
+		label.Parent = gui
 	end
-	-- plaque in the middle
-	Build.block(model, Vector3.new(x, 14.6, 0), Vector3.new(1.4, 3, 2.2), { Color = TORII_DARK })
+	-- shimaki and kasagi: the two top beams, the upper one curving up at the ends
+	Build.block(model, Vector3.new(x, 17.6, 0), Vector3.new(1.8, 1, width + 6), { Color = TORII })
+	for k = -3, 3 do
+		local z = k * (width + 8) / 7
+		local lift = (math.abs(k) / 3) ^ 2 * 1.2
+		Build.block(model, Vector3.new(x, 18.6 + lift, z), Vector3.new(2.4, 1, (width + 8) / 7 + 0.3), { Color = CHARCOAL }, 0)
+	end
 	return model
 end
 
+-- tōrō: base, shaft, platform, a light box with windows, a roof with turned-up corners, a finial
 local function lantern(parent, base)
 	local model = Build.model(parent, "StoneLantern")
-	Build.block(model, base, Vector3.new(2.6, 0.8, 2.6), { Color = STONE, Material = Enum.Material.Slate })
-	Build.cylinder(model, base + Vector3.new(0, 0.8, 0), 2.6, 1, { Color = STONE, Material = Enum.Material.Slate })
-	local light = Build.block(model, base + Vector3.new(0, 3.4, 0), Vector3.new(2, 1.8, 2), {
-		Color = Color3.fromRGB(255, 210, 140),
-		Material = Enum.Material.Neon,
-	})
+	Build.block(model, base, Vector3.new(2.8, 0.7, 2.8), { Color = STONE })
+	Build.block(model, base + Vector3.new(0, 0.7, 0), Vector3.new(2.2, 0.3, 2.2), { Color = STONE })
+	Build.cylinder(model, base + Vector3.new(0, 1, 0), 2.4, 1, { Color = STONE })
+	Build.block(model, base + Vector3.new(0, 3.4, 0), Vector3.new(2.4, 0.5, 2.4), { Color = STONE })
+	local light = Build.block(model, base + Vector3.new(0, 3.9, 0), Vector3.new(1.3, 1.5, 1.3), { Color = Color3.fromRGB(255, 215, 140), Material = Enum.Material.Neon })
+	for _, c in ipairs({ { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }) do
+		Build.block(model, base + Vector3.new(c[1] * 0.8, 3.9, c[2] * 0.8), Vector3.new(0.35, 1.5, 0.35), { Color = STONE }) -- window frame
+	end
 	local glow = Instance.new("PointLight")
 	glow.Color = Color3.fromRGB(255, 190, 120)
 	glow.Range = 12
 	glow.Brightness = 1.2
 	glow.Parent = light
-	Build.wedge(model, CFrame.new(base + Vector3.new(0, 5.8, 0.8)), Vector3.new(3.4, 1.2, 1.6), { Color = STONE, Material = Enum.Material.Slate })
-	Build.wedge(model, CFrame.new(base + Vector3.new(0, 5.8, -0.8)) * CFrame.Angles(0, math.rad(180), 0), Vector3.new(3.4, 1.2, 1.6), { Color = STONE, Material = Enum.Material.Slate })
-	Build.ball(model, base + Vector3.new(0, 6.7, 0), 0.9, { Color = STONE, Material = Enum.Material.Slate })
+	Build.block(model, base + Vector3.new(0, 5.4, 0), Vector3.new(3.4, 0.5, 3.4), { Color = STONE })
+	Build.block(model, base + Vector3.new(0, 5.9, 0), Vector3.new(2.2, 0.5, 2.2), { Color = STONE })
+	for _, c in ipairs({ { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }) do
+		Build.block(model, base + Vector3.new(c[1] * 1.55, 5.8, c[2] * 1.55), Vector3.new(0.5, 0.5, 0.5), { Color = STONE })
+	end
+	Build.ball(model, base + Vector3.new(0, 6.8, 0), 0.9, { Color = STONE })
+	Build.block(model, base + Vector3.new(0, 7.1, 0), Vector3.new(0.3, 0.6, 0.3), { Color = STONE })
+	return model
 end
 
--- Low white plaster wall with a dark tiled cap and a wooden base
-local function japaneseWall(parent, x0, x1, z)
+-- Japanese wall: a stone base, white plaster with timber posts and a beam,
+-- round windows, and a sloped tile roof with rows of round tiles and a ridge
+local function japaneseWall(parent, rng, x0, x1, z)
 	local model = Build.model(parent, "JapaneseWall")
 	local length = x1 - x0
 	local cx = (x0 + x1) / 2
-	Build.block(model, Vector3.new(cx, 0, z), Vector3.new(length, 1.2, 2.4), { Color = Color3.fromRGB(95, 70, 50), Material = Enum.Material.Wood })
-	Build.block(model, Vector3.new(cx, 1.2, z), Vector3.new(length, 4.4, 2), { Color = Color3.fromRGB(245, 240, 230), Material = Enum.Material.Plaster })
-	-- dark posts every 12 studs
-	for x = x0, x1, 12 do
-		Build.block(model, Vector3.new(x, 1.2, z), Vector3.new(0.8, 4.4, 2.2), { Color = Color3.fromRGB(60, 45, 40), Material = Enum.Material.Wood })
+	local out = math.sign(z) -- away from the path
+	-- rounded stone base
+	local x = x0
+	while x < x1 do
+		local w = math.min(rng:NextNumber(1.6, 2.6), x1 - x)
+		Build.block(model, Vector3.new(x + w / 2, 0, z), Vector3.new(w - 0.15, 1.3, 2.8), { Color = Build.vary(rng, STONE, 0.04) })
+		x += w
 	end
-	-- tiled cap sloping to both sides
+	Build.block(model, Vector3.new(cx, 1.3, z), Vector3.new(length, 4.6, 2.2), { Color = PLASTER })
+	Build.block(model, Vector3.new(cx, 5.4, z), Vector3.new(length, 0.5, 2.3), { Color = TIMBER })
+	for px = x0 + 2, x1 - 2, 8 do
+		Build.block(model, Vector3.new(px, 1.3, z), Vector3.new(0.6, 4.6, 2.35), { Color = TIMBER })
+	end
+	-- round windows with a lattice, facing the path
+	for px = x0 + 10, x1 - 6, 16 do
+		local c = CFrame.new(px, 3.5, z - out * 1.12) * CFrame.Angles(0, math.rad(90), 0)
+		Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.1, 2.4, 2.4), CFrame = c, Color = TIMBER })
+		Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.12, 2, 2), CFrame = c, Color = Color3.fromRGB(255, 240, 200) })
+		Build.part(model, { Size = Vector3.new(0.14, 2, 0.15), CFrame = c, Color = TIMBER })
+		Build.part(model, { Size = Vector3.new(0.14, 0.15, 2), CFrame = c, Color = TIMBER })
+	end
+	-- tile roof: two slopes, each with rows of round tiles, and a ridge
 	for _, s in ipairs({ -1, 1 }) do
-		Build.wedge(model, CFrame.new(cx, 6.2, z + s * 1) * CFrame.Angles(0, if s > 0 then math.rad(180) else 0, 0), Vector3.new(length, 1, 2.4), {
-			Color = ROOF,
-			Material = Enum.Material.Slate,
-		})
+		local slope = CFrame.new(cx, 6.5, z + s * 1) * CFrame.Angles(math.rad(s * 28), 0, 0) -- lower on the outside
+		Build.part(model, { Size = Vector3.new(length, 0.3, 2.6), CFrame = slope, Color = ROOF })
+		for row = -1, 1 do
+			Build.part(model, {
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(length, 0.35, 0.35),
+				CFrame = slope * CFrame.new(0, 0.22, row * 0.8),
+				Color = ROOF:Lerp(Color3.new(1, 1, 1), 0.15),
+			})
+		end
 	end
-	Build.block(model, Vector3.new(cx, 6.6, z), Vector3.new(length, 0.5, 0.6), { Color = ROOF, Material = Enum.Material.Slate })
+	Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(length, 0.8, 0.8), CFrame = CFrame.new(cx, 7.2, z), Color = ROOF:Lerp(Color3.new(0, 0, 0), 0.1) })
+	return model
 end
 
 local function pagoda(parent, base)
 	local model = Build.model(parent, "Pagoda")
-	local y = 0
-	for tier = 0, 3 do
-		local w = 22 - tier * 4
-		Build.block(model, base + Vector3.new(0, y, 0), Vector3.new(w - 6, 7, w - 6), {
-			Color = if tier == 0 then Color3.fromRGB(240, 235, 225) else Color3.fromRGB(200, 60, 45),
-			Material = Enum.Material.Plaster,
-		})
-		y += 7
-		-- wide roof with the corners turned up
-		Build.block(model, base + Vector3.new(0, y, 0), Vector3.new(w, 1.2, w), { Color = ROOF, Material = Enum.Material.Slate })
+	Build.block(model, base, Vector3.new(24, 1.6, 24), { Color = STONE }) -- stone platform
+	local y = 1.6
+	for tier = 0, 4 do
+		local w = 18 - tier * 2.6
+		-- body with posts and a balcony rail
+		Build.block(model, base + Vector3.new(0, y, 0), Vector3.new(w - 5, 5, w - 5), { Color = if tier == 0 then PLASTER else TORII })
 		for _, c in ipairs({ { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }) do
-			Build.block(model, base + Vector3.new(c[1] * (w / 2 - 0.6), y + 1.2, c[2] * (w / 2 - 0.6)), Vector3.new(1.2, 1, 1.2), { Color = ROOF })
+			Build.block(model, base + Vector3.new(c[1] * (w - 5) / 2, y, c[2] * (w - 5) / 2), Vector3.new(0.8, 5, 0.8), { Color = if tier == 0 then TORII else PLASTER })
 		end
-		y += 1.2
+		y += 5
+		-- bracket layer, then a wide roof with turned-up corners
+		Build.block(model, base + Vector3.new(0, y, 0), Vector3.new(w - 3.5, 0.8, w - 3.5), { Color = Color3.fromRGB(255, 205, 50) })
+		y += 0.8
+		Build.block(model, base + Vector3.new(0, y, 0), Vector3.new(w, 0.8, w), { Color = ROOF })
+		Build.block(model, base + Vector3.new(0, y + 0.8, 0), Vector3.new(w - 2.4, 0.6, w - 2.4), { Color = ROOF:Lerp(Color3.new(1, 1, 1), 0.15) })
+		for _, c in ipairs({ { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }) do
+			local corner = base + Vector3.new(c[1] * (w / 2 - 0.5), y + 0.8, c[2] * (w / 2 - 0.5))
+			Build.part(model, {
+				Size = Vector3.new(1, 0.6, 2.2),
+				CFrame = CFrame.lookAt(corner, corner + Vector3.new(c[1], 0, c[2])) * CFrame.Angles(math.rad(25), 0, 0),
+				Color = ROOF,
+			})
+			Build.ball(model, corner + Vector3.new(c[1] * 0.8, 0.8, c[2] * 0.8), 0.5, { Color = Color3.fromRGB(255, 205, 50) }) -- little bells
+		end
+		y += 1.4
 	end
-	Build.cylinder(model, base + Vector3.new(0, y, 0), 7, 0.6, { Color = Color3.fromRGB(255, 205, 50) })
+	-- sōrin: the spire with rings
+	Build.cylinder(model, base + Vector3.new(0, y, 0), 8, 0.6, { Color = Color3.fromRGB(255, 205, 50) })
+	for k = 0, 5 do
+		Build.cylinder(model, base + Vector3.new(0, y + 1.5 + k * 0.9, 0), 0.25, 1.8 - k * 0.15, { Color = Color3.fromRGB(255, 205, 50) })
+	end
+	Build.ball(model, base + Vector3.new(0, y + 8.2, 0), 1, { Color = Color3.fromRGB(255, 205, 50) })
 	return model
 end
 
+-- a koi pond with a rocky rim, lily pads, koi, a red arched bridge, irises
+-- and a bamboo water spout (shishi-odoshi)
 local function koiPond(parent, rng, center)
 	local model = Build.model(parent, "KoiPond")
-	-- stone rim, then water
-	for k = 0, 17 do
-		local a = k / 18 * math.pi * 2
-		Build.ball(model, center + Vector3.new(math.cos(a) * 10, 0.2, math.sin(a) * 10), rng:NextNumber(2, 2.8), {
-			Color = Build.vary(rng, STONE),
-			Material = Enum.Material.Slate,
-		})
+	local R = 9
+	for k = 0, 15 do
+		local a = k / 16 * math.pi * 2
+		Build.rock(model, rng, center + Vector3.new(math.cos(a) * R, -0.3, math.sin(a) * R), rng:NextNumber(1.8, 2.6), STONE, if k % 3 == 0 then LEAF else nil)
 	end
 	Build.part(model, {
 		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.4, 20, 20),
-		CFrame = CFrame.new(center + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(60, 150, 170),
+		Size = Vector3.new(0.4, R * 2, R * 2),
+		CFrame = CFrame.new(center + Vector3.new(0, 0.1, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(70, 175, 200),
 		Material = Enum.Material.Glass,
-		Transparency = 0.25,
+		Transparency = 0.2,
 		CanCollide = false,
 	})
-	-- koi
-	for k = 1, 5 do
+	for k = 1, 6 do
 		local p = center + Vector3.new(rng:NextNumber(-6, 6), 0.2, rng:NextNumber(-6, 6))
 		local fish = Build.ghost(Build.part(model, {
 			Size = Vector3.new(0.8, 0.3, 1.8),
 			CFrame = CFrame.new(p) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 360)), 0),
 			Color = if k % 2 == 0 then Color3.fromRGB(255, 130, 40) else Color3.fromRGB(250, 250, 250),
 		}))
-		Build.ghost(Build.part(model, {
-			Size = Vector3.new(0.5, 0.32, 0.5),
-			CFrame = fish.CFrame * CFrame.new(0, 0.01, 0.2),
-			Color = Color3.fromRGB(230, 60, 40),
-		}))
+		Build.ghost(Build.part(model, { Size = Vector3.new(0.5, 0.32, 0.5), CFrame = fish.CFrame * CFrame.new(0, 0.01, 0.2), Color = Color3.fromRGB(230, 60, 40) }))
+		Build.ghost(Build.part(model, { Size = Vector3.new(0.9, 0.1, 0.5), CFrame = fish.CFrame * CFrame.new(0, 0, 1.1), Color = fish.Color }))
 	end
-	-- lily pads
-	for _ = 1, 4 do
-		Build.ghost(Build.cylinder(model, center + Vector3.new(rng:NextNumber(-6, 6), 0.3, rng:NextNumber(-4, 4)), 0.1, 1.8, {
-			Color = Color3.fromRGB(80, 160, 70),
-		}))
+	for _ = 1, 5 do
+		local p = center + Vector3.new(rng:NextNumber(-6, 6), 0.3, rng:NextNumber(-6, 6))
+		Build.ghost(Build.cylinder(model, p, 0.1, 1.8, { Color = Color3.fromRGB(80, 170, 80) }))
+		if rng:NextNumber() < 0.6 then
+			Build.ghost(Build.ball(model, p + Vector3.new(0.3, 0.3, 0), 0.5, { Color = Color3.fromRGB(255, 175, 215) }))
+		end
 	end
+	-- the arched bridge across the middle
+	local segments = 9
+	for k = 0, segments - 1 do
+		local t = (k + 0.5) / segments
+		local x = (t - 0.5) * (R * 2 + 2)
+		local y = math.sin(t * math.pi) * 2.4 + 0.6
+		local slope = math.cos(t * math.pi) * 2.4 * math.pi / (R * 2 + 2)
+		local cf = CFrame.new(center + Vector3.new(x, y, 0)) * CFrame.Angles(0, 0, math.atan(slope))
+		Build.part(model, { Size = Vector3.new((R * 2 + 2) / segments + 0.15, 0.4, 3.4), CFrame = cf, Color = TORII })
+		for _, zz in ipairs({ -1.6, 1.6 }) do
+			Build.part(model, { Size = Vector3.new(0.3, 1.2, 0.3), CFrame = cf * CFrame.new(0, 0.8, zz), Color = TORII })
+			Build.part(model, { Size = Vector3.new((R * 2 + 2) / segments + 0.15, 0.25, 0.3), CFrame = cf * CFrame.new(0, 1.45, zz), Color = TORII })
+		end
+	end
+	-- irises at the edge and the bamboo spout
+	iris(model, rng, center + Vector3.new(-R + 1, 0, R * 0.6))
+	iris(model, rng, center + Vector3.new(R * 0.4, 0, R - 1))
+	local spout = center + Vector3.new(R + 1.5, 0, -2)
+	Build.limb(model, spout, spout + Vector3.new(0, 3.5, 0), 0.9, { Color = BAMBOO })
+	Build.limb(model, spout + Vector3.new(0, 3, 0), spout + Vector3.new(-2.8, 2.2, 0), 0.6, { Color = BAMBOO })
+	Build.limb(model, spout + Vector3.new(0.8, 0, 0), spout + Vector3.new(0.8, 2.4, 0), 0.6, { Color = BAMBOO })
+	local drip = Build.ghost(Build.limb(model, spout + Vector3.new(-2.8, 2.1, 0), spout + Vector3.new(-3, 0.2, 0), 0.25, {
+		Color = Color3.fromRGB(150, 220, 255),
+		Material = Enum.Material.Glass,
+		Transparency = 0.3,
+	}))
+	drip.Name = "Water"
+	return model
 end
+
+-- Building the area ----------------------------------------------------------------------------------
 
 function Sakura.build(ctx)
 	local folder, rng, space = ctx.Folder, ctx.Rng, ctx.Space
@@ -217,42 +424,58 @@ function Sakura.build(ctx)
 	local deco = Build.folder(folder, "Decor")
 	local terrain = ctx.Terrain
 
-	-- green hills and a bamboo forest beyond the walls
+	-- mossy patches in the grass
+	for _ = 1, 8 do
+		local c = Vector3.new(rng:NextNumber(x0, x1), -2, rng:NextNumber(-half, half))
+		terrain:ReplaceMaterial(Region3.new(c - Vector3.new(5, 2, 4), c + Vector3.new(5, 2, 4)):ExpandToGrid(4), 4, Enum.Material.LeafyGrass, Enum.Material.Grass)
+	end
+
+	-- green hills and a bamboo forest beyond the walls, and the pagoda
 	for x = x0, x1 + 10, 14 do
 		for _, s in ipairs({ -1, 1 }) do
 			terrain:FillBall(Vector3.new(x + rng:NextNumber(-4, 4), rng:NextNumber(-10, -5), s * rng:NextNumber(half + 30, half + 55)), rng:NextNumber(16, 24), Enum.Material.LeafyGrass)
 		end
 	end
-	for x = x0 + 4, x1 - 4, 8 do
+	local outside = Build.space()
+	local pagodaBase = Vector3.new(x0 + 58, 0, half + 26)
+	Build.scale(pagoda(deco, pagodaBase), pagodaBase, 0.8)
+	outside:add(pagodaBase, 12)
+	for x = x0 + 5, x1 - 5, 11 do
 		for _, s in ipairs({ -1, 1 }) do
 			local base = Vector3.new(x + rng:NextNumber(-2, 2), 0, s * rng:NextNumber(half + 7, half + 18))
-			Build.scale(bambooCluster(deco, rng, base, rng:NextInteger(3, 5)), base, 0.8)
+			if outside:free(base, 3) then
+				if rng:NextNumber() < 0.7 then
+					Build.scale(bambooCluster(deco, rng, base, rng:NextInteger(3, 5)), base, 0.8)
+				else
+					sakuraTree(deco, rng, base, rng:NextNumber(1, 1.2))
+				end
+				outside:add(base, 3)
+			end
 		end
 	end
-	local pagodaBase = Vector3.new(x0 + 58, 0, half + 26)
-	Build.scale(pagoda(deco, pagodaBase), pagodaBase, 0.85)
 
 	-- Japanese walls on both sides
 	for _, s in ipairs({ -1, 1 }) do
-		japaneseWall(deco, x0, x1, s * (half + 3))
+		japaneseWall(deco, rng, x0, x1, s * (half + 3))
 	end
 
-	-- stone path down the middle, with torii gates over it
+	-- stepping-stone path down the middle, with torii gates over it
 	local path = Build.folder(deco, "Path")
 	for x = x0 + 1.5, x1 - 1.5, 3.5 do
-		Build.block(path, Vector3.new(x, -0.1, rng:NextNumber(-0.3, 0.3)), Vector3.new(3, 0.3, 6.5), {
-			Color = Build.vary(rng, STONE, 0.03),
-			CanCollide = false,
-		}, rng:NextNumber(-3, 3))
+		for _, dz in ipairs({ -1.7, 1.7 }) do
+			Build.block(path, Vector3.new(x + rng:NextNumber(-0.3, 0.3), -0.15, dz + rng:NextNumber(-0.3, 0.3)), Vector3.new(2.8, 0.4, 3), {
+				Color = Build.vary(rng, STONE, 0.03),
+				CanCollide = false,
+			}, rng:NextNumber(-8, 8))
+		end
 	end
 	for _, x in ipairs({ x0 + 12, x0 + 55, x1 - 12 }) do
 		Build.scale(torii(deco, x, 16), Vector3.new(x, 0, 0), 0.75)
 		space:add(Vector3.new(x, 0, 6), 2.5)
 		space:add(Vector3.new(x, 0, -6), 2.5)
 	end
-	-- keep the path itself free
-	for x = x0, x1, 6 do
-		space:add(Vector3.new(x, 0, 0), 4.5)
+	for x = x0, x1, 5 do
+		space:add(Vector3.new(x, 0, 0), 3.5) -- keep the path free
 	end
 
 	-- lanterns lining the path
@@ -265,18 +488,17 @@ function Sakura.build(ctx)
 	end
 
 	-- koi pond, scaled down to fit
-	local pondCenter = Vector3.new(x0 + 34, 0, -(half - 11))
-	local pond = Build.model(deco, "KoiPondArea")
-	koiPond(pond, rng, pondCenter)
-	Build.scale(pond, pondCenter, 0.7)
-	space:add(pondCenter, 8)
+	local pondCenter = Vector3.new(x0 + 34, 0, -(half - 12))
+	Build.scale(koiPond(deco, rng, pondCenter), pondCenter, 0.7)
+	space:add(pondCenter, 9)
 
-	-- sakura trees and bamboo inside the area
+	-- trees along the sides: mostly cherries, some weeping, some maples
+	local kinds = { sakuraTree, sakuraTree, sakuraTree, weepingCherry, maple }
 	for x = x0 + 6, x1 - 6, 12 do
 		for _, s in ipairs({ -1, 1 }) do
 			local base = Vector3.new(x + rng:NextNumber(-3, 3), 0, s * rng:NextNumber(half - 5, half - 3))
 			if space:free(base, 4) then
-				Build.scale(sakuraTree(deco, rng, base, rng:NextNumber(1, 1.2)), base, 0.7)
+				Build.scale(pick(rng, kinds)(deco, rng, base, rng:NextNumber(1, 1.2)), base, 0.75)
 				space:add(base, 4)
 			end
 		end
@@ -284,51 +506,118 @@ function Sakura.build(ctx)
 	for _ = 1, 3 do
 		local base = space:find(rng, x0 + 10, x1 - 10, -half + 10, half - 10, 5)
 		if base then
-			Build.scale(sakuraTree(deco, rng, base, rng:NextNumber(1.1, 1.3)), base, 0.7)
+			Build.scale(pick(rng, kinds)(deco, rng, base, rng:NextNumber(1.1, 1.3)), base, 0.75)
 		end
 	end
+
+	ctx.reserveSpots() -- breakables get their room before the small props
+
+	-- bamboo, flowering bushes, ferns and mossy rocks
 	for _ = 1, 3 do
 		local base = space:find(rng, x0 + 6, x1 - 6, -half + 5, half - 5, 3)
 		if base then
 			Build.scale(bambooCluster(deco, rng, base, rng:NextInteger(3, 4)), base, 0.7)
 		end
 	end
+	local hydrangea = { Color3.fromRGB(120, 150, 255), Color3.fromRGB(170, 130, 255), Color3.fromRGB(110, 190, 255) }
+	local azalea = { Color3.fromRGB(255, 120, 180), Color3.fromRGB(255, 160, 200), Color3.fromRGB(255, 255, 255) }
+	for k = 1, 6 do
+		local base = space:find(rng, x0 + 4, x1 - 4, -half + 3, half - 3, 2.5)
+		if base then
+			floweringBush(deco, rng, base, if k % 2 == 0 then hydrangea else azalea)
+		end
+	end
+	for _ = 1, 7 do
+		local base = space:find(rng, x0 + 4, x1 - 4, -half + 3, half - 3, 2)
+		if base then
+			fern(deco, rng, base)
+		end
+	end
+	for _ = 1, 4 do
+		local base = space:find(rng, x0 + 6, x1 - 6, -half + 4, half - 4, 2.5)
+		if base then
+			Build.rock(deco, rng, base, rng:NextNumber(1.6, 2.6), STONE, LEAF)
+		end
+	end
 end
 
--- Sushi: the Sakura Jungle's breakable (salmon nigiri)
+-- Sushi: the Sakura Jungle's breakables, each with a happy face ------------------------------------
+
+local EYES = Color3.fromRGB(45, 45, 70)
+local BLUSH = Color3.fromRGB(255, 150, 180)
+
+-- eyes and blush on the front of a piece of sushi
+local function face(model, cf, width)
+	for _, x in ipairs({ -0.35, 0.35 }) do
+		Build.ball(model, (cf * CFrame.new(x * width, 0.1, 0)).Position, 0.45, { Color = EYES, CanCollide = false })
+		Build.ball(model, (cf * CFrame.new(x * width - 0.08, 0.2, -0.12)).Position, 0.16, { Color = Color3.new(1, 1, 1), CanCollide = false })
+		Build.ball(model, (cf * CFrame.new(x * width * 1.5, -0.25, 0.02)).Position, 0.4, { Color = BLUSH, CanCollide = false })
+	end
+	Build.part(model, { Size = Vector3.new(0.5, 0.12, 0.1), CFrame = cf * CFrame.new(0, -0.35, 0), Color = EYES, CanCollide = false })
+end
+
+local function nigiri(model, rng, base, topping, stripes)
+	local rice = Build.part(model, { Name = "Rice", Size = Vector3.new(5.4, 2.4, 3.2), CFrame = base * CFrame.new(0, 1.2, 0), Color = Color3.fromRGB(252, 252, 248) })
+	-- rice grains on the sides
+	for _ = 1, 8 do
+		Build.ball(model, (base * CFrame.new(rng:NextNumber(-2.6, 2.6), rng:NextNumber(0.4, 2.2), -1.62)).Position, 0.35, { Color = Color3.fromRGB(245, 245, 238), CanCollide = false })
+	end
+	local fish = Build.part(model, { Size = Vector3.new(6, 1, 3.6), CFrame = base * CFrame.new(0, 2.8, 0), Color = topping })
+	if stripes then
+		for k = -2, 2 do
+			Build.part(model, {
+				Size = Vector3.new(0.25, 1.02, 3.62),
+				CFrame = fish.CFrame * CFrame.new(k * 1.1, 0, 0) * CFrame.Angles(0, math.rad(15), 0),
+				Color = topping:Lerp(Color3.new(1, 1, 1), 0.55),
+				CanCollide = false,
+			})
+		end
+	end
+	face(model, base * CFrame.new(0, 1.3, -1.62), 2.2)
+	return rice
+end
+
+local function tamago(model, rng, base)
+	local rice = nigiri(model, rng, base, Color3.fromRGB(255, 215, 70), false)
+	-- nori belt around the middle
+	Build.part(model, { Size = Vector3.new(1.3, 3.6, 3.8), CFrame = base * CFrame.new(0, 1.9, 0), Color = Color3.fromRGB(45, 80, 60), CanCollide = false })
+	return rice
+end
+
+local function maki(model, rng, base)
+	local roll = Build.part(model, {
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(3.4, 5, 5),
+		CFrame = base * CFrame.new(0, 1.7, 0) * CFrame.Angles(0, 0, math.rad(90)), -- standing on its end
+		Color = Color3.fromRGB(45, 80, 60),
+	})
+	Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(3.45, 4.1, 4.1), CFrame = roll.CFrame, Color = Color3.fromRGB(252, 252, 248) })
+	Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(3.5, 1.6, 1.6), CFrame = roll.CFrame, Color = pick(rng, { Color3.fromRGB(110, 210, 90), Color3.fromRGB(255, 120, 80) }) })
+	face(model, base * CFrame.new(0, 1.7, -2.5), 1.8)
+	return roll
+end
+
 function Sakura.breakable(parent, position, rng)
 	local model = Build.model(parent, "Sushi")
-	local yaw = CFrame.Angles(0, math.rad(rng:NextNumber(0, 180)), 0)
-	local base = CFrame.new(position) * yaw
-	local rice = Build.part(model, {
-		Name = "Rice",
-		Size = Vector3.new(5.4, 2.4, 3.2),
-		CFrame = base * CFrame.new(0, 1.2, 0),
-		Color = Color3.fromRGB(250, 250, 245),
-		Material = Enum.Material.Sand,
-	})
-	local fish = Build.part(model, {
-		Size = Vector3.new(6, 1, 3.6),
-		CFrame = base * CFrame.new(0, 2.8, 0),
-		Color = Color3.fromRGB(255, 130, 80),
-	})
-	-- the white stripes on salmon
-	for k = -2, 2 do
-		Build.part(model, {
-			Size = Vector3.new(0.25, 1.02, 3.62),
-			CFrame = fish.CFrame * CFrame.new(k * 1.1, 0, 0) * CFrame.Angles(0, math.rad(15), 0),
-			Color = Color3.fromRGB(255, 220, 200),
-			CanCollide = false,
-		})
+	local base = CFrame.new(position) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 360)), 0)
+	-- a little wooden serving board
+	Build.part(model, { Size = Vector3.new(7, 0.4, 4.4), CFrame = base * CFrame.new(0, 0.2, 0), Color = Color3.fromRGB(215, 160, 100) })
+	for _, x in ipairs({ -2.6, 2.6 }) do
+		Build.part(model, { Size = Vector3.new(0.6, 0.4, 4), CFrame = base * CFrame.new(x, -0.1, 0), Color = Color3.fromRGB(190, 135, 80) })
 	end
-	-- nori band around the middle
-	Build.part(model, {
-		Size = Vector3.new(1.4, 3.6, 3.8),
-		CFrame = base * CFrame.new(0, 1.9, 0),
-		Color = Color3.fromRGB(30, 50, 35),
-		CanCollide = false,
-	})
-	model.PrimaryPart = rice
+	local top = base * CFrame.new(0, 0.4, 0)
+	local kind = rng:NextInteger(1, 4)
+	local body
+	if kind == 1 then
+		body = nigiri(model, rng, top, Color3.fromRGB(255, 130, 80), true) -- salmon
+	elseif kind == 2 then
+		body = nigiri(model, rng, top, Color3.fromRGB(235, 70, 90), false) -- tuna
+	elseif kind == 3 then
+		body = tamago(model, rng, top)
+	else
+		body = maki(model, rng, top)
+	end
+	model.PrimaryPart = body
 	return model
 end
 

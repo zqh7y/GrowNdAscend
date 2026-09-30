@@ -66,7 +66,27 @@ collectFunction.OnServerInvoke = function(player)
 	return Config.HUGE_PREFIX .. name
 end
 
--- the machine shows the fusion of the player in this (solo) server
+-- The machine shows what's happening for the player in this (solo) server:
+--   idle:   slow rings, a few sparkles, a pink orb
+--   fusing: fast rings, lots of sparkles, the orb takes the pet's colour and
+--           grows as the timer runs down
+--   ready:  a golden beam of light shoots up from the dome
+local function show(state, color, orbSize, status, screen)
+	machine.Orb.Color = color
+	machine.Light.Color = color
+	machine.Orb.Size = Vector3.one * orbSize
+	machine.Status.Text = status
+	machine.Screen.Text = screen
+	machine.Screen.TextColor3 = color
+	local speeds = { idle = { 25, -18 }, fusing = { 140, -110 }, ready = { 60, -45 } }
+	for k, ring in ipairs(machine.Rings) do
+		ring:SetAttribute("SpinSpeed", speeds[state][k])
+	end
+	machine.Sparkles.Rate = if state == "fusing" then 40 elseif state == "ready" then 20 else 6
+	machine.Sparkles.Color = ColorSequence.new(Color3.new(1, 1, 1), color)
+	machine.Beam.Transparency = if state == "ready" then 0.55 else 1
+end
+
 task.spawn(function()
 	while true do
 		local player = Players:GetPlayers()[1]
@@ -77,19 +97,14 @@ task.spawn(function()
 			local total = Config.fuseTime(pet)
 			local left = math.max(fusion.Ends - os.time(), 0)
 			local progress = 1 - left / total
-			machine.Orb.Color = pet.Color
-			machine.Light.Color = pet.Color
-			machine.Orb.Size = Vector3.one * (1.8 + progress * 4.5)
 			if left > 0 then
-				machine.Status.Text = "Fusing " .. fusion.Pet .. "  ·  " .. string.format("%d:%02d", left // 60, left % 60)
+				local time = string.format("%d:%02d", left // 60, left % 60)
+				show("fusing", pet.Color, 1 + progress * 3, "Fusing " .. fusion.Pet .. "  ·  " .. time, time)
 			else
-				machine.Status.Text = "HUGE " .. fusion.Pet:upper() .. " READY!"
+				show("ready", Color3.fromRGB(255, 205, 50), 4.2, "HUGE " .. fusion.Pet:upper() .. " READY!", "READY!")
 			end
 		else
-			machine.Orb.Color = IDLE_COLOR
-			machine.Light.Color = IDLE_COLOR
-			machine.Orb.Size = Vector3.one * 1.8
-			machine.Status.Text = Config.FUSE_COPIES .. " pets → 1 HUGE pet"
+			show("idle", IDLE_COLOR, 1, Config.FUSE_COPIES .. " pets → 1 HUGE pet", "INSERT PETS")
 		end
 		task.wait(0.5)
 	end

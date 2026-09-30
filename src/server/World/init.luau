@@ -61,6 +61,10 @@ terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(125, 215, 105)
 terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(255, 220, 140))
 terrain:SetMaterialColor(Enum.Material.Snow, Color3.fromRGB(245, 250, 255))
 terrain:SetMaterialColor(Enum.Material.Glacier, Color3.fromRGB(150, 220, 255))
+terrain:SetMaterialColor(Enum.Material.Ice, Color3.fromRGB(185, 235, 255))
+terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(225, 180, 115)) -- dirt paths
+terrain:SetMaterialColor(Enum.Material.Sandstone, Color3.fromRGB(240, 185, 115))
+terrain:SetMaterialColor(Enum.Material.Pavement, Color3.fromRGB(220, 220, 230))
 
 -- Invisible walls ----------------------------------------------------------------------
 
@@ -182,7 +186,27 @@ for i, area in ipairs(Config.AREAS) do
 	space:add(Vector3.new(x0, 0, 0), 9)
 	space:add(Vector3.new(x0 + LENGTH, 0, 0), 9)
 
+	-- spots for this area's breakables, away from the decorations. Areas call
+	-- ctx.reserveSpots() after their big props and before the small ones, so
+	-- flowers and rocks never crowd the play space out.
+	local spots = {}
+	local function reserveSpots()
+		if #spots > 0 then
+			return
+		end
+		for _ = 1, 60 do
+			local p = space:find(rng, x0 + 7, x0 + LENGTH - 7, -HALF + 6, HALF - 6, 3.5)
+			if p then
+				table.insert(spots, p)
+			end
+			if #spots >= 16 then
+				break
+			end
+		end
+	end
+
 	local ctx = {
+		reserveSpots = reserveSpots,
 		Folder = folder,
 		X0 = x0,
 		X1 = x0 + LENGTH,
@@ -195,14 +219,7 @@ for i, area in ipairs(Config.AREAS) do
 	}
 	module.build(ctx)
 
-	-- spots for this area's breakables, away from the decorations
-	local spots = {}
-	for _ = 1, 18 do
-		local p = space:find(rng, x0 + 8, x0 + LENGTH - 8, -HALF + 7, HALF - 7, 4)
-		if p then
-			table.insert(spots, p)
-		end
-	end
+	reserveSpots() -- in case the area didn't
 	World.Areas[i] = { Folder = folder, Spots = spots, Module = module }
 
 	if i >= 2 then

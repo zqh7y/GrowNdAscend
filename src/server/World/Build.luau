@@ -44,19 +44,77 @@ function Build.scale(model, ground, factor)
 	return model
 end
 
--- Flat grass: a few thin blades lying flat on the ground in a star, so it
--- looks like drawn-on grass and never sticks up
-function Build.flatGrass(parent, rng, base, color)
-	for k = 1, 4 do
-		local length = rng:NextNumber(0.9, 1.6)
-		Build.ghost(Build.part(parent, {
-			Size = Vector3.new(0.22, 0.04, length),
-			CFrame = CFrame.new(base + Vector3.new(0, 0.04, 0))
-				* CFrame.Angles(0, math.rad(k * 45 + rng:NextNumber(-15, 15)), 0)
-				* CFrame.new(0, 0, -length / 2),
-			Color = Build.vary(rng, color, 0.06),
-		}))
+-- A cylinder from point a to point b (branches, pipes, bamboo...)
+function Build.limb(parent, a, b, diameter, props)
+	props = props or {}
+	local length = (b - a).Magnitude
+	props.Shape = Enum.PartType.Cylinder
+	props.Size = Vector3.new(length, diameter, diameter)
+	-- lookAt points -Z at b; turning 90 degrees about Y lines the cylinder's X axis up with it
+	props.CFrame = CFrame.lookAt((a + b) / 2, b) * CFrame.Angles(0, math.rad(90), 0)
+	return Build.part(parent, props)
+end
+
+-- Toon-shaded foliage: a few overlapping balls with darker ones underneath
+-- and lighter ones on top, so the shape reads nicely from far away
+function Build.leafCluster(parent, rng, center, size, color, detail)
+	detail = detail or 3 -- balls of each shade; smaller clusters look fine with fewer
+	local dark = color:Lerp(Color3.new(0, 0, 0), 0.18)
+	local light = color:Lerp(Color3.new(1, 1, 1), 0.22)
+	Build.ball(parent, center, size, { Color = Build.vary(rng, color, 0.03) })
+	for _ = 1, math.max(detail - 1, 1) do
+		local offset = Vector3.new(rng:NextNumber(-0.4, 0.4), rng:NextNumber(-0.35, -0.1), rng:NextNumber(-0.4, 0.4)) * size
+		Build.ball(parent, center + offset, size * rng:NextNumber(0.55, 0.7), { Color = Build.vary(rng, dark, 0.03) })
 	end
+	for _ = 1, detail do
+		local offset = Vector3.new(rng:NextNumber(-0.3, 0.3), rng:NextNumber(0.15, 0.32), rng:NextNumber(-0.3, 0.3)) * size
+		Build.ball(parent, center + offset, size * rng:NextNumber(0.45, 0.6), { Color = Build.vary(rng, light, 0.03) })
+	end
+end
+
+-- A rock made of a few tilted blocks; `cap` (optional) is a colour for moss
+-- or snow on top
+function Build.rock(parent, rng, base, size, color, cap)
+	local model = Build.model(parent, "Rock")
+	local pieces = rng:NextInteger(2, 4)
+	for k = 1, pieces do
+		local s = size * (if k == 1 then 1 else rng:NextNumber(0.45, 0.75))
+		local offset = if k == 1 then Vector3.zero else Vector3.new(rng:NextNumber(-0.5, 0.5) * size, 0, rng:NextNumber(-0.5, 0.5) * size)
+		local block = Build.part(model, {
+			Size = Vector3.new(s * rng:NextNumber(0.9, 1.3), s * rng:NextNumber(0.55, 0.8), s * rng:NextNumber(0.9, 1.2)),
+			CFrame = CFrame.new(base + offset + Vector3.new(0, s * 0.22, 0))
+				* CFrame.Angles(math.rad(rng:NextNumber(-12, 12)), math.rad(rng:NextNumber(0, 90)), math.rad(rng:NextNumber(-12, 12))),
+			Color = Build.vary(rng, color, 0.04),
+		})
+		if cap and k == 1 then
+			Build.part(model, {
+				Size = Vector3.new(block.Size.X * 0.85, 0.35, block.Size.Z * 0.85),
+				CFrame = block.CFrame * CFrame.new(0, block.Size.Y / 2 + 0.1, 0),
+				Color = cap,
+				CanCollide = false,
+			})
+		end
+	end
+	return model
+end
+
+-- Marks a part (or a model, around its pivot) the client spins every frame
+-- (the client does the animating, so it's smooth and costs the server
+-- nothing). degrees per second, axis in its own space: "X", "Y" or "Z".
+local CollectionService = game:GetService("CollectionService")
+function Build.spin(part, degreesPerSecond, axis)
+	part:SetAttribute("SpinSpeed", degreesPerSecond)
+	part:SetAttribute("SpinAxis", axis or "Y")
+	CollectionService:AddTag(part, "Spin")
+	return part
+end
+
+-- Marks a part (or model) the client bobs up and down
+function Build.bob(part, height, speed)
+	part:SetAttribute("BobHeight", height)
+	part:SetAttribute("BobSpeed", speed or 1)
+	CollectionService:AddTag(part, "Bob")
+	return part
 end
 
 function Build.ball(parent, position, diameter, props)

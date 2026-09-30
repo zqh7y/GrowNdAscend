@@ -175,7 +175,14 @@ end
 
 Config.REBIRTH_BONUS = 0.5 -- +50% coins per rebirth
 
+-- TESTING ONLY: rebirth costs nothing so it can be tried right away.
+-- BEFORE THE FINAL VERSION set this to false (see CLAUDE.md).
+Config.REBIRTH_FREE_FOR_TESTING = true
+
 function Config.rebirthCost(rebirths)
+	if Config.REBIRTH_FREE_FOR_TESTING then
+		return 0
+	end
 	return 1e6 * (rebirths + 1)
 end
 

@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ui = require(script.Ui)
 local Pets = require(script.Pets)
+require(script.Motion)
 
 local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -829,7 +830,9 @@ function refreshRebirth()
 	end
 	local cost = Config.rebirthCost(state.Rebirths)
 	rebirthBonus.Text = "x" .. Config.coinMultiplier(state.Rebirths) .. "  →  x" .. Config.coinMultiplier(state.Rebirths + 1)
-	rebirthCost.Text = "COSTS " .. Config.formatNumber(cost) .. " COINS  ·  YOU HAVE " .. Config.formatNumber(state.Coins)
+	rebirthCost.Text = if cost == 0
+		then "FREE (TESTING)"
+		else "COSTS " .. Config.formatNumber(cost) .. " COINS  ·  YOU HAVE " .. Config.formatNumber(state.Coins)
 	rebirthCost.TextColor3 = if state.Coins >= cost then Ui.SUCCESS else Ui.MUTED
 	Ui.setStyle(rebirthButton, if state.Coins >= cost then "primary" else "disabled")
 end
