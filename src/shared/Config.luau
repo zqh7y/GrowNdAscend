@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 6 (ground height fix)"
+Config.BUILD = "build 7 (levels, harder worlds, new hatch)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -279,7 +279,7 @@ Config.UPGRADES = {
 			return multiplier(value) .. " coins"
 		end,
 		Cost = function(level)
-			return math.floor(40 * 3.1 ^ level)
+			return math.floor(60 * 3.4 ^ level)
 		end,
 	},
 	{
@@ -297,7 +297,7 @@ Config.UPGRADES = {
 			return multiplier(value) .. " damage"
 		end,
 		Cost = function(level)
-			return math.floor(60 * 3.1 ^ level)
+			return math.floor(90 * 3.4 ^ level)
 		end,
 	},
 	{
@@ -315,7 +315,7 @@ Config.UPGRADES = {
 			return multiplier(value) .. " luck"
 		end,
 		Cost = function(level)
-			return math.floor(150 * 3.4 ^ level)
+			return math.floor(250 * 3.7 ^ level)
 		end,
 		Requires = { "Coins", 1 },
 	},
@@ -334,7 +334,7 @@ Config.UPGRADES = {
 			return string.format("%.2f", value) .. "s per roll"
 		end,
 		Cost = function(level)
-			return math.floor(80 * 3.3 ^ level)
+			return math.floor(120 * 3.6 ^ level)
 		end,
 	},
 	{
@@ -352,7 +352,7 @@ Config.UPGRADES = {
 			return value .. (if value == 1 then " pet" else " pets") .. " per roll"
 		end,
 		Cost = function(level)
-			return math.floor(3000 * 60 ^ level)
+			return math.floor(2e4 * 80 ^ level)
 		end,
 		Requires = { "RollSpeed", 2 },
 	},
@@ -371,7 +371,7 @@ Config.UPGRADES = {
 			return ({ [0] = "Locked", "Auto roll", "+ quick reveals", "+ auto-equip best" })[value]
 		end,
 		Cost = function(level)
-			return ({ 400, 2e5, 5e7 })[level + 1] or math.huge
+			return ({ 600, 1e6, 5e8 })[level + 1] or math.huge
 		end,
 		Requires = { "RollSpeed", 1 },
 	},
@@ -390,7 +390,7 @@ Config.UPGRADES = {
 			return multiplier(value) .. " size luck"
 		end,
 		Cost = function(level)
-			return math.floor(1e5 * 4 ^ level)
+			return math.floor(1e6 * 4.5 ^ level)
 		end,
 		Requires = { "Luck", 2 },
 	},
@@ -409,7 +409,7 @@ Config.UPGRADES = {
 			return value .. " pets equipped"
 		end,
 		Cost = function(level)
-			return ({ 2000, 5e6, 5e9 })[level + 1] or math.huge
+			return ({ 1e4, 5e7, 2e11 })[level + 1] or math.huge
 		end,
 		Requires = { "Damage", 2 },
 	},
@@ -498,28 +498,28 @@ Config.AREAS = {
 		Luck = 1, -- rolling here multiplies luck
 		Cost = 0,
 		Color = Color3.fromRGB(110, 210, 90),
-		Breakable = { Name = "Tree", Health = 5e3, Coins = 20 },
+		Breakable = { Name = "Tree", Health = 5e3, Coins = 20, Exp = 1 },
 	},
 	{
 		Name = "Sahara",
 		Luck = 1.2, -- rolling here multiplies luck
-		Cost = 4e3,
+		Cost = 2e4,
 		Color = Color3.fromRGB(240, 190, 90),
-		Breakable = { Name = "Cactus", Health = 6e7, Coins = 400 },
+		Breakable = { Name = "Cactus", Health = 1.2e8, Coins = 600, Exp = 4 },
 	},
 	{
 		Name = "Frozen Peaks",
 		Luck = 1.45, -- rolling here multiplies luck
-		Cost = 6e5,
+		Cost = 6e6,
 		Color = Color3.fromRGB(140, 215, 255),
-		Breakable = { Name = "Ice Cube", Health = 4e9, Coins = 2.5e4 },
+		Breakable = { Name = "Ice Cube", Health = 3e10, Coins = 4e4, Exp = 15 },
 	},
 	{
 		Name = "Sakura Jungle",
 		Luck = 1.75, -- rolling here multiplies luck
-		Cost = 2.2e8,
+		Cost = 3e10,
 		Color = Color3.fromRGB(255, 150, 200),
-		Breakable = { Name = "Sushi", Health = 2.5e11, Coins = 1.5e6 },
+		Breakable = { Name = "Sushi", Health = 1.2e13, Coins = 3e6, Exp = 50 },
 	},
 }
 
@@ -552,26 +552,29 @@ end
 
 -- Rebirth -------------------------------------------------------------------------
 
--- A rebirth resets coins and areas (pets and upgrades stay). Each one needs
--- the coins AND the animal of its row (any size, it isn't used up), and
--- gives, for good: Luck x1.5 and +200% coins. They stack: rebirth 3 is
--- luck x1.5^3 = x3.4 and coins x(1 + 3 x 2) = x7. There are 8 rebirths.
+-- A rebirth is a prestige: it resets your coins only. Worlds you've
+-- unlocked, pets, upgrades, the Index and your level all stay. Each one
+-- needs the coins AND a player level (levels come from EXP for defeating
+-- enemies, see Levels below), and gives, for good: Luck x1.5 and +200%
+-- coins. They stack: rebirth 3 is luck x1.5^3 = x3.4 and coins
+-- x(1 + 3 x 2) = x7. There are 8 rebirths, each needing much more than the
+-- last (balanced with tools/economy/simulate.py).
 Config.REBIRTH_LUCK = 1.5 -- luck is multiplied by this per rebirth
 Config.REBIRTH_COINS = 2 -- +200% coins per rebirth
 Config.REBIRTHS = {
-	{ Cost = 3e11, Pet = "Lion" },
-	{ Cost = 6e12, Pet = "Griffin" },
-	{ Cost = 1.5e13, Pet = "Polar Bear" },
-	{ Cost = 3.5e13, Pet = "Yeti" },
-	{ Cost = 7e13, Pet = "Frost Dragon" },
-	{ Cost = 1.2e14, Pet = "Kitsune" },
-	{ Cost = 2e14, Pet = "Dragon" },
-	{ Cost = 3.5e14, Pet = "Galaxy Whale" },
+	{ Cost = 5e7, Level = 50 },
+	{ Cost = 3e10, Level = 75 },
+	{ Cost = 1e12, Level = 110 },
+	{ Cost = 3e13, Level = 160 },
+	{ Cost = 2e14, Level = 225 },
+	{ Cost = 4e14, Level = 310 },
+	{ Cost = 7e14, Level = 425 },
+	{ Cost = 1.2e15, Level = 575 },
 }
 Config.MAX_REBIRTHS = #Config.REBIRTHS
 
--- TESTING ONLY: rebirths cost no coins so they can be tried right away (the
--- animal is still needed, and there are still at most 8).
+-- TESTING ONLY: rebirths cost no coins so they can be tried sooner (the
+-- level is still needed, and there are still at most 8).
 -- BEFORE THE FINAL VERSION set this to false (see CLAUDE.md).
 Config.REBIRTH_FREE_FOR_TESTING = true
 
@@ -591,29 +594,46 @@ function Config.rebirthCost(rebirths)
 	return row.Cost
 end
 
--- True if the player owns this animal in any size
-function Config.ownsAnimal(data, animal)
-	for _, size in ipairs(Config.SIZES) do
-		if (data.Pets[Config.petName(animal, size.Index)] or 0) > 0 then
-			return true
-		end
-	end
-	return false
-end
-
--- Can this player rebirth now? Returns ok, hasCoins, hasPet, reason
+-- Can this player rebirth now? Returns ok, hasCoins, hasLevel, reason
 function Config.canRebirth(data)
 	local row = Config.nextRebirth(data.Rebirths)
 	if not row then
 		return false, false, false, "Max rebirth reached"
 	end
 	local hasCoins = data.Coins >= Config.rebirthCost(data.Rebirths)
-	local hasPet = Config.ownsAnimal(data, row.Pet)
-	local reason = if not hasCoins and not hasPet then "Needs coins and a " .. row.Pet
+	local hasLevel = (data.Level or 1) >= row.Level
+	local reason = if not hasCoins and not hasLevel then "Needs coins and level " .. row.Level
 		elseif not hasCoins then "Needs more coins"
-		elseif not hasPet then "Needs a " .. row.Pet
+		elseif not hasLevel then "Needs level " .. row.Level
 		else nil
-	return hasCoins and hasPet, hasCoins, hasPet, reason
+	return hasCoins and hasLevel, hasCoins, hasLevel, reason
+end
+
+-- Levels -----------------------------------------------------------------------------
+
+-- Every enemy you defeat gives EXP (Config.AREAS[i].Breakable.Exp, more in
+-- later worlds). EXP fills your level; each level needs more than the last:
+-- LEVEL_BASE x level ^ LEVEL_POWER (level 1 -> 2 needs 8, level 50 -> 51
+-- ~2.8K, level 500 -> 501 ~89K). Levels never reset.
+Config.LEVEL_BASE = 8
+Config.LEVEL_POWER = 1.5
+
+-- EXP needed to go from `level` to the next
+function Config.expToNext(level)
+	return math.floor(Config.LEVEL_BASE * level ^ Config.LEVEL_POWER)
+end
+
+-- Adds EXP to a player's data; returns how many levels they went up
+function Config.addExp(data, amount)
+	data.Level = data.Level or 1
+	data.Exp = (data.Exp or 0) + amount
+	local gained = 0
+	while data.Exp >= Config.expToNext(data.Level) do
+		data.Exp -= Config.expToNext(data.Level)
+		data.Level += 1
+		gained += 1
+	end
+	return gained
 end
 
 -- Coins x(1 + 2 per rebirth): 1, 3, 5, 7 ... 17 at rebirth 8

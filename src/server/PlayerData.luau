@@ -27,6 +27,8 @@ local DEFAULT = {
 	Coins = 0,
 	Unlocked = 1, -- highest area unlocked
 	Rebirths = 0,
+	Level = 1, -- from EXP for defeating enemies (never resets)
+	Exp = 0, -- EXP towards the next level
 	Playtime = 0, -- seconds played
 	Upgrades = {}, -- [upgrade id] = level bought in the upgrade tree
 	Discovered = {}, -- [animal name] = true once found (the Index)
@@ -148,6 +150,8 @@ function PlayerData.sync(player)
 		Coins = data.Coins,
 		Unlocked = data.Unlocked,
 		Rebirths = data.Rebirths,
+		Level = data.Level,
+		Exp = data.Exp,
 		Upgrades = data.Upgrades,
 		Discovered = data.Discovered,
 		Fusion = data.Fusion,

@@ -24,6 +24,10 @@ local RESPAWN_SECONDS = 3
 local SPACING = 7 -- a new coin never appears closer than this to another
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
+local levelEvent = Instance.new("RemoteEvent")
+levelEvent.Name = "LevelUp" -- server -> client: (new level) when a player levels up
+levelEvent.Parent = remotes
+
 local coinEvent = Instance.new("RemoteEvent")
 coinEvent.Name = "CoinPop" -- server -> client: (position, coins, area) when one breaks
 coinEvent.Parent = remotes
@@ -201,6 +205,10 @@ function Breakables.damage(target, amount, player)
 	if data then
 		coins = math.floor(area.Breakable.Coins * Config.coinGain(data))
 		data.Coins += coins
+		-- and EXP: stronger enemies in later worlds give more
+		if Config.addExp(data, area.Breakable.Exp) > 0 then
+			levelEvent:FireClient(player, data.Level)
+		end
 		PlayerData.sync(player)
 	end
 	coinEvent:FireClient(player, target.Pos + Vector3.new(0, 2.5, 0), coins, target.Area)

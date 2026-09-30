@@ -9,7 +9,7 @@ for how it plays and where the code lives.
   the normal rebirth requirements before releasing the final version of the
   game.** Set `Config.REBIRTH_FREE_FOR_TESTING = false` in
   `src/shared/Config.luau`. While it's on, rebirths cost no coins (the
-  required animal and the max of 8 still apply); the real costs are in
+  required level and the max of 8 still apply); the real costs are in
   `Config.REBIRTHS`.
 - **BEFORE THE FINAL VERSION: All areas are currently free and their gates
   are open for testing. Restore the normal area costs (4K / 600K / 220M
@@ -32,17 +32,19 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 52-point player checklist (spawning, rolling, pets
+- The sim ends with a 60-point player checklist (incl. levels, rebirth
+  keeping worlds, the vertical hatch, flex rolls never faking a result; (spawning, rolling, pets
   fighting, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
-  hatch show step by step). It must say "checklist: 52/52 passed". It takes
+  hatch show step by step). It must say "checklist: 60/60 passed". It takes
   a few minutes; run it in the background.
-- Economy: `python3 tools/economy/simulate.py` simulates active players.
-  Targets: World 4 around 40 minutes with ~1B pets; the best pet (Titanic
-  Glitch) ~5T and an extreme jackpot. It mirrors the numbers in
-  `Config.luau`, so change both together and rerun it.
+- Economy: `python3 tools/economy/simulate.py 3 --hours 10` simulates an
+  active player (it reads worlds, rebirths, levels and animals from
+  Config; only the upgrade tree is mirrored in its UP table). Targets:
+  World 2 ~25 min, World 3 ~1.5 h, Rebirth 1 ~3 h, World 4 ~6 h; best pet
+  Titanic Glitch ~5T.
 - Ground: the playable strip is flat terrain at Y = 0 (terrain above it is
   cleared after building). Put things on the ground with
   `World.groundAt`/`World.flatGround`, never an assumed Y.
@@ -84,12 +86,17 @@ for how it plays and where the code lives.
 - Odds: every animal can hatch in every world (`Config.worldOdds`,
   `WORLD_PENALTY` per world ahead, `AREAS[i].Luck`). Never lock an animal
   to a world. The server rolls with the world the player stands in.
-- Rebirths: `Config.REBIRTHS` (cost + animal per level, 8 levels). Luck
+- Rebirths: `Config.REBIRTHS` (cost + level per rebirth, 8 of them). A
+  rebirth resets coins only: never worlds, pets, upgrades, Index or level.
+  Levels: EXP per enemy is `AREAS[i].Breakable.Exp`, the curve is
+  `LEVEL_BASE x level ^ LEVEL_POWER` (`Config.addExp`). Luck
   x1.5 and coins +200% per rebirth are computed from the rebirth count
   (`rebirthLuck`, `coinMultiplier`), so they always stack. Rerun
   `simulate.py 0 --rebirth 70` after changing them.
-- The hatch show (`Hatch.luau`) must never get stuck: it runs protected and
-  always cleans up. Pressing Roll during a show skips; it never stacks.
+- The hatch (`Hatch.luau`) must never get stuck: it runs protected and
+  always cleans up. Pressing Roll during a hatch skips; it never stacks.
+  Flex rolls are visual only: the column always lands on and reveals the
+  real result (tested).
 - UI style lives in `Ui.luau` (fonts, button styles incl. colours) and
   `Screen.modal(width, height, theme)` (ribbon, border, shadow, blur); new
   screens use those so everything looks the same.

@@ -1,27 +1,32 @@
--- The hatch show: what you see every time you roll. It's the heart of the
--- game, so it builds up and pays off:
---   1. Start     the world darkens and blurs, the hatch window pops up
---   2. Scroll    a strip of pet cards races past, then slows down and lands
---                the result exactly in the middle (a tick on every card)
---   3. Shake     the window shakes harder and harder as it slows down
---   4. Shadow    the result is a dark silhouette with a glow in its rarity's
---                colour (rarer = longer wait)
---   5. Reveal    the pet in 3D pops up with rays, sparkles, sound, its name,
---                rarity, power and size
--- The reveal grows with the result:
---   common        quick, a few sparkles, a ding
---   rare / epic   rays, more sparkles, a jingle
---   legendary+    a flash, confetti, a longer jingle
---   HUGE          gold screen flash, big sparkles, a "HUGE!" banner that slams
---                 in, a camera kick, lots of confetti
---   TITANIC       its own show: the screen goes dark, then a rainbow flash,
---                 "JACKPOT!", rainbow rays and rings, waves of confetti,
---                 camera shake and zoom, the longest jingle
--- Clicking anywhere skips to the next step. The first few hatches of a
--- session get the long strip; after that it's a bit quicker, and fast mode
--- (auto roll, Auto Hatch level 2, or the setting off) is quicker still but
--- still gives Huge and Titanic a proper moment. Rolling several pets at once shows the best one on the
--- strip and the rest as little cards under the reveal.
+-- The hatch: what you see every time you roll. It happens right over the
+-- game (only a 10% dark veil behind it), with no box or window:
+--   1. Pets fall     a column of pets streams down from the top of the screen
+--                    through the middle, fast at first (stretched with motion
+--                    blur), each with a soft glow in its rarity's colour and a
+--                    shadow; pets shrink and fade away from the middle (depth)
+--   2. Slowing down  it eases out, with sparkles drifting up, a tick as each
+--                    pet passes the middle, a gentle zoom and a shake that
+--                    builds near the end, and stops exactly on your result
+--   3. Silhouette    your pet waits as a dark shape, glowing in its rarity's
+--                    colour (longer for rarer ones)
+--   4. Reveal        it pops out in 3D with rays, sparkles, name, rarity,
+--                    power and size, and grows with rarity:
+--        common      quick, a few sparkles, a ding
+--        rare/epic   rays, more sparkles, a jingle
+--        legendary+  a flash, rings, confetti
+--        HUGE        gold flash, big sparkles, "HUGE!" slams in, camera kick
+--        TITANIC     an event: the lights go down, a slow heartbeat reveal,
+--                    a rainbow flash, "TITANIC", rainbow rays and rings,
+--                    waves of confetti, screen shake and zoom, long jingle
+-- FLEX ROLLS: now and then (about 1 roll in 30) the column slips in some
+-- ridiculous pets on the way down (a Huge, a Titanic, a Secret), slows for
+-- a moment as each one passes with a big label, then carries on. They are
+-- only visual: the column always stops on the pet the server actually
+-- rolled, and that's what the reveal shows.
+-- Speed: the first few hatches get the long version; after that it's
+-- quicker, and fast mode (auto roll, Auto Hatch 2, or the setting off) is
+-- quicker still, but rare results always get their full moment. Clicking
+-- (or pressing Roll) skips to the next step. It can never get stuck.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -35,18 +40,19 @@ local Ui = require(script.Parent.Ui)
 local Hatch = {}
 
 local gui = Screen.Gui
-local CARD_W, CARD_H, GAP = 132, 172, 12
-local STEP = CARD_W + GAP
-local WINDOW_W = 760
-local CARDS = 34 -- cards on the strip
-local LANDING = 30 -- the result's place on the strip
+local SPACING = 150 -- pixels between pets in the column
+local PETS = 30 -- pets in the column
+local LANDING = 26 -- the result's place in the column
+local VIEW = 150 -- pet size in pixels
+local REACH = 420 -- pixels from the middle where pets have faded out
+Hatch.FLEX_CHANCE = 1 / 30
 
 -- Layout ----------------------------------------------------------------------------------------
 
--- the dark background also catches clicks (to skip)
+-- a very light veil (it also catches clicks, to skip)
 local shade = Ui.new("TextButton", {
 	Size = UDim2.fromScale(1, 1),
-	BackgroundColor3 = Color3.fromRGB(8, 4, 24),
+	BackgroundColor3 = Color3.fromRGB(10, 6, 30),
 	BackgroundTransparency = 1,
 	AutoButtonColor = false,
 	Text = "",
@@ -56,79 +62,76 @@ local shade = Ui.new("TextButton", {
 })
 local stage = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.46),
-	Size = UDim2.fromOffset(WINDOW_W + 40, 520),
+	Position = UDim2.fromScale(0.5, 0.5),
+	Size = UDim2.new(0, 800, 1, 0),
 	BackgroundTransparency = 1,
 	ZIndex = 51,
 	Parent = shade,
 })
 local stageScale = Ui.new("UIScale", { Parent = stage })
 
--- the strip's window
-local window = Ui.new("Frame", {
+-- the column the pets fall through (no frame, nothing drawn)
+local column = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.42),
-	Size = UDim2.fromOffset(WINDOW_W, CARD_H + 40),
-	BackgroundColor3 = Color3.fromRGB(34, 26, 82),
-	BackgroundTransparency = 0.08,
-	ClipsDescendants = true,
+	Position = UDim2.fromScale(0.5, 0.45),
+	Size = UDim2.fromOffset(VIEW, VIEW),
+	BackgroundTransparency = 1,
 	ZIndex = 52,
 	Parent = stage,
-}, { Ui.corner(30), Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(120, 110, 220), Color3.fromRGB(50, 40, 120)) }) })
-local windowStroke = Ui.stroke(Color3.new(1, 1, 1), 5, 0)
-windowStroke.Parent = window
-local strip = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 20),
-	Size = UDim2.fromOffset(CARDS * STEP, CARD_H),
-	BackgroundTransparency = 1,
-	ZIndex = 53,
-	Parent = window,
 })
--- soft edges so cards fade in and out at the sides
-for _, side in ipairs({ 0, 1 }) do
-	Ui.new("Frame", {
-		AnchorPoint = Vector2.new(side, 0),
-		Position = UDim2.fromScale(side, 0),
-		Size = UDim2.new(0, 110, 1, 0),
-		BackgroundColor3 = Color3.fromRGB(40, 32, 100),
-		ZIndex = 56,
-		Parent = window,
-	}, { Ui.new("UIGradient", { Rotation = if side == 0 then 0 else 180, Transparency = NumberSequence.new(0, 1) }) })
-end
--- the landing slot: a gold frame in the middle and two pointers
-local slot = Ui.new("Frame", {
+-- a soft band of light across the middle, and two small gold pointers
+local band = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.42),
-	Size = UDim2.fromOffset(CARD_W + 14, CARD_H + 14),
-	BackgroundTransparency = 1,
-	ZIndex = 57,
+	Position = UDim2.fromScale(0.5, 0.45),
+	Size = UDim2.fromOffset(520, 170),
+	BackgroundColor3 = Color3.new(1, 1, 1),
+	BackgroundTransparency = 0.8,
+	ZIndex = 51,
 	Parent = stage,
-}, { Ui.corner(24) })
-local slotStroke = Ui.stroke(Ui.GOLD, 5, 0)
-slotStroke.Parent = slot
+}, {
+	Ui.corner(0.5),
+	Ui.new("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0.2), NumberSequenceKeypoint.new(1, 1) }) }),
+})
+local pointers = {}
 for _, side in ipairs({ -1, 1 }) do
-	Ui.new("Frame", {
+	pointers[side] = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, side * (CARD_H / 2 + 26)),
-		Size = UDim2.fromOffset(26, 26),
+		Position = UDim2.new(0.5, side * 150, 0.45, 0),
+		Size = UDim2.fromOffset(22, 22),
 		Rotation = 45,
 		BackgroundColor3 = Ui.GOLD,
-		ZIndex = 58,
-		Parent = slot,
+		ZIndex = 56,
+		Parent = stage,
 	}, { Ui.corner(5), Ui.stroke(Ui.INK, 3) })
 end
 local skipHint = Ui.new("TextLabel", {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -8),
+	Position = UDim2.new(0.5, 0, 1, -40),
 	Size = UDim2.fromOffset(400, 22),
 	TextScaled = false,
 	TextSize = 17,
 	Text = "Click to skip",
-	TextColor3 = Color3.fromRGB(210, 205, 240),
-	TextTransparency = 0.2,
+	TextColor3 = Color3.new(1, 1, 1),
+	TextStrokeTransparency = 0.4,
+	TextStrokeColor3 = Ui.INK,
+	TextTransparency = 0.25,
 	ZIndex = 52,
 	Parent = stage,
 })
+local flexBanner = Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.45),
+	Size = UDim2.fromOffset(700, 60),
+	TextScaled = false,
+	TextSize = 44,
+	Text = "",
+	TextStrokeTransparency = 0,
+	TextStrokeColor3 = Ui.INK,
+	Visible = false,
+	ZIndex = 58,
+	Parent = stage,
+})
+local flexScale = Ui.new("UIScale", { Parent = flexBanner })
 
 -- the reveal
 local reveal = Ui.new("Frame", {
@@ -141,7 +144,7 @@ local reveal = Ui.new("Frame", {
 local revealScale = Ui.new("UIScale", { Parent = reveal })
 local rays = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.36),
+	Position = UDim2.fromScale(0.5, 0.4),
 	Size = UDim2.fromOffset(640, 640),
 	BackgroundTransparency = 1,
 	ZIndex = 52,
@@ -162,7 +165,7 @@ for k = 0, 11 do
 end
 local glow = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.36),
+	Position = UDim2.fromScale(0.5, 0.4),
 	Size = UDim2.fromOffset(250, 250),
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	BackgroundTransparency = 0.5,
@@ -173,7 +176,7 @@ local rings = {}
 for k = 1, 3 do
 	rings[k] = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.36),
+		Position = UDim2.fromScale(0.5, 0.4),
 		Size = UDim2.fromOffset(100, 100),
 		BackgroundTransparency = 1,
 		Visible = false,
@@ -184,7 +187,7 @@ for k = 1, 3 do
 end
 local petHolder = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.36),
+	Position = UDim2.fromScale(0.5, 0.4),
 	Size = UDim2.fromOffset(300, 290),
 	BackgroundTransparency = 1,
 	ZIndex = 54,
@@ -200,21 +203,21 @@ local function text(props)
 	props.Parent = props.Parent or reveal
 	return Ui.new("TextLabel", props)
 end
-local banner = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.03), Size = UDim2.fromOffset(700, 60), TextSize = 56 })
+local banner = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.14), Size = UDim2.fromOffset(700, 60), TextSize = 56 })
 local bannerScale = Ui.new("UIScale", { Parent = banner })
-local newBadge = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 120, 0.2, 0), Size = UDim2.fromOffset(110, 34), TextSize = 22, Text = "NEW!", BackgroundTransparency = 0, BackgroundColor3 = Ui.SUCCESS, Rotation = 12 })
+local newBadge = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 120, 0.26, 0), Size = UDim2.fromOffset(110, 34), TextSize = 22, Text = "NEW!", BackgroundTransparency = 0, BackgroundColor3 = Ui.SUCCESS, Rotation = 12 })
 Ui.corner(17).Parent = newBadge
 Ui.stroke(Color3.new(1, 1, 1), 3).Parent = newBadge
-local nameText = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.67), Size = UDim2.fromOffset(760, 64), TextSize = 58 })
-local rarityPill = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.77), Size = UDim2.fromOffset(0, 32), AutomaticSize = Enum.AutomaticSize.X, TextSize = 22, BackgroundTransparency = 0, TextStrokeTransparency = 0.4 })
+local nameText = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.63), Size = UDim2.fromOffset(760, 64), TextSize = 58 })
+local rarityPill = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.7), Size = UDim2.fromOffset(0, 32), AutomaticSize = Enum.AutomaticSize.X, TextSize = 22, BackgroundTransparency = 0, TextStrokeTransparency = 0.4 })
 Ui.corner(16).Parent = rarityPill
 Ui.stroke(Color3.new(1, 1, 1), 3).Parent = rarityPill
 Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 16), Parent = rarityPill })
-local powerText = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.86), Size = UDim2.fromOffset(700, 34), TextSize = 30, TextColor3 = Ui.GOLD })
+local powerText = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.77), Size = UDim2.fromOffset(700, 34), TextSize = 30, TextColor3 = Ui.GOLD })
 local extras = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 1, 6),
-	Size = UDim2.fromOffset(700, 96),
+	Position = UDim2.fromScale(0.5, 0.82),
+	Size = UDim2.fromOffset(700, 90),
 	BackgroundTransparency = 1,
 	ZIndex = 55,
 	Parent = reveal,
@@ -239,9 +242,10 @@ local flash = Ui.new("Frame", {
 -- State -----------------------------------------------------------------------------------------
 
 local busy = false
-local plays = 0 -- shows so far this session: the first few get the long strip
 local skipRequested = false
-Hatch.Last = nil -- for the simulator: what the last show did
+local plays = 0 -- hatches so far this session: the first few get the long version
+Hatch.Last = nil -- for the simulator: what the last hatch did
+Hatch.ForceFlex = false -- (for the simulator) make the next hatch a flex roll
 
 shade.Activated:Connect(function()
 	Hatch.skip()
@@ -251,7 +255,7 @@ function Hatch.busy()
 	return busy
 end
 
--- Jump to the next step (clicking, or pressing Roll during a show)
+-- Jump to the next step (clicking, or pressing Roll during a hatch)
 function Hatch.skip()
 	if busy then
 		skipRequested = true
@@ -280,52 +284,12 @@ function Hatch.tier(result)
 	local odds = Config.PETS_BY_NAME[result.Pet].Odds
 	if odds >= 10000 then
 		return 3
+	elseif odds >= 1000 then
+		return 2
 	elseif odds >= 100 then
-		return if odds >= 1000 then 2 else 1
+		return 1
 	end
 	return 0
-end
-
--- Cards -----------------------------------------------------------------------------------------
-
-local function card(parent, name, silhouette, x)
-	local pet, size = Config.petInfo(name)
-	local rarity = Config.rarity(pet.Odds)
-	local accent = if size.Index > 1 then size.Color else rarity.Color
-	local frame = Ui.new("Frame", {
-		Position = UDim2.fromOffset(x, 0),
-		Size = UDim2.fromOffset(CARD_W, CARD_H),
-		BackgroundColor3 = if silhouette then Color3.fromRGB(20, 14, 44) else accent:Lerp(Color3.fromRGB(40, 30, 90), 0.6),
-		ZIndex = 54,
-		Parent = parent,
-	}, { Ui.corner(20) })
-	Ui.stroke(if silhouette then Color3.new(1, 1, 1) else accent, 4, 0).Parent = frame
-	local view = PetView.take(name, silhouette)
-	view.AnchorPoint = Vector2.new(0.5, 0)
-	view.Position = UDim2.new(0.5, 0, 0, 2)
-	view.Size = UDim2.fromOffset(CARD_W - 6, 118)
-	view.ZIndex = 55
-	view.Parent = frame
-	text({
-		Position = UDim2.fromOffset(4, 122),
-		Size = UDim2.new(1, -8, 0, 22),
-		TextSize = 19,
-		Text = if silhouette then "???" else pet.Name,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-		ZIndex = 56,
-		Parent = frame,
-	})
-	text({
-		Position = UDim2.fromOffset(4, 146),
-		Size = UDim2.new(1, -8, 0, 16),
-		TextSize = 13,
-		Text = if silhouette then "?" else string.upper(rarity.Name),
-		TextColor3 = if silhouette then Ui.MUTED else rarity.Color,
-		TextStrokeTransparency = 0.5,
-		ZIndex = 56,
-		Parent = frame,
-	})
-	return frame
 end
 
 local function clear(container)
@@ -337,24 +301,79 @@ local function clear(container)
 	end
 end
 
--- Pets for the strip: mostly the common ones of this world, now and then a
--- rare "teaser" (and one right after the result, for a near miss)
-local function stripPets(world)
+-- The column --------------------------------------------------------------------------------------
+
+-- One pet in the column: a rarity glow, a soft shadow, the pet in 3D
+local function columnPet(name, silhouette)
+	local pet, size = Config.petInfo(name)
+	local rarity = Config.rarity(pet.Odds)
+	local accent = if silhouette then Color3.new(1, 1, 1) elseif size.Index > 1 then size.Color else rarity.Color
+	local item = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(VIEW, VIEW),
+		BackgroundTransparency = 1,
+		ZIndex = 53,
+		Parent = column,
+	})
+	local scale = Ui.new("UIScale", { Parent = item })
+	local itemGlow = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.8, 0.8),
+		BackgroundColor3 = accent,
+		BackgroundTransparency = 0.72,
+		ZIndex = 53,
+		Parent = item,
+	}, { Ui.corner(0.5) })
+	local shadow = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.9),
+		Size = UDim2.fromScale(0.55, 0.12),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.7,
+		ZIndex = 53,
+		Parent = item,
+	}, { Ui.corner(0.5) })
+	local view = PetView.take(name, silhouette)
+	view.AnchorPoint = Vector2.new(0.5, 0.5)
+	view.Position = UDim2.fromScale(0.5, 0.5)
+	view.Size = UDim2.fromOffset(VIEW, VIEW)
+	view.ZIndex = 54
+	view.Parent = item
+	return { Frame = item, Scale = scale, Glow = itemGlow, Shadow = shadow, View = view, Name = name, Accent = accent, Size = size.Index, Odds = pet.Odds, Silhouette = silhouette }
+end
+
+-- The pets in the column: mostly common ones of this world, now and then a
+-- rarer one; the result goes at LANDING. A flex roll adds a few absurd
+-- pets a little before the result (visual only).
+local function columnNames(world, flex)
 	local pool = {}
 	for _, pet in ipairs(Config.PETS) do
 		if pet.World <= world + 1 then
 			table.insert(pool, pet)
 		end
 	end
-	local list = {}
-	for i = 1, CARDS do
+	local names, flexAt = {}, {}
+	for i = 1, PETS do
 		local r = math.random() ^ 2.4
-		if i == LANDING + 1 or math.random() < 0.08 then
-			r = 0.75 + math.random() * 0.25 -- a teaser
+		if i == LANDING + 1 or math.random() < 0.07 then
+			r = 0.7 + math.random() * 0.3 -- a rare teaser (one just after the result: a near miss)
 		end
-		list[i] = pool[math.clamp(math.floor(r * #pool) + 1, 1, #pool)].Name
+		names[i] = pool[math.clamp(math.floor(r * #pool) + 1, 1, #pool)].Name
 	end
-	return list
+	if flex then
+		-- one to three showstoppers on the way down, never the result itself
+		local best = { "Glitch", "Galaxy Whale", "Void Serpent", "Celestial Lion", "Kraken", "Phoenix", "Dragon", "Frost Dragon" }
+		local count = math.random(1, 3)
+		for k = 1, count do
+			local at = LANDING - 12 + (k - 1) * 3 + math.random(0, 1)
+			local sizeIndex = if k == count and math.random() < 0.6 then 3 elseif math.random() < 0.6 then 2 else 1
+			names[at] = Config.petName(best[math.random(1, #best)], sizeIndex)
+			flexAt[at] = true
+		end
+	end
+	return names, flexAt
 end
 
 -- Effects ----------------------------------------------------------------------------------------
@@ -365,7 +384,7 @@ local function sparkleBurst(count, size, colors, spread)
 		local s = size * (0.6 + math.random() * 0.8)
 		local star = Ui.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.36),
+			Position = UDim2.fromScale(0.5, 0.4),
 			Size = UDim2.fromOffset(s, s),
 			Rotation = 45,
 			BackgroundColor3 = colors[(k % #colors) + 1],
@@ -374,7 +393,7 @@ local function sparkleBurst(count, size, colors, spread)
 		}, { Ui.corner(math.floor(s / 4)) })
 		local d = spread * (0.5 + math.random() * 0.7)
 		TweenService:Create(star, TweenInfo.new(0.9 + math.random() * 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-			Position = UDim2.new(0.5, math.cos(a) * d, 0.36, math.sin(a) * d),
+			Position = UDim2.new(0.5, math.cos(a) * d, 0.4, math.sin(a) * d),
 			Rotation = 45 + math.random(-200, 200),
 			BackgroundTransparency = 1,
 			Size = UDim2.fromOffset(2, 2),
@@ -383,6 +402,28 @@ local function sparkleBurst(count, size, colors, spread)
 			star:Destroy()
 		end)
 	end
+end
+
+-- a little spark drifting up around the column while it rolls
+local function drift(color)
+	local s = math.random(4, 9)
+	local spark = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, math.random(-200, 200), 0.45, math.random(-60, 160)),
+		Size = UDim2.fromOffset(s, s),
+		Rotation = 45,
+		BackgroundColor3 = color,
+		BackgroundTransparency = 0.2,
+		ZIndex = 52,
+		Parent = stage,
+	}, { Ui.corner(2) })
+	TweenService:Create(spark, TweenInfo.new(1.2, Enum.EasingStyle.Sine), {
+		Position = spark.Position - UDim2.fromOffset(0, 140),
+		BackgroundTransparency = 1,
+	}):Play()
+	task.delay(1.25, function()
+		spark:Destroy()
+	end)
 end
 
 local function flashScreen(color, from, duration)
@@ -427,11 +468,10 @@ local function cameraKick(strength, duration)
 	end
 end
 
--- The show -------------------------------------------------------------------------------------
+-- The reveal -------------------------------------------------------------------------------------
 
-local SIZE_WORDS = { "", "HUGE!", "TITANIC!" }
+local SIZE_WORDS = { "", "HUGE!", "✨ TITANIC ✨" }
 
--- The reveal of one result (also used on its own for the simulator/tests)
 local function showReveal(result, fast, others)
 	local pet, size = Config.PETS_BY_NAME[result.Pet], Config.SIZES[result.Size]
 	local rarity = Config.rarity(pet.Odds)
@@ -446,16 +486,16 @@ local function showReveal(result, fast, others)
 	view.Parent = petHolder
 
 	reveal.Visible = true
-	window.Visible, slot.Visible = false, false
+	column.Visible, band.Visible = false, false
+	for _, p in pairs(pointers) do
+		p.Visible = false
+	end
 	glow.BackgroundColor3 = accent
 	for _, ray in pairs(rayFrames) do
 		ray.BackgroundColor3 = accent:Lerp(Color3.new(1, 1, 1), 0.3)
 	end
 	rays.Visible = tier >= 1
 	banner.Text = if result.Size > 1 then SIZE_WORDS[result.Size] else (if tier >= 3 then string.upper(rarity.Name) .. "!" else "")
-	if tier >= 5 then
-		banner.Text = "✨ TITANIC ✨"
-	end
 	banner.TextColor3 = accent
 	banner.Visible = banner.Text ~= ""
 	newBadge.Visible = result.First or (result.Size > 1 and result.FirstOfSize) or false
@@ -466,41 +506,56 @@ local function showReveal(result, fast, others)
 	rarityPill.BackgroundColor3 = rarity.Color
 	powerText.Text = Config.formatNumber(Config.petPower(name)) .. " Power" .. (if result.Size > 1 then "  ·  " .. size.Name .. " x" .. size.Power else "")
 
-	-- the other pets from this roll, as little cards
+	-- the other pets from this roll, small underneath
 	clear(extras)
 	for i, other in ipairs(others or {}) do
-		local mini = card(extras, Config.petName(other.Pet, other.Size), false, 0)
-		mini.LayoutOrder = i
-		mini.Size = UDim2.fromOffset(74, 96)
-		for _, d in ipairs(mini:GetDescendants()) do
-			if d:IsA("ViewportFrame") then
-				d.Size = UDim2.fromOffset(70, 64)
-			elseif d:IsA("TextLabel") then
-				d.Position = UDim2.fromOffset(2, if d.TextSize > 15 then 64 else 80)
-				d.TextSize = if d.TextSize > 15 then 13 else 10
-				d.Size = UDim2.new(1, -4, 0, 14)
-			end
-		end
+		local otherName = Config.petName(other.Pet, other.Size)
+		local mini = Ui.new("Frame", {
+			LayoutOrder = i,
+			Size = UDim2.fromOffset(74, 90),
+			BackgroundTransparency = 1,
+			ZIndex = 55,
+			Parent = extras,
+		})
+		local miniView = PetView.take(otherName)
+		miniView.Size = UDim2.fromOffset(74, 66)
+		miniView.ZIndex = 55
+		miniView.Parent = mini
+		text({ Position = UDim2.fromOffset(0, 66), Size = UDim2.new(1, 0, 0, 16), TextSize = 13, Text = otherName, TextTruncate = Enum.TextTruncate.AtEnd, Parent = mini })
 	end
 
-	-- pop in
-	petScale.Scale = 0.2
+	-- the bigger the moment, the more happens
+	if tier >= 5 and not fast then
+		-- TITANIC: the lights go down and the pet rises slowly first
+		TweenService:Create(shade, TweenInfo.new(0.4), { BackgroundTransparency = 0.45 }):Play()
+		petScale.Scale = 0.05
+		banner.Visible = false
+		for beat = 1, 3 do
+			TweenService:Create(petScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 0.15 + beat * 0.12 }):Play()
+			Effects.play("Hit", 0.45 + beat * 0.08)
+			if pause(0.45) then
+				break
+			end
+		end
+		banner.Visible = true
+	else
+		petScale.Scale = 0.2
+	end
 	revealScale.Scale = 0.85
 	TweenService:Create(petScale, TweenInfo.new(if tier >= 4 then 0.7 else 0.45, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	TweenService:Create(revealScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	bannerScale.Scale = if tier >= 4 then 3 else 0.5
-	TweenService:Create(bannerScale, TweenInfo.new(if tier >= 4 then 0.35 else 0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	TweenService:Create(bannerScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 
-	-- the bigger the moment, the more happens
 	local hold
 	if tier <= 0 then
 		sparkleBurst(8, 12, { Color3.new(1, 1, 1), accent }, 160)
 		Effects.play("Coin", 1.3)
-		hold = 0.9
+		hold = 0.8
 	elseif tier == 1 then
 		sparkleBurst(14, 14, { Color3.new(1, 1, 1), accent, Ui.GOLD }, 200)
 		Effects.jingle(2)
-		hold = 1.1
+		hold = 1.0
 	elseif tier == 2 then
 		sparkleBurst(20, 16, { Color3.new(1, 1, 1), accent, Ui.GOLD }, 240)
 		flashScreen(accent, 0.6, 0.4)
@@ -514,7 +569,6 @@ local function showReveal(result, fast, others)
 		Effects.confetti(40)
 		hold = 1.9
 	elseif tier == 4 then
-		-- HUGE
 		flashScreen(Color3.fromRGB(255, 220, 110), 0, 0.7)
 		sparkleBurst(36, 26, { Ui.GOLD, Color3.new(1, 1, 1), Color3.fromRGB(255, 170, 60) }, 340)
 		ringWave(Ui.GOLD)
@@ -524,16 +578,12 @@ local function showReveal(result, fast, others)
 		Effects.confetti(90)
 		hold = 2.6
 	else
-		-- TITANIC: its own show
-		flashScreen(Color3.new(0, 0, 0), 0, 0.3)
-		task.delay(0.3, function()
-			flashScreen(Color3.new(1, 1, 1), 0, 0.9)
-			ringWave(Color3.fromRGB(255, 90, 200))
-			cameraKick(10, 1.4)
-			Effects.play("Hit", 0.4)
-		end)
+		flashScreen(Color3.new(1, 1, 1), 0, 0.9)
+		ringWave(Color3.fromRGB(255, 90, 200))
+		cameraKick(10, 1.4)
+		Effects.play("Hit", 0.4)
 		for wave = 0, 2 do
-			task.delay(0.3 + wave * 0.6, function()
+			task.delay(wave * 0.6, function()
 				sparkleBurst(30, 28, { Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 220, 60), Color3.fromRGB(80, 220, 255), Color3.fromRGB(200, 100, 255), Color3.new(1, 1, 1) }, 380)
 				Effects.confetti(80)
 			end)
@@ -543,11 +593,12 @@ local function showReveal(result, fast, others)
 		hold = 3.6
 	end
 	if fast then
-		hold = if tier >= 5 then 2.2 elseif tier == 4 then 1.6 else 0.7
+		hold = if tier >= 5 then 2.2 elseif tier == 4 then 1.6 else 0.6
 	end
-	Hatch.Last = { Name = name, Tier = tier, Size = result.Size, Rays = rays.Visible, Banner = banner.Text, Hold = hold }
+	Hatch.Last = Hatch.Last or {}
+	Hatch.Last.Name, Hatch.Last.Tier, Hatch.Last.Size = name, tier, result.Size
+	Hatch.Last.Rays, Hatch.Last.Banner, Hatch.Last.Hold = rays.Visible, banner.Text, hold
 
-	-- rays turn, titanic cycles through the rainbow
 	local spin = RunService.RenderStepped:Connect(function(dt)
 		rays.Rotation += dt * (if tier >= 5 then 45 elseif tier >= 4 then 30 else 18)
 		local pulse = math.sin(os.clock() * 5) * 0.5 + 0.5
@@ -567,14 +618,16 @@ local function showReveal(result, fast, others)
 	spin:Disconnect()
 end
 
--- Puts everything back (after a show, or if one fails halfway)
+-- The hatch ----------------------------------------------------------------------------------------
+
 local function finish()
-	stage.Position = UDim2.fromScale(0.5, 0.46)
+	stage.Position = UDim2.fromScale(0.5, 0.5)
 	stage.Rotation = 0
-	slotStroke.Thickness, slotStroke.Color, windowStroke.Color = 5, Ui.GOLD, Color3.new(1, 1, 1)
+	stageScale.Scale = 1
 	shade.Visible = false
 	reveal.Visible = false
-	clear(strip)
+	flexBanner.Visible = false
+	clear(column)
 	clear(petHolder)
 	clear(extras)
 	busy = false
@@ -582,13 +635,12 @@ local function finish()
 end
 
 local function show(results, fast, world)
-
-	-- the best result is the one on the strip
-	local best, bestTier = results[1], -1
+	-- the best result is the one the column lands on
+	local best, bestScore = results[1], -1
 	for _, r in ipairs(results) do
-		local tier = Hatch.tier(r) * 10 + Config.PETS_BY_NAME[r.Pet].Odds / 1e8
-		if tier > bestTier then
-			best, bestTier = r, tier
+		local score = Hatch.tier(r) * 10 + Config.PETS_BY_NAME[r.Pet].Odds / 1e8
+		if score > bestScore then
+			best, bestScore = r, score
 		end
 	end
 	local others = {}
@@ -598,77 +650,141 @@ local function show(results, fast, world)
 		end
 	end
 	local tier = Hatch.tier(best)
+	local resultName = Config.petName(best.Pet, best.Size)
 	local accent = if best.Size > 1 then Config.SIZES[best.Size].Color else Config.rarity(Config.PETS_BY_NAME[best.Pet].Odds).Color
-
-	-- 1. start: darken, blur, pop the window in
-	shade.Visible = true
-	reveal.Visible = false
-	window.Visible, slot.Visible = true, true
-	skipHint.Visible = true
-	shade.BackgroundTransparency = 1
-	TweenService:Create(shade, TweenInfo.new(0.25), { BackgroundTransparency = 0.35 }):Play()
-	stageScale.Scale = 0.7
-	TweenService:Create(stageScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-
-	-- 2. the strip: cards race past and slow down onto the result
-	clear(strip)
-	local names = stripPets(world or 1)
-	local cards = {}
-	for i = 1, CARDS do
-		local silhouette = i == LANDING
-		local name = if silhouette then Config.petName(best.Pet, best.Size) else names[i]
-		cards[i] = card(strip, name, silhouette, (i - 1) * STEP)
-	end
-	local finalX = WINDOW_W / 2 - ((LANDING - 1) * STEP + CARD_W / 2)
-	local startX = WINDOW_W / 2 - CARD_W / 2 + 40
 	plays += 1
 	local first = plays <= 3
-	local duration = (if fast then 0.9 elseif first then 2.4 else 1.5) + (if fast then 0 else math.min(tier, 3) * 0.15)
-	local start = os.clock()
-	local lastIndex = -1
-	local shakes = 0
-	local lastX, speedEarly, speedLate = nil, 0, math.huge
-	local maxShake, earlyShake = 0, math.huge
+	local flex = Hatch.ForceFlex or (not fast and math.random() < Hatch.FLEX_CHANCE)
+	Hatch.ForceFlex = false
+
+	-- 1. the veil (very light) and the column
+	shade.Visible = true
+	reveal.Visible = false
+	column.Visible, band.Visible = true, true
+	for _, p in pairs(pointers) do
+		p.Visible = true
+	end
+	skipHint.Visible = true
+	shade.BackgroundTransparency = 1
+	TweenService:Create(shade, TweenInfo.new(0.2), { BackgroundTransparency = 0.9 }):Play()
+	stageScale.Scale = 1
+
+	clear(column)
+	local names, flexAt = columnNames(world or 1, flex)
+	local items = {}
+	for i = 1, PETS do
+		local silhouette = i == LANDING
+		items[i] = columnPet(if silhouette then resultName else names[i], silhouette)
+		items[i].Flex = flexAt[i]
+	end
+
+	-- 2. falling: pet i sits at y = offset - (i - 1) * SPACING from the
+	-- middle, so as the offset grows the pets move DOWN the screen
+	local startOffset = 2 * SPACING
+	local finalOffset = (LANDING - 1) * SPACING
+	local duration = (if fast then 0.8 elseif first then 2.4 else 1.5) + (if tier >= 3 and not fast then 0.6 else 0)
+	local progress = 0
+	local lastOffset, lastIndex = nil, -1
+	local speedEarly, speedLate = 0, math.huge
+	local shakes, maxShake, earlyShake = 0, 0, math.huge
+	local flexShown, flexNames = 0, {}
+	local driftClock = 0
+	local previous = os.clock()
 	while true do
-		local u = math.clamp((os.clock() - start) / duration, 0, 1)
-		if skipRequested then
-			u = 1
+		local now = os.clock()
+		local dt = now - previous
+		previous = now
+		-- flex pets slow the fall right down as they pass the middle
+		local rate = 1
+		local offsetNow = lastOffset or startOffset
+		for i, item in ipairs(items) do
+			if item.Flex then
+				local y = offsetNow - (i - 1) * SPACING
+				if math.abs(y) < SPACING * 0.6 then
+					rate = 0.25
+					if not item.Announced then
+						item.Announced = true
+						flexShown += 1
+						table.insert(flexNames, item.Name)
+						local sizeIndex = item.Size
+						flexBanner.Text = if sizeIndex >= 3 then "👑 TITANIC " .. item.Name:gsub("^Titanic ", "") .. " 👑?!"
+							elseif sizeIndex == 2 then "✨ HUGE " .. item.Name:gsub("^Huge ", "") .. " ✨?!"
+							else "WAIT... " .. string.upper(item.Name) .. "?!"
+						flexBanner.TextColor3 = item.Accent
+						flexBanner.Visible = true
+						flexScale.Scale = 1.8
+						TweenService:Create(flexScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+						flashScreen(item.Accent, 0.75, 0.35)
+						Effects.play("Coin", 1.8)
+						task.delay(0.7, function()
+							flexBanner.Visible = false
+						end)
+					end
+				end
+			end
 		end
-		-- fast at first, then a long slow-down onto the result
-		local eased = 1 - (1 - u) ^ 4
-		local x = startX + (finalX - startX) * eased
-		strip.Position = UDim2.fromOffset(x, 20)
-		-- how fast it moves at the start and at the end (for the simulator)
-		if lastX then
-			local speed = math.abs(x - lastX)
+		progress += dt / duration * rate
+		if skipRequested then
+			progress = 1
+		end
+		local u = math.clamp(progress, 0, 1)
+		-- fast at first, a long, smooth slow-down onto the result
+		local eased = 1 - (1 - u) ^ 3.2
+		local offset = startOffset + (finalOffset - startOffset) * eased
+		local speed = if lastOffset then math.abs(offset - lastOffset) else 0
+		if lastOffset then
 			if u < 0.25 then
 				speedEarly = math.max(speedEarly, speed)
 			elseif u > 0.85 and u < 1 then
 				speedLate = math.min(speedLate, speed)
 			end
 		end
-		lastX = x
-		-- only the cards in view are drawn
-		for i, c in ipairs(cards) do
-			local left = x + (i - 1) * STEP
-			c.Visible = left > -CARD_W and left < WINDOW_W
+		lastOffset = offset
+		-- place, scale, fade and stretch every pet by where it is
+		for i, item in ipairs(items) do
+			local y = offset - (i - 1) * SPACING
+			local away = math.abs(y) / REACH
+			local visible = away < 1.05
+			item.Frame.Visible = visible
+			if visible then
+				item.Frame.Position = UDim2.new(0.5, 0, 0.5, y)
+				item.Scale.Scale = 1.15 - math.min(away, 1) * 0.55 -- bigger in the middle (depth)
+				local fade = math.clamp((away - 0.35) / 0.65, 0, 1)
+				item.View.ImageTransparency = fade
+				item.Glow.BackgroundTransparency = 0.72 + fade * 0.28
+				item.Shadow.BackgroundTransparency = 0.7 + fade * 0.3
+				-- motion blur: stretched and a little see-through when fast
+				local blur = math.clamp(speed / 60, 0, 0.7)
+				item.View.Size = UDim2.fromOffset(VIEW * (1 - blur * 0.15), VIEW * (1 + blur))
+				if blur > 0.05 then
+					item.View.ImageTransparency = math.max(item.View.ImageTransparency, blur * 0.5)
+				end
+			end
 		end
-		-- a tick each time a card crosses the middle, higher as it slows
-		local index = math.floor((WINDOW_W / 2 - x) / STEP)
+		-- a tick as each pet passes the middle; higher as it slows down
+		local index = math.floor(offset / SPACING + 0.5)
 		if index ~= lastIndex then
 			lastIndex = index
-			Effects.play("Roll", 0.9 + u * 0.6, 0.02)
+			local passing = items[index + 1]
+			Effects.play("Roll", 0.9 + u * 0.7 + (if passing and passing.Odds >= 1000 then 0.3 else 0), 0.02)
 		end
-		-- 3. shaking: harder as it slows down
-		local shake = if u > 0.45 then (u - 0.45) / 0.55 else 0
-		local amount = shake * (4 + math.min(tier, 5) * 1.5)
-		stage.Position = UDim2.new(0.5, (math.random() - 0.5) * amount, 0.46, (math.random() - 0.5) * amount)
-		stage.Rotation = (math.random() - 0.5) * shake * 1.6
-		if shake > 0 then
+		-- sparkles drifting up in the result's colour
+		driftClock += dt
+		if driftClock > 0.08 then
+			driftClock = 0
+			drift(if math.random() < 0.5 then accent else Color3.new(1, 1, 1))
+		end
+		-- 3. near the end: a gentle zoom and a shake that builds
+		local near = if u > 0.6 then (u - 0.6) / 0.4 else 0
+		stageScale.Scale = 1 + near * 0.06
+		local amount = near * (3 + math.min(tier, 5) * 1.4)
+		stage.Position = UDim2.new(0.5, (math.random() - 0.5) * amount, 0.5, (math.random() - 0.5) * amount)
+		stage.Rotation = (math.random() - 0.5) * near * 1.2
+		if near > 0 then
 			shakes += 1
 		end
 		maxShake = math.max(maxShake, amount)
-		if u > 0.5 and u < 0.6 then
+		if u > 0.62 and u < 0.7 then
 			earlyShake = math.min(earlyShake, amount)
 		end
 		if u >= 1 then
@@ -676,78 +792,83 @@ local function show(results, fast, world)
 		end
 		task.wait()
 	end
-	stage.Position = UDim2.fromScale(0.5, 0.46)
+	stage.Position = UDim2.fromScale(0.5, 0.5)
 	stage.Rotation = 0
+	flexBanner.Visible = false
 
 	-- 4. the silhouette glows in its rarity's colour a moment
-	slotStroke.Color = accent
-	local glowTime = if fast then 0.2 else (if first then 0.45 else 0.3) + math.min(tier, 5) * 0.18
+	local landed = items[LANDING]
+	local glowTime = if fast then (if tier >= 4 then 0.4 else 0.15) else (if first then 0.45 else 0.3) + math.min(tier, 5) * 0.18
 	skipRequested = false
 	local pulse = RunService.RenderStepped:Connect(function()
 		local p = math.sin(os.clock() * 12) * 0.5 + 0.5
-		slotStroke.Thickness = 5 + p * 5
-		windowStroke.Color = Color3.new(1, 1, 1):Lerp(accent, p)
+		landed.Glow.BackgroundColor3 = accent
+		landed.Glow.BackgroundTransparency = 0.35 + p * 0.3
+		landed.Scale.Scale = 1.15 + p * 0.06
 	end)
 	if tier >= 3 then
 		Effects.play("Roll", 0.5)
+		cameraKick(2, 0.3)
 	end
 	pause(glowTime)
 	pulse:Disconnect()
-	slotStroke.Thickness, slotStroke.Color, windowStroke.Color = 5, Ui.GOLD, Color3.new(1, 1, 1)
 
-	-- 5. the reveal
+	-- 5. the reveal: always the pet actually rolled
 	skipHint.Visible = not fast
 	skipRequested = false
+	Hatch.Last = {
+		Vertical = true,
+		Landed = math.abs(lastOffset - finalOffset) < 0.5,
+		LandedName = landed.Name,
+		Result = resultName,
+		SpeedEarly = speedEarly,
+		SpeedLate = speedLate,
+		Shakes = shakes,
+		ShakeGrows = maxShake > earlyShake,
+		Silhouette = glowTime,
+		StripCardsShown = PETS,
+		Others = #others,
+		Flex = flex,
+		FlexShown = flexShown,
+		FlexNames = flexNames,
+		Veil = 0.9,
+	}
 	showReveal(best, fast, others)
-	if Hatch.Last then
-		Hatch.Last.Cards = CARDS
-		Hatch.Last.Landed = cards[LANDING] ~= nil and math.abs(strip.Position.X.Offset - finalX) < 0.5
-		Hatch.Last.Shakes = shakes
-		Hatch.Last.SpeedEarly = speedEarly
-		Hatch.Last.SpeedLate = speedLate
-		Hatch.Last.ShakeGrows = maxShake > earlyShake
-		Hatch.Last.StripCardsShown = CARDS
-		Hatch.Last.Silhouette = glowTime
-		Hatch.Last.Others = #others
-	end
+	Hatch.Last.Revealed = nameText.Text
 
-	-- done: fade out
 	TweenService:Create(shade, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
 	task.wait(0.2)
 end
 
--- Plays the whole show for a roll's results. Yields until it's done.
--- fast: shorter version (the setting, or auto hatching). If anything goes
--- wrong halfway, it still cleans up, so rolling never gets stuck.
+-- Plays the whole hatch for a roll's results. Yields until it's done.
+-- fast: the quick version (auto roll, Auto Hatch 2, or the setting off).
+-- If anything goes wrong halfway it still cleans up, so rolling never
+-- gets stuck.
 function Hatch.play(results, fast, world)
 	if busy or #results == 0 then
 		return
 	end
 	busy = true
 	skipRequested = false
-	Screen.blur(true)
 	local ok, err = pcall(show, results, fast, world)
 	if not ok then
 		warn("[Hatch] " .. tostring(err))
 	end
-	Screen.blur(false)
 	finish()
 end
 
--- Just the reveal (no strip), for a result that comes from elsewhere
+-- Just the reveal (no column), for a result that comes from elsewhere
 function Hatch.reveal(petName, sizeIndex)
 	if busy then
 		return
 	end
 	busy = true
 	shade.Visible = true
-	shade.BackgroundTransparency = 0.35
-	Screen.blur(true)
+	shade.BackgroundTransparency = 0.9
 	local ok, err = pcall(showReveal, { Pet = petName, Size = sizeIndex, First = false }, false, {})
 	if not ok then
 		warn("[Hatch] " .. tostring(err))
 	end
-	Screen.blur(false)
 	finish()
 end
 

@@ -5,8 +5,9 @@ rare ones and climb the global **Most Rolls** leaderboard.
 
 ## How it plays
 
-**Roll pets → build a stronger team → pets fight the living coins on their
-own → earn coins → buy upgrades → roll better pets → repeat.**
+**Fight enemies → coins + EXP → level up → hatch pets → stronger team →
+upgrades → unlock worlds → rebirth (worlds are kept) → stronger still →
+chase Huge and Titanic pets.**
 
 - **Living coins (the enemies):** each world's coins are alive: trees,
   cactuses, ice cubes and sushi with happy faces, 5 in every world at all
@@ -26,16 +27,19 @@ own → earn coins → buy upgrades → roll better pets → repeat.**
   world**, but animals from worlds ahead of the one you stand in are 25x
   rarer per world (a World 4 animal in World 1: 15,625x rarer), and each
   world adds luck (x1 / x1.2 / x1.45 / x1.75), so later worlds hatch better.
-- **The hatch show:** the world darkens and blurs, a strip of pet cards races
-  past and slows down onto your pet (shaking harder as it slows), the result
-  waits as a glowing silhouette, then pops out in 3D with rays, sparkles, its
-  name, rarity, power and size. The show grows with rarity: rare pets get
-  rays and a jingle, legendary+ a flash and confetti, Huge a gold flash, a
-  "HUGE!" banner and a camera kick, and Titanic a jackpot of its own (dark
-  then rainbow flash, rainbow rays and rings, waves of confetti, camera
-  shake and zoom). Click to skip; after the first few hatches it's quicker,
-  and auto rolling uses a fast version. Pressing Roll during a show skips
-  ahead instead of stacking rolls. Every 10th roll
+- **The hatch:** right over the game (only a 10% veil, no window), pets
+  stream down from the top of the screen, fast and motion-blurred at first,
+  bigger in the middle and fading at the edges, each with a rarity glow and
+  a shadow, with sparkles drifting up. It slows down, zooms gently, shakes
+  more and more, and stops exactly on your pet, which waits as a glowing
+  silhouette before popping out in 3D with its name, rarity, power and size.
+  Rare pets get rays and jingles, Huge a gold flash and a "HUGE!" banner,
+  and Titanic is an event (the lights go down, a heartbeat rise, then a
+  rainbow flash, "TITANIC", rings, confetti, screen shake). About 1 roll in
+  30 is a **flex roll**: a Huge, Titanic or Secret flies past on the way
+  down with a big label, then the column carries on to your real result
+  (it's only a show; you get exactly what you rolled). Click to skip; it's
+  quicker after the first few hatches and fastest when auto rolling. Every 10th roll
   has 2x luck. Rare pets and big sizes get a full-screen reveal with rays,
   confetti and a jingle (Titanic: rainbow).
 - **Upgrade tree** (the tree button): Coins, Damage, Luck, Roll Speed, Rolls
@@ -61,24 +65,32 @@ own → earn coins → buy upgrades → roll better pets → repeat.**
   alternate with lively ones, everything is capped, and only the world you're
   in is alive (`Ambient.luau`).
 - **Fusion machine** (Sahara): 5 of the same pet → 1 of the next size up.
-- **Rebirth (8 levels):** needs the coins AND a certain animal (any size;
-  Lion, Griffin, Polar Bear, Yeti, Frost Dragon, Kitsune, Dragon, Galaxy
-  Whale). Each one gives, forever and stacking: **Luck x1.5** and **Money
-  +200%** (rebirth 3 = luck x3.4 and coins x7; rebirth 8 = x25.6 and x17).
-  You keep pets, upgrades and the Index. In the simulator rebirth 1 comes
-  at ~1.6 h, rebirth 4 ~17 h, rebirth 7 ~47 h.
+- **Levels:** every enemy you defeat gives EXP (1 / 4 / 15 / 50 per enemy in
+  worlds 1-4). Levels get steeper (8 x level^1.5 EXP each) and never reset.
+  The level and an EXP bar sit under your team; levelling up shows a big
+  "LEVEL UP!" with sparkles and a jingle.
+- **Rebirth (8 levels):** needs the coins AND a level (50, 75, 110, 160, 225,
+  310, 425, 575). It's a prestige: only your coins reset; worlds, pets,
+  upgrades, the Index and your level stay. Each one gives, forever and
+  stacking: **Luck x1.5** and **Money +200%** (rebirth 3 = luck x3.4 and
+  coins x7; rebirth 8 = x25.6 and x17).
 - **Leaderboards:** Strongest Pet, Playtime and Rebirths in the Forest;
   Most Rolls in the Top panel.
 
 ### Progression (balanced with `tools/economy/simulate.py`)
 
-| | Time for an active player | Pets |
-| --- | --- | --- |
-| World 1 (Forest) | 0-7 min | hundreds → millions |
-| World 2 (Sahara) | ~7-22 min | millions → hundreds of millions |
-| World 3 (Frozen Peaks) | ~22-40 min | hundreds of millions |
-| World 4 (Sakura Jungle) | from ~40 min | around 1B |
-| Endgame | hours | Huge Glitch ~480B (a few hours maxed); **Titanic Glitch ~4.8T**, about 1 in 1.5M rolls fully maxed |
+| | Time for an active player |
+| --- | --- |
+| World 2 (Sahara) | ~25 min |
+| World 3 (Frozen Peaks) | ~1.5 h |
+| Rebirth 1 (level 50) | ~3 h |
+| World 4 (Sakura Jungle) | ~6 h, a real milestone |
+| Rebirths 2 / 3 / 4 | ~6 / 8 / 14 h |
+| Rebirths 5 / 6 / 7 / 8 | ~28 / 52 / 110 / 230 h |
+| Best pet | **Titanic Glitch ~4.8T** |
+
+Enemy health, coin rewards, EXP, upgrade costs, world costs and rebirths
+all scale together (`python3 tools/economy/simulate.py 3 --hours 10`).
 
 Pet power follows `1M x (odds / 1000)^1.17` (Dog ~700, Tiger 1M, Glitch ~48B),
 Huge is x10 and Titanic x100. Luck, Coins and Damage upgrades multiply
@@ -125,7 +137,7 @@ The fusion machine shows its state: slow rings when idle, fast rings and
 lots of sparkles while fusing (the orb takes the pet's colour and grows), and
 a golden beam of light when a huge pet is ready.
 
-**Testing:** rebirths cost no coins (the animal is still needed) and every area is open (see CLAUDE.md, restore before release).
+**Testing:** rebirths cost no coins (the level is still needed) and every area is open (see CLAUDE.md, restore before release).
 
 ## Solo servers
 
@@ -169,5 +181,5 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/client/Ui.luau`, `Screen.luau`, `State.luau` | UI kit and icons, panels and toasts, the client's data |
 | `src/shared/Coins.luau`, `Build.luau` | Living coin looks and jump styles; model-building helpers |
 | `src/client/PetModels.luau` | All 70 species (body, features, movement) and the tech details by rarity |
-| `tools/sim/` | Runs the server and client on a fake Roblox and plays through a 52-point checklist |
+| `tools/sim/` | Runs the server and client on a fake Roblox and plays through a 60-point checklist |
 | `tools/economy/simulate.py` | Simulates players to check the progression targets |

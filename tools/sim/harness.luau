@@ -519,11 +519,23 @@ if ok then
 			frames(60 * 6) -- let anything broken earlier respawn
 			local w = { Drawn = 0, OnGround = true, Bars = true, InArea = true }
 			for _, model in ipairs(workspace.LivingCoins:GetChildren()) do
-				local p = model:GetPivot().Position
+				-- where it really is: its parts (the lowest point and the middle)
+				local lowest, sum, n = math.huge, Vector3.zero, 0
+				for _, part in ipairs(model:GetDescendants()) do
+					if part:IsA("BasePart") and part.Name ~= "Marker" then
+						local cf, size = part.CFrame, part.Size
+						local halfY = (math.abs(cf.RightVector.Y) * size.X + math.abs(cf.UpVector.Y) * size.Y + math.abs(cf.LookVector.Y) * size.Z) / 2
+						lowest = math.min(lowest, cf.Position.Y - halfY)
+						sum += cf.Position
+						n += 1
+					end
+				end
+				local p = sum / math.max(n, 1)
 				if p.X >= Cfg.areaStart(area) and p.X < Cfg.areaStart(area) + Cfg.AREA_LENGTH then
 					w.Drawn += 1
 					local ground = TERRAIN_HEIGHT(p.X, p.Z)
-					if not ground or p.Y < ground - 0.05 or p.Y > ground + 6 then
+					-- standing on it: not sunk in, and not floating (mid-jump allowed)
+					if not ground or lowest < ground - 0.4 or lowest > ground + 4 then
 						w.OnGround = false
 					end
 					if not model:FindFirstChild("HealthBar") or not model:FindFirstChildWhichIsA("BasePart") then
@@ -619,7 +631,34 @@ if ok then
 		hatchReport.EndedClean = not Hatch.busy()
 		print(string.format("hatch skip: titanic done in %.1fs when clicking | rapid rolling: 30 presses -> %d rolls, %d errors, finished %s",
 			hatchReport.SkipSeconds, hatchReport.RapidRolls, hatchReport.RapidErrors, tostring(not Hatch.busy())))
+		-- flex rolls: showstoppers fly past, but the real result is what lands and is revealed
+		Hatch.ForceFlex = true
+		try("hatch flex", Hatch.play, { { Pet = "Dog", Size = 1 } }, false, 1)
+		local flexLast = table.clone(Hatch.Last or {})
+		hatchReport.Flex = flexLast
+		print(string.format("hatch flex: %d showstoppers passed (%s), landed on %s, revealed %s",
+			flexLast.FlexShown or 0, table.concat(flexLast.FlexNames or {}, ", "), tostring(flexLast.LandedName), tostring(flexLast.Revealed)))
+		-- a real Titanic is always revealed as exactly that Titanic
+		try("hatch real titanic", Hatch.play, { { Pet = "Tiger", Size = 3 } }, true, 1)
+		hatchReport.RealTitanic = table.clone(Hatch.Last or {})
 		STATS.Hatch = hatchReport
+
+		-- LEVEL: the HUD shows level and EXP; a level-up shows the celebration
+		local Hud = C("Hud")
+		data.Level, data.Exp = 1, 0
+		PlayerData.sync(player)
+		frames(2)
+		local levelBadge
+		for _, d in ipairs(player.PlayerGui:GetDescendants()) do
+			if d:IsA("TextLabel") and string.match(d.Text, "^LEVEL %d+$") then
+				levelBadge = d
+			end
+		end
+		remotes.LevelUp:FireClient(player, 2)
+		frames(10)
+		local shown, shownText = Hud.LevelUpShown()
+		STATS.LevelUi = { Badge = levelBadge and levelBadge.Text, Celebrated = shown, Text = shownText }
+		print("level ui:", STATS.LevelUi.Badge, shown, shownText)
 
 		-- INDEX: 70 per category, categories on the right, silhouettes for the unfound
 		local Index = C("Index")
@@ -798,7 +837,7 @@ if ok then
 	-- 14. rebirth resets coins and areas, adds a rebirth, sends you to spawn
 	data.Coins = 5e10
 	data.Rebirths = 0
-	data.Pets.Lion = 1
+	data.Level = Config.REBIRTHS[1].Level
 	local r0 = data.Rebirths
 	remotes.Rebirth.OnServerInvoke(player)
 	item(14, "rebirth", data.Rebirths == r0 + 1 and data.Coins == 0, "rebirths " .. data.Rebirths)
@@ -900,26 +939,32 @@ if ok then
 	local r4 = remotes.Roll.OnServerInvoke(player)
 	item(32, "rolls use the world you stand in", r1 and r4 and r1[1].World == 1 and r4[1].World == 4, r1 and r4 and ("World " .. r1[1].World .. " then World " .. r4[1].World))
 
-	-- 33-39. rebirth: coins AND pet, max 8, luck x1.5 and +200% money stacking
+	-- 33-39. rebirth: coins AND level, max 8, keeps worlds, luck x1.5 and +200% money stacking
 	local wasFree = Config.REBIRTH_FREE_FOR_TESTING
 	Config.REBIRTH_FREE_FOR_TESTING = false
-	local function tryRebirth(rebirths, coins, pets)
-		data.Rebirths, data.Coins, data.Pets = rebirths, coins, pets
+	local function tryRebirth(rebirths, coins, level)
+		data.Rebirths, data.Coins, data.Level = rebirths, coins, level
 		local ok = remotes.Rebirth.OnServerInvoke(player)
 		return ok, data.Rebirths
 	end
-	local cost1 = Config.REBIRTHS[1].Cost
-	local okNoCoins = tryRebirth(0, 0, { Lion = 1 })
-	local okNoPet = tryRebirth(0, cost1, { Dog = 5 })
-	local okNone = tryRebirth(0, 0, {})
-	local okBoth, after = tryRebirth(0, cost1, { ["Huge Lion"] = 1 })
-	item(33, "rebirth needs the coins", okNoCoins == false, "no coins -> refused")
-	item(34, "rebirth needs the pet", okNoPet == false, "no " .. Config.REBIRTHS[1].Pet .. " -> refused")
+	local cost1, level1 = Config.REBIRTHS[1].Cost, Config.REBIRTHS[1].Level
+	local okNoCoins = tryRebirth(0, 0, level1)
+	local okNoLevel = tryRebirth(0, cost1, level1 - 2)
+	local okNone = tryRebirth(0, 0, 1)
+	data.Unlocked = 4
+	local okBoth, after = tryRebirth(0, cost1, level1)
+	item(33, "rebirth needs the cash", okNoCoins == false, "no coins -> refused")
+	item(34, "rebirth needs the level", okNoLevel == false and level1 == 50, "level " .. (level1 - 2) .. " of " .. level1 .. " -> refused")
 	item(35, "rebirth needs both", okNone == false and okBoth == true and after == 1, "both -> Rebirth " .. tostring(after))
-	local allPets = {}
-	for _, row in ipairs(Config.REBIRTHS) do allPets[row.Pet] = 1 end
-	local okMax, stillMax = tryRebirth(8, 1e30, allPets)
+	item(53, "rebirth keeps worlds and levels", okBoth and data.Unlocked == 4 and data.Level == level1 and data.Coins == 0, "World " .. data.Unlocked .. " still open, level " .. data.Level .. ", coins " .. data.Coins)
+	local okMax, stillMax = tryRebirth(8, 1e30, 10000)
 	item(36, "at most 8 rebirths", Config.MAX_REBIRTHS == 8 and okMax == false and stillMax == 8, "at 8 -> refused")
+	local levelsUp = true
+	for k = 2, #Config.REBIRTHS do
+		local jump, previousJump = Config.REBIRTHS[k].Level - Config.REBIRTHS[k - 1].Level, if k > 2 then Config.REBIRTHS[k - 1].Level - Config.REBIRTHS[k - 2].Level else 0
+		if jump <= previousJump then levelsUp = false end
+	end
+	item(54, "each rebirth needs more levels", levelsUp, "levels 50, 75, 110 ... " .. Config.REBIRTHS[8].Level)
 	local base = { Upgrades = { Luck = 3 }, Equipped = {}, Rebirths = 0 }
 	local ratios = {}
 	for r = 1, 8 do
@@ -964,10 +1009,45 @@ if ok then
 	end
 	item(44, "pets attack, destroy, reward, respawn", fightOk, table.concat(fightDetail, ", ") .. ", all back to 5")
 
+	-- 55-57. EXP and levels
+	local expOk, expDetail = true, {}
+	for area = 1, 4 do
+		data.Level, data.Exp = 1, 0
+		local t
+		for _, target in pairs(Breakables.Targets) do
+			if target.Area == area then t = target break end
+		end
+		Breakables.damage(t, math.huge, player)
+		local gained = data.Exp + (data.Level - 1) * 1e9 -- (levels would be > 0 EXP)
+		table.insert(expDetail, "W" .. area .. " +" .. Config.AREAS[area].Breakable.Exp)
+		if gained <= 0 or (area > 1 and Config.AREAS[area].Breakable.Exp <= Config.AREAS[area - 1].Breakable.Exp) then
+			expOk = false
+		end
+	end
+	item(55, "enemies give EXP, more in later worlds", expOk, table.concat(expDetail, ", "))
+	data.Level, data.Exp = 1, 0
+	local levelEvents = 0
+	local levelConn = remotes.LevelUp.OnClientEvent:Connect(function() levelEvents += 1 end)
+	local gainedLevels = Config.addExp(data, 0) -- nothing
+	for _ = 1, 40 do
+		local t
+		for _, target in pairs(Breakables.Targets) do
+			if target.Area == 4 then t = target break end
+		end
+		if t then Breakables.damage(t, math.huge, player) end
+		STEP(4)
+	end
+	levelConn:Disconnect()
+	local steeper = Config.expToNext(100) > Config.expToNext(50) * 2
+	item(56, "EXP fills levels (steeper each level)", data.Level > 1 and levelEvents >= 1 and gainedLevels == 0 and steeper,
+		string.format("40 sushi -> level %d (%d level-up events); level 50 needs %s, level 100 %s", data.Level, levelEvents, Config.formatNumber(Config.expToNext(50)), Config.formatNumber(Config.expToNext(100))))
+	local lu = STATS.LevelUi or {}
+	item(57, "level bar and level-up animation", lu.Badge ~= nil and lu.Celebrated == true and lu.Text == "Level 2", tostring(lu.Badge) .. ", celebration '" .. tostring(lu.Text) .. "'")
+
 	-- 45-51. the hatch show
 	local h = STATS.Hatch or {}
 	local common, huge, titanic, rare = h.common or {}, h.huge or {}, h.titanic or {}, h.rare or {}
-	item(45, "hatch: cards scroll and land in the middle", common.Landed == true and (common.StripCardsShown or 0) >= 20, (common.StripCardsShown or 0) .. " cards, result centred")
+	item(45, "hatch: pets fall top to bottom, land centred", common.Vertical == true and common.Landed == true and (common.StripCardsShown or 0) >= 20, (common.StripCardsShown or 0) .. " pets falling, result centred")
 	item(46, "hatch: fast, then slows down", (common.SpeedEarly or 0) > 10 * (common.SpeedLate or math.huge), string.format("%.1f px/frame early, %.2f at the end", common.SpeedEarly or 0, common.SpeedLate or 0))
 	item(47, "hatch: shakes, more and more", (common.Shakes or 0) > 10 and common.ShakeGrows == true, (common.Shakes or 0) .. " shaking frames")
 	item(48, "hatch: silhouette before the reveal", (common.Silhouette or 0) > 0 and (titanic.Silhouette or 0) > (common.Silhouette or 0), string.format("%.2fs common, %.2fs titanic", common.Silhouette or 0, titanic.Silhouette or 0))
@@ -976,6 +1056,12 @@ if ok then
 	item(51, "hatch: Titanic is the jackpot", titanic.Tier == 5 and string.find(titanic.Banner or "", "TITANIC") ~= nil and (titanic.Hold or 0) > (huge.Hold or 0) and (titanic.Seconds or 0) > (huge.Seconds or 0), string.format("%.1fs show vs %.1fs Huge", titanic.Seconds or 0, huge.Seconds or 0))
 	item(52, "hatch: can skip, rapid rolls safe", (h.SkipSeconds or 99) < 3 and h.RapidErrors == 0 and h.EndedClean == true and (h.RapidRolls or 0) >= 1 and (h.RapidRolls or 0) <= 10,
 		string.format("titanic skipped in %.1fs; 30 presses -> %d rolls, no errors", h.SkipSeconds or 0, h.RapidRolls or 0))
+
+	local flexH, realT = h.Flex or {}, h.RealTitanic or {}
+	item(58, "hatch: only a light veil (0.1)", common.Veil == 0.9, "veil transparency " .. tostring(common.Veil))
+	item(59, "hatch: flex rolls flash showstoppers", flexH.Flex == true and (flexH.FlexShown or 0) >= 1, (flexH.FlexShown or 0) .. " showstoppers: " .. table.concat(flexH.FlexNames or {}, ", "))
+	item(60, "hatch: never fakes the result", flexH.LandedName == "Dog" and flexH.Revealed == "Dog" and realT.Revealed == "Titanic Tiger" and realT.LandedName == "Titanic Tiger",
+		"flex landed and revealed " .. tostring(flexH.Revealed) .. "; a real Titanic revealed " .. tostring(realT.Revealed))
 
 	local passed = 0
 	for _, r in ipairs(results) do

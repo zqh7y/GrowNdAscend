@@ -18,6 +18,8 @@ local Inventory = require(script.Parent.Inventory)
 local UpgradeTree = require(script.Parent.UpgradeTree)
 local Panels = require(script.Parent.Panels)
 
+local Hud = {}
+
 local gui = Screen.Gui
 
 -- Coins (top centre) --------------------------------------------------------------------------
@@ -146,6 +148,139 @@ local function refreshTeam(data)
 	teamText.Text = Config.formatNumber(Config.teamDamage(data)) .. " damage/sec"
 end
 
+-- Level and EXP (under the team) ---------------------------------------------------------------
+
+local levelBar = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 118),
+	Size = UDim2.fromOffset(330, 34),
+	BackgroundTransparency = 1,
+	Parent = gui,
+})
+local levelBadge = Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0, 0.5),
+	Position = UDim2.fromScale(0, 0.5),
+	Size = UDim2.fromOffset(104, 34),
+	BackgroundTransparency = 0,
+	BackgroundColor3 = Color3.fromRGB(130, 90, 255),
+	TextScaled = false,
+	TextSize = 18,
+	Text = "LEVEL 1",
+	TextStrokeTransparency = 0.3,
+	TextStrokeColor3 = Ui.INK,
+	ZIndex = 3,
+	Parent = levelBar,
+}, { Ui.corner(17), Ui.stroke(Color3.new(1, 1, 1), 2.5) })
+local levelScale = Ui.new("UIScale", { Parent = levelBadge })
+local expTrack = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0, 0.5),
+	Position = UDim2.new(0, 96, 0.5, 0),
+	Size = UDim2.new(1, -96, 0, 22),
+	BackgroundColor3 = Color3.fromRGB(30, 22, 70),
+	BackgroundTransparency = 0.15,
+	Parent = levelBar,
+}, { Ui.corner(11), Ui.stroke(Color3.new(1, 1, 1), 2, 0.3) })
+local expFill = Ui.new("Frame", {
+	Size = UDim2.fromScale(0, 1),
+	BackgroundColor3 = Color3.new(1, 1, 1),
+	ZIndex = 2,
+	Parent = expTrack,
+}, { Ui.corner(11), Ui.new("UIGradient", { Color = ColorSequence.new(Color3.fromRGB(120, 230, 255), Color3.fromRGB(150, 110, 255)) }) })
+local expText = Ui.new("TextLabel", {
+	Size = UDim2.fromScale(1, 1),
+	TextScaled = false,
+	TextSize = 14,
+	Text = "",
+	TextStrokeTransparency = 0.2,
+	TextStrokeColor3 = Ui.INK,
+	ZIndex = 3,
+	Parent = expTrack,
+})
+
+local function refreshLevel(data)
+	local level, exp = data.Level or 1, data.Exp or 0
+	local need = Config.expToNext(level)
+	levelBadge.Text = "LEVEL " .. level
+	TweenService:Create(expFill, TweenInfo.new(0.25), { Size = UDim2.fromScale(math.clamp(exp / need, 0, 1), 1) }):Play()
+	expText.Text = Config.formatNumber(exp) .. " / " .. Config.formatNumber(need) .. " EXP"
+end
+
+-- Level up: a big "LEVEL UP!" with the new level, sparkles and a jingle
+local levelUp = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.3),
+	Size = UDim2.fromOffset(420, 130),
+	BackgroundTransparency = 1,
+	Visible = false,
+	ZIndex = 45,
+	Parent = gui,
+})
+local levelUpScale = Ui.new("UIScale", { Parent = levelUp })
+Ui.new("TextLabel", {
+	Size = UDim2.new(1, 0, 0, 62),
+	TextScaled = false,
+	TextSize = 60,
+	Text = "LEVEL UP!",
+	TextColor3 = Color3.fromRGB(255, 225, 90),
+	TextStrokeTransparency = 0,
+	TextStrokeColor3 = Ui.INK,
+	ZIndex = 46,
+	Parent = levelUp,
+})
+local levelUpNumber = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 66),
+	Size = UDim2.new(1, 0, 0, 44),
+	TextScaled = false,
+	TextSize = 40,
+	Text = "",
+	TextStrokeTransparency = 0,
+	TextStrokeColor3 = Ui.INK,
+	ZIndex = 46,
+	Parent = levelUp,
+})
+local levelUpId = 0
+local function celebrateLevel(level)
+	levelUpId += 1
+	local id = levelUpId
+	levelUpNumber.Text = "Level " .. level
+	levelUp.Visible = true
+	levelUpScale.Scale = 0.3
+	TweenService:Create(levelUpScale, TweenInfo.new(0.45, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	levelScale.Scale = 1.4
+	TweenService:Create(levelScale, TweenInfo.new(0.5, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	Effects.jingle(4)
+	-- a ring of little stars bursting out
+	for k = 1, 14 do
+		local a = k / 14 * math.pi * 2
+		local star = Ui.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.45),
+			Size = UDim2.fromOffset(14, 14),
+			Rotation = 45,
+			BackgroundColor3 = if k % 2 == 0 then Color3.fromRGB(255, 225, 90) else Color3.fromRGB(160, 120, 255),
+			ZIndex = 45,
+			Parent = levelUp,
+		}, { Ui.corner(3) })
+		TweenService:Create(star, TweenInfo.new(0.8, Enum.EasingStyle.Quint), {
+			Position = UDim2.new(0.5, math.cos(a) * 230, 0.45, math.sin(a) * 110),
+			BackgroundTransparency = 1,
+			Rotation = 225,
+		}):Play()
+		task.delay(0.85, function()
+			star:Destroy()
+		end)
+	end
+	task.delay(1.8, function()
+		if levelUpId == id then
+			levelUp.Visible = false
+		end
+	end)
+end
+State.remote("LevelUp").OnClientEvent:Connect(celebrateLevel)
+Hud.LevelUpShown = function()
+	return levelUp.Visible, levelUpNumber.Text
+end
+
 -- Navigation (left side) ------------------------------------------------------------------------
 
 local nav = Ui.new("Frame", {
@@ -227,6 +362,7 @@ State.watch(function()
 	local data = State.Data
 	coinsText.Text = Config.formatNumber(data.Coins)
 	refreshTeam(data)
+	refreshLevel(data)
 	upgradeDot.Visible = UpgradeTree.anyAffordable()
 end)
 
@@ -245,4 +381,4 @@ Ui.new("TextLabel", {
 })
 print("[Hatch Incremental] " .. Config.BUILD)
 
-return {}
+return Hud

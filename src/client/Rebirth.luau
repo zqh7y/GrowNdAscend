@@ -1,18 +1,17 @@
 -- The Rebirth screen: friendly and clear about the deal.
 --   top      "Rebirth 4 / 8" with a row of 8 stars (gold = done)
---   middle   two cards side by side: YOU LOSE (coins, worlds 2-4) and
+--   middle   two cards side by side: YOU LOSE (just your coins) and
 --            YOU GAIN (Luck x1.5 and Money +200%, shown as now -> after)
---   bottom   the two requirements, each with a tick or a cross: the coins
---            (with how many you have) and the animal (shown in 3D; a dark
---            silhouette until you own one), then the big REBIRTH button,
---            which only lights up when both are met
--- Pets, upgrades and the Index are kept (it says so). At rebirth 8 it shows
--- the max and a crown. Rebirthing plays confetti and a jingle.
+--   bottom   the two requirements, each ticked (met) or locked: the coins
+--            (with how many you have) and the level ("Current Level 48 / 50"
+--            with a bar), then the big REBIRTH button, which only lights up
+--            when both are met
+-- Worlds, pets, upgrades, the Index and your level are kept (it says so).
+-- At rebirth 8 it shows the max. Rebirthing plays confetti and a jingle.
 local RunService = game:GetService("RunService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Effects = require(script.Parent.Effects)
-local PetView = require(script.Parent.PetView)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
 local Ui = require(script.Parent.Ui)
@@ -128,14 +127,14 @@ end
 
 local lose = card(0, "YOU LOSE", Color3.fromRGB(255, 110, 130))
 local loseCoins, loseCoinsNote = row(lose, 16, "coin", Color3.fromRGB(255, 190, 60))
-local loseWorlds, loseWorldsNote = row(lose, 86, "lock", Color3.fromRGB(150, 150, 190))
+local keepWorlds, keepWorldsNote = row(lose, 86, "star", Color3.fromRGB(110, 200, 120))
 label(lose, {
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.new(0, 0, 1, 0),
 	Size = UDim2.new(1, 0, 0, 20),
 	Font = Ui.FONT_MEDIUM,
 	TextSize = 13,
-	Text = "You KEEP your pets, upgrades and Index",
+	Text = "You KEEP worlds, pets, upgrades, Index, level",
 	TextColor3 = Ui.SUCCESS,
 })
 
@@ -199,25 +198,31 @@ label(cashCard, { Position = UDim2.fromOffset(72, 4), Size = UDim2.new(1, -110, 
 local cashAmount = label(cashCard, { Position = UDim2.fromOffset(72, 24), Size = UDim2.new(1, -110, 0, 34), TextSize = 32, TextColor3 = Ui.GOLD, TextXAlignment = Enum.TextXAlignment.Left, TextStrokeTransparency = 0.3, TextStrokeColor3 = Ui.INK })
 local cashHave = label(cashCard, { Position = UDim2.fromOffset(72, 62), Size = UDim2.new(1, -72, 0, 18), Font = Ui.FONT_MEDIUM, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left })
 
-local petCard, petStroke, petTick = requirement(0.5)
-local petGlow = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 4),
-	Size = UDim2.fromOffset(76, 76),
-	BackgroundColor3 = Color3.fromRGB(255, 200, 80),
-	BackgroundTransparency = 0.7,
+local levelCard, levelStroke, levelTick = requirement(0.5)
+local levelBubble = Ui.new("Frame", {
+	Position = UDim2.fromOffset(0, 12),
+	Size = UDim2.fromOffset(60, 60),
+	BackgroundColor3 = Color3.fromRGB(140, 100, 255),
 	ZIndex = 34,
-	Parent = petCard,
+	Parent = levelCard,
+}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 3) })
+Ui.icon("star", 36, Color3.new(1, 1, 1), { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 35, Parent = levelBubble })
+label(levelCard, { Position = UDim2.fromOffset(72, 4), Size = UDim2.new(1, -110, 0, 18), TextSize = 15, Text = "REQUIRED LEVEL", TextColor3 = Ui.MUTED, TextXAlignment = Enum.TextXAlignment.Left })
+local levelNeed = label(levelCard, { Position = UDim2.fromOffset(72, 24), Size = UDim2.new(1, -110, 0, 34), TextSize = 32, TextColor3 = Color3.fromRGB(200, 170, 255), TextXAlignment = Enum.TextXAlignment.Left, TextStrokeTransparency = 0.3, TextStrokeColor3 = Ui.INK })
+local levelHave = label(levelCard, { Position = UDim2.fromOffset(72, 60), Size = UDim2.new(1, -72, 0, 16), Font = Ui.FONT_MEDIUM, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left })
+local levelTrack = Ui.new("Frame", {
+	Position = UDim2.fromOffset(72, 78),
+	Size = UDim2.new(1, -72, 0, 8),
+	BackgroundColor3 = Color3.fromRGB(20, 14, 50),
+	ZIndex = 34,
+	Parent = levelCard,
 }, { Ui.corner(0.5) })
-local petSpot = Ui.new("Frame", {
-	Position = UDim2.fromOffset(-10, -8),
-	Size = UDim2.fromOffset(96, 96),
-	BackgroundTransparency = 1,
+local levelFill = Ui.new("Frame", {
+	Size = UDim2.fromScale(0, 1),
+	BackgroundColor3 = Color3.fromRGB(160, 120, 255),
 	ZIndex = 35,
-	Parent = petCard,
-})
-label(petCard, { Position = UDim2.fromOffset(88, 4), Size = UDim2.new(1, -126, 0, 18), TextSize = 15, Text = "REQUIRED PET", TextColor3 = Ui.MUTED, TextXAlignment = Enum.TextXAlignment.Left })
-local petName = label(petCard, { Position = UDim2.fromOffset(88, 24), Size = UDim2.new(1, -88, 0, 34), TextSize = 30, TextXAlignment = Enum.TextXAlignment.Left, TextStrokeTransparency = 0.3, TextStrokeColor3 = Ui.INK })
-local petHave = label(petCard, { Position = UDim2.fromOffset(88, 62), Size = UDim2.new(1, -88, 0, 18), Font = Ui.FONT_MEDIUM, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left })
+	Parent = levelTrack,
+}, { Ui.corner(0.5) })
 
 local testingNote = label(box, {
 	AnchorPoint = Vector2.new(0.5, 0),
@@ -250,11 +255,10 @@ local buttonScale = Ui.new("UIScale", { Parent = rebirthButton })
 
 -- Showing state -----------------------------------------------------------------------------------
 
-local shownPet = nil
 local ready = false
 
 local function setTick(tick, stroke, ok)
-	tick.Text = if ok then "✓" else "✗"
+	tick.Text = if ok then "✓" else "🔒"
 	tick.BackgroundColor3 = if ok then Ui.SUCCESS else Ui.DANGER
 	stroke.Color = if ok then Ui.SUCCESS else Color3.fromRGB(255, 140, 150)
 	stroke.Transparency = 0
@@ -281,8 +285,8 @@ local function refresh()
 	-- what you lose and gain
 	loseCoins.Text = Config.formatNumber(data.Coins) .. " coins"
 	loseCoinsNote.Text = "Your coins go back to 0"
-	loseWorlds.Text = "Worlds 2-4"
-	loseWorldsNote.Text = "Unlock them again (faster now!)"
+	keepWorlds.Text = "Worlds stay open"
+	keepWorldsNote.Text = "Only your coins reset"
 	local nextR = math.min(r + 1, Config.MAX_REBIRTHS)
 	gainLuck.Text = "Luck x" .. Config.REBIRTH_LUCK
 	gainLuckNote.Text = string.format("Total luck bonus x%.2f → x%.2f", Config.rebirthLuck(r), Config.rebirthLuck(nextR))
@@ -293,40 +297,30 @@ local function refresh()
 		-- all 8 done
 		reqTitle.Text = "MAX REBIRTH REACHED!"
 		reqTitle.TextColor3 = Ui.GOLD
-		cashCard.Visible, petCard.Visible, testingNote.Visible = false, false, false
+		cashCard.Visible, levelCard.Visible, testingNote.Visible = false, false, false
 		Ui.setText(rebirthButton, "MAX REBIRTH  " .. Config.MAX_REBIRTHS .. "/" .. Config.MAX_REBIRTHS)
 		Ui.setStyle(rebirthButton, "gold")
 		ready = false
 		return
 	end
-	cashCard.Visible, petCard.Visible = true, true
+	cashCard.Visible, levelCard.Visible = true, true
 	testingNote.Visible = Config.REBIRTH_FREE_FOR_TESTING
 	reqTitle.Text = "TO REBIRTH YOU NEED"
 	reqTitle.TextColor3 = Ui.MUTED
-	local ok, hasCoins, hasPet = Config.canRebirth(data)
+	local ok, hasCoins, hasLevel = Config.canRebirth(data)
 	local cost = Config.rebirthCost(r)
 	cashAmount.Text = if cost == 0 then "FREE" else Config.formatNumber(cost)
 	cashHave.Text = "You have " .. Config.formatNumber(data.Coins)
 	cashHave.TextColor3 = if hasCoins then Ui.SUCCESS else Color3.fromRGB(255, 170, 170)
 	setTick(cashTick, cashStroke, hasCoins)
 
-	local pet = Config.PETS_BY_NAME[row.Pet]
-	local rarity = Config.rarity(pet.Odds)
-	petName.Text = row.Pet
-	petName.TextColor3 = rarity.Color
-	petHave.Text = if hasPet then "You have one!" else rarity.Name .. "  ·  " .. Config.formatOdds(pet.Odds)
-	petHave.TextColor3 = if hasPet then Ui.SUCCESS else Color3.fromRGB(255, 170, 170)
-	petGlow.BackgroundColor3 = rarity.Color
-	setTick(petTick, petStroke, hasPet)
-	local key = row.Pet .. (if hasPet then "" else "#")
-	if shownPet ~= key then
-		PetView.releaseAll(petSpot)
-		local view = PetView.take(row.Pet, not hasPet)
-		view.Size = UDim2.fromScale(1, 1)
-		view.ZIndex = 35
-		view.Parent = petSpot
-		shownPet = key
-	end
+	local level = data.Level or 1
+	levelNeed.Text = "Level " .. row.Level
+	levelHave.Text = "Current Level: " .. level .. " / " .. row.Level
+	levelHave.TextColor3 = if hasLevel then Ui.SUCCESS else Color3.fromRGB(255, 170, 170)
+	levelFill.Size = UDim2.fromScale(math.clamp(level / row.Level, 0, 1), 1)
+	levelFill.BackgroundColor3 = if hasLevel then Ui.SUCCESS else Color3.fromRGB(160, 120, 255)
+	setTick(levelTick, levelStroke, hasLevel)
 
 	ready = ok
 	Ui.setText(rebirthButton, if ok then "REBIRTH NOW!" else "REBIRTH")
@@ -341,7 +335,7 @@ function Rebirth.rebirth()
 	if not ready then
 		Effects.play("Click", 0.7)
 		-- wiggle whatever is missing
-		for _, target in ipairs({ cashCard, petCard }) do
+		for _, target in ipairs({ cashCard, levelCard }) do
 			local home = target.Position
 			for k = 1, 4 do
 				task.delay(k * 0.04, function()
@@ -368,19 +362,13 @@ function Rebirth.open()
 	refresh()
 end
 
--- the button bounces when ready; the required pet slowly turns
+-- the button bounces when ready
 RunService.RenderStepped:Connect(function()
 	if not modal.Visible then
 		return
 	end
 	local t = os.clock()
 	buttonScale.Scale = if ready then 1 + (math.sin(t * 5) * 0.5 + 0.5) * 0.05 else 1
-	petGlow.Size = UDim2.fromOffset(76 + math.sin(t * 3) * 4, 76 + math.sin(t * 3) * 4)
-	local view = petSpot:FindFirstChildOfClass("ViewportFrame")
-	local model = view and view:FindFirstChildOfClass("Model")
-	if model then
-		model:PivotTo(CFrame.Angles(0, t * 0.8, 0))
-	end
 end)
 
 State.watch(function()
