@@ -162,6 +162,9 @@ end
 function CF.Lerp(a, b, t)
 	return mk(a.p:Lerp(b.p, t), b.r)
 end
+function CF.ToObjectSpace(a, b)
+	return a:Inverse() * b
+end
 function CF.Inverse(c)
 	local t = { { c.r[1][1], c.r[2][1], c.r[3][1] }, { c.r[1][2], c.r[2][2], c.r[3][2] }, { c.r[1][3], c.r[2][3], c.r[3][3] } }
 	return mk(-apply(t, c.p), t)
@@ -239,6 +242,9 @@ V2.__mul = function(a, b)
 	return Vector2.new(a.X * b, a.Y * b)
 end
 V2.__div = function(a, b) return Vector2.new(a.X / b, a.Y / b) end
+function V2.Lerp(a, b, t)
+	return Vector2.new(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t)
+end
 V2.__index = function(v, k)
 	if k == "Magnitude" then return math.sqrt(v.X * v.X + v.Y * v.Y) end
 	return V2[k]
@@ -286,11 +292,15 @@ Random = {}
 local seedCounter = 0
 function Random.new(seed)
 	seedCounter += 1
+	if seed then
+		math.randomseed(seed)
+	end
 	return setmetatable({ s = seed or seedCounter }, RandomMT)
 end
 function RandomMT:NextNumber(a, b)
-	self.s = (self.s * 1103515245 + 12345) % 2147483648
-	local u = self.s / 2147483648
+	-- Luau's own generator (a simple LCG here had correlated draws and
+	-- skewed the rarity statistics)
+	local u = math.random()
 	if a == nil then
 		return u
 	end
@@ -693,6 +703,9 @@ function Instance.new(class, parent)
 		props.Size = UDim2.new(0, 100, 0, 100)
 		props.TextTransparency = 0
 		props.Text = ""
+	end
+	if class == "UIScale" then
+		rawget(inst, "_props").Scale = 1
 	end
 	STATS.ByClass[class] = (STATS.ByClass[class] or 0) + 1
 	if parent then

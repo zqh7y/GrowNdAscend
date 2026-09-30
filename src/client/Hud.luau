@@ -1,6 +1,9 @@
--- The always-on screen: coins at the top, the team (equipped pets and their
--- damage) at the top left, and a compact dock of icon buttons at the bottom.
--- The middle stays clear so the pets' fights are easy to watch.
+-- The always-on screen, laid out around the fights in the middle:
+--   top centre   coins, and under them YOUR TEAM (equipped pets + damage)
+--   left side    navigation: Pets, Upgrades, Rebirth, Top, Settings
+--   right side   gameplay: the big Roll button and Auto
+-- The top-left corner is left alone: Roblox puts its menu and chat buttons
+-- there (the HUD ignores the top bar inset, so anything there would overlap).
 local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
@@ -15,11 +18,11 @@ local Panels = require(script.Parent.Panels)
 
 local gui = Screen.Gui
 
--- Coins (top middle) -----------------------------------------------------------------------
+-- Coins (top centre) --------------------------------------------------------------------------
 
 local coinPill = Ui.glass({
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 14),
+	Position = UDim2.new(0.5, 0, 0, 12),
 	Size = UDim2.fromOffset(0, 50),
 	AutomaticSize = Enum.AutomaticSize.X,
 	Radius = 25,
@@ -46,18 +49,6 @@ local coinsText = Ui.new("TextLabel", {
 	Parent = coinPill,
 })
 local coinScale = Ui.new("UIScale", { Parent = coinPill })
-local rollsText = Ui.new("TextLabel", {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 68),
-	Size = UDim2.fromOffset(400, 16),
-	Font = Ui.FONT_MEDIUM,
-	TextScaled = false,
-	TextSize = 13,
-	TextColor3 = Ui.TEXT,
-	TextStrokeTransparency = 0.5,
-	TextStrokeColor3 = Color3.fromRGB(10, 12, 30),
-	Parent = gui,
-})
 
 Effects.CoinTarget = coinIcon
 Effects.CoinLanded.Event:Connect(function()
@@ -65,56 +56,61 @@ Effects.CoinLanded.Event:Connect(function()
 	TweenService:Create(coinScale, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 end)
 
--- Team (top left) ---------------------------------------------------------------------------
+-- Your team (under the coins) -----------------------------------------------------------------
 
 local team = Ui.glass({
-	Position = UDim2.fromOffset(14, 14),
-	Size = UDim2.fromOffset(0, 72),
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 70),
+	Size = UDim2.fromOffset(0, 40),
 	AutomaticSize = Enum.AutomaticSize.X,
 	Radius = 20,
 	Parent = gui,
-}, { Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }) })
-local teamRow = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 8),
-	Size = UDim2.fromOffset(0, 34),
-	AutomaticSize = Enum.AutomaticSize.X,
-	BackgroundTransparency = 1,
-	Parent = team,
 }, {
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
 		Padding = UDim.new(0, 6),
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
 	}),
+	Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 14) }),
 })
-local teamLine = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 46),
-	Size = UDim2.fromOffset(0, 18),
+Ui.new("TextLabel", {
+	LayoutOrder = 0,
 	AutomaticSize = Enum.AutomaticSize.X,
+	Size = UDim2.fromOffset(0, 16),
+	TextScaled = false,
+	TextSize = 12,
+	Text = "YOUR TEAM",
+	TextColor3 = Ui.MUTED,
+	Parent = team,
+})
+local chips = Ui.new("Frame", {
+	LayoutOrder = 1,
+	AutomaticSize = Enum.AutomaticSize.X,
+	Size = UDim2.fromOffset(0, 28),
 	BackgroundTransparency = 1,
 	Parent = team,
 }, {
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
 		Padding = UDim.new(0, 5),
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
 	}),
 })
-Ui.icon("sword", 14, Ui.DANGER, { LayoutOrder = 0, Parent = teamLine })
+Ui.icon("sword", 14, Ui.DANGER, { LayoutOrder = 2, Parent = team })
 local teamText = Ui.new("TextLabel", {
-	LayoutOrder = 1,
+	LayoutOrder = 3,
 	AutomaticSize = Enum.AutomaticSize.X,
 	Size = UDim2.fromOffset(0, 16),
 	Font = Ui.FONT_MEDIUM,
 	TextScaled = false,
 	TextSize = 13,
-	Parent = teamLine,
+	Parent = team,
 })
 
 local function refreshTeam(data)
-	for _, child in ipairs(teamRow:GetChildren()) do
+	for _, child in ipairs(chips:GetChildren()) do
 		if child:IsA("GuiObject") then
 			child:Destroy()
 		end
@@ -124,20 +120,17 @@ local function refreshTeam(data)
 		local pet, size = Config.petInfo(name)
 		local chip = Ui.new("Frame", {
 			LayoutOrder = slot,
-			Size = UDim2.fromOffset(34, 34),
+			Size = UDim2.fromOffset(26, 26),
 			BackgroundColor3 = if pet then pet.Color else Ui.GLASS_LIGHT,
 			BackgroundTransparency = if pet then 0 else 0.4,
-			Parent = teamRow,
+			Parent = chips,
 		}, { Ui.corner(0.5) })
 		Ui.stroke(if size and size.Index > 1 then size.Color else Color3.new(1, 1, 1), if size then 1 + size.Index else 1.5, if pet then 0 else 0.7).Parent = chip
-		if not pet then
-			-- an empty slot: a faint plus
-			Ui.new("TextLabel", { Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 18, Text = "+", TextColor3 = Ui.MUTED, Parent = chip })
-		elseif size.Index > 1 then
+		if size and size.Index > 1 then
 			Ui.new("TextLabel", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.fromScale(0.5, 1),
-				Size = UDim2.fromOffset(20, 12),
+				Size = UDim2.fromOffset(18, 11),
 				BackgroundTransparency = 0,
 				BackgroundColor3 = size.Color,
 				TextScaled = false,
@@ -145,56 +138,50 @@ local function refreshTeam(data)
 				Text = size.Name:sub(1, 1),
 				TextColor3 = Color3.fromRGB(30, 30, 50),
 				Parent = chip,
-			}, { Ui.corner(6) })
+			}, { Ui.corner(5) })
 		end
 	end
-	teamText.Text = Config.formatNumber(Config.teamDamage(data)) .. " damage / sec"
+	teamText.Text = Config.formatNumber(Config.teamDamage(data)) .. " damage/sec"
 end
 
--- Dock (bottom middle) ------------------------------------------------------------------------
+-- Navigation (left side) ------------------------------------------------------------------------
 
-local dock = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -10),
-	Size = UDim2.fromOffset(0, 96),
-	AutomaticSize = Enum.AutomaticSize.X,
+local nav = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0, 0.5),
+	Position = UDim2.new(0, 16, 0.5, 20),
+	Size = UDim2.fromOffset(64, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundTransparency = 1,
 	Parent = gui,
 }, {
 	Ui.new("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
+		FillDirection = Enum.FillDirection.Vertical,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		VerticalAlignment = Enum.VerticalAlignment.Bottom,
-		Padding = UDim.new(0, 10),
+		Padding = UDim.new(0, 12),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
 
-local function dockButton(order, icon, label, onClick, size, style)
-	local holder, button = Ui.dockButton({
+local function button(parent, order, icon, label, onClick, size, style)
+	local holder, b = Ui.dockButton({
 		LayoutOrder = order,
 		Icon = icon,
 		Label = label,
 		Size = size,
 		Style = style,
-		Parent = dock,
+		Parent = parent,
 	}, function()
 		Effects.play("Click", 1, 0.05)
 		onClick()
 	end)
-	return holder, button
+	return holder, b
 end
 
-dockButton(1, "paw", "Pets", PetsPanel.open)
-local _, upgradesButton = dockButton(2, "tree", "Upgrades", UpgradeTree.open)
-local _, rollButton = dockButton(3, "dice", "Roll", function()
-	task.spawn(Roll.roll)
-end, 78, "primary")
-local _, autoButton = dockButton(4, "loop", "Auto", Roll.toggleAuto)
-local topHolder = dockButton(5, "podium", "Top", Panels.openTop)
-dockButton(6, "star", "Rebirth", Panels.openRebirth)
-dockButton(7, "gear", "Settings", Panels.openSettings)
-Roll.bindButtons(rollButton, autoButton)
+button(nav, 1, "paw", "Pets", PetsPanel.open)
+local _, upgradesButton = button(nav, 2, "tree", "Upgrades", UpgradeTree.open)
+button(nav, 3, "star", "Rebirth", Panels.openRebirth)
+local topHolder = button(nav, 4, "podium", "Top", Panels.openTop)
+button(nav, 5, "gear", "Settings", Panels.openSettings)
 
 -- a gold dot on Upgrades when something can be bought
 local upgradeDot = Ui.new("Frame", {
@@ -211,13 +198,35 @@ Panels.RankChanged.Event:Connect(function()
 	topHolder.Caption.Text = if Panels.Rank then "#" .. Panels.Rank else "Top"
 end)
 
--- Updates -------------------------------------------------------------------------------------
+-- Gameplay controls (right side) -----------------------------------------------------------------
+
+local controls = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(1, 1),
+	Position = UDim2.new(1, -18, 1, -16),
+	Size = UDim2.fromOffset(96, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	BackgroundTransparency = 1,
+	Parent = gui,
+}, {
+	Ui.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Vertical,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+local _, autoButton = button(controls, 1, "loop", "Auto", Roll.toggleAuto, 56)
+local _, rollButton = button(controls, 2, "dice", "Roll", function()
+	task.spawn(Roll.roll)
+end, 88, "primary")
+Roll.bindButtons(rollButton, autoButton)
+
+-- Updates ------------------------------------------------------------------------------------------
 
 State.watch(function()
 	local data = State.Data
 	coinsText.Text = Config.formatNumber(data.Coins)
-	local best = data.Best and Config.PETS_BY_NAME[data.Best]
-	rollsText.Text = Config.formatNumber(data.Rolls) .. " rolls" .. (if best then "  ·  best: " .. best.Name .. " (" .. Config.formatOdds(best.Odds) .. ")" else "")
 	refreshTeam(data)
 	upgradeDot.Visible = UpgradeTree.anyAffordable()
 end)

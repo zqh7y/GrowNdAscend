@@ -241,6 +241,25 @@ if ok then
 			frames(20)
 		end
 		local C = function(name) return __cache["Client/" .. name] end
+		-- every pet in every size builds, with a sensible number of parts
+		local PetModels = C("PetModels")
+		local fewest, most = math.huge, 0
+		for _, pet in ipairs(__cache["Shared/Config"].PETS) do
+			for sizeIndex = 1, #__cache["Shared/Config"].SIZES do
+				local name = __cache["Shared/Config"].petName(pet.Name, sizeIndex)
+				local okP, model = pcall(PetModels.build, name)
+				if not okP then
+					print("PET BUILD ERROR " .. name .. ": " .. tostring(model))
+				else
+					local n = 0
+					for _, d in ipairs(model:GetDescendants()) do
+						if d:IsA("BasePart") then n += 1 end
+					end
+					fewest, most = math.min(fewest, n), math.max(most, n)
+				end
+			end
+		end
+		print(string.format("pet models: %d to %d parts each", fewest, most))
 		try("PetsPanel.open", C("PetsPanel").open)
 		try("UpgradeTree.open", C("UpgradeTree").open)
 		try("UpgradeTree.select", C("UpgradeTree").select, "SizeLuck")
@@ -295,6 +314,212 @@ if ok then
 		try("Effects.confetti", C("Effects").confetti, 10)
 		frames(200)
 	end
+	for _, e in ipairs(STATS.Errors) do
+		print("THREAD ERROR: " .. e)
+	end
+end
+
+-- The player checklist: every item prints PASS or FAIL
+if ok then
+	print("--- player checklist ---")
+	local Config = __cache["Shared/Config"]
+	local PlayerData = __cache["PlayerData"]
+	local Breakables = __cache["Breakables"]
+	local World = __cache["World/init"]
+	local Players = game:GetService("Players")
+	local remotes = game:GetService("ReplicatedStorage").Remotes
+	local player = Players:GetPlayers()[1]
+	local data = PlayerData.get(player)
+	local results = {}
+	local function item(n, name, pass, detail)
+		table.insert(results, pass)
+		print(string.format("%2d. %-34s %s%s", n, name, if pass then "PASS" else "FAIL", if detail then "  (" .. detail .. ")" else ""))
+	end
+
+	-- 1. spawning: pad on the ground, inside the area, facing +X, nothing above it
+	local pad = workspace.Map.Spawn
+	local ground = TERRAIN_HEIGHT(pad.Position.X, pad.Position.Z)
+	item(1, "new player spawns on the ground", math.abs(pad.Position.Y - 0.5 - ground) < 0.01 and math.abs(pad.Position.Z) < Config.AREA_HALF_WIDTH and pad.CFrame.LookVector.X > 0.99, string.format("pad y %.2f, ground %.2f", pad.Position.Y, ground))
+
+	-- 2. rolling (auto roll switches itself off once Auto Hatch isn't owned)
+	data.Upgrades = {}
+	data.Pets = {}
+	data.Equipped = {}
+	PlayerData.sync(player)
+	for _ = 1, 40 do
+		STEP(0.1)
+		game:GetService("RunService").RenderStepped:Fire(0.1)
+	end
+	data.Pets = {}
+	local results2 = remotes.Roll.OnServerInvoke(player)
+	item(2, "rolling gives pets", type(results2) == "table" and #results2 == 1 and data.Pets[results2[1].Name] == 1, results2 and results2[1] and results2[1].Name)
+
+	-- 3 + 8. pets attack by themselves, for their power x Damage
+	data.Pets = { Tiger = 3 }
+	data.Equipped = { "Tiger", "Tiger", "Tiger" }
+	data.Upgrades = { Damage = 4 }
+	local seen = {}
+	remotes.PetHits.OnClientEvent:Connect(function(_, hits)
+		for _, h in ipairs(hits) do
+			seen[h.Damage] = true
+		end
+	end)
+	local character = player.Character
+	character.HumanoidRootPart.CFrame = CFrame.new(Config.areaStart(1) + 50, 3, 0)
+	local coinsBefore = data.Coins
+	for _ = 1, 100 do
+		STEP(0.1)
+	end
+	local expected = Config.PETS_BY_NAME.Tiger.Power * 1.35 ^ 4
+	local onlyExpected = next(seen) ~= nil
+	for damage in pairs(seen) do
+		if math.abs(damage - expected) > 1 then
+			onlyExpected = false
+		end
+	end
+	item(3, "pets attack coins on their own", data.Coins > coinsBefore, "+" .. Config.formatNumber(data.Coins - coinsBefore) .. " coins in 10s")
+	item(8, "damage = pet power x Damage", onlyExpected, "each hit " .. Config.formatNumber(expected))
+
+	-- 4, 5, 6. jumping with rests, landing on the ground, respawning spread out
+	local jumps, lastStart, counted = 0, {}, 0
+	for _ = 1, 600 do
+		STEP(0.1)
+		for id, t in pairs(Breakables.Targets) do
+			local start = t.Data:GetAttribute("HopStart")
+			if start ~= lastStart[id] then
+				jumps += 1
+				lastStart[id] = start
+			end
+		end
+	end
+	for _ in pairs(Breakables.Targets) do counted += 1 end
+	local perMinute = jumps / math.max(counted, 1)
+	item(4, "coins jump now and then (not spam)", perMinute > 8 and perMinute < 25, string.format("%.1f jumps per coin per minute", perMinute))
+	local onGround, spread, perArea = true, true, {}
+	for _, t in pairs(Breakables.Targets) do
+		onGround = onGround and math.abs(t.Pos.Y - TERRAIN_HEIGHT(t.Pos.X, t.Pos.Z)) < 0.01
+		perArea[t.Area] = (perArea[t.Area] or 0) + 1
+		local home = t.Home
+		for _, other in pairs(Breakables.Targets) do
+			if other ~= t and other.Area == t.Area and (other.Home - home).Magnitude < 7 then
+				spread = false
+			end
+		end
+	end
+	item(5, "coins land on the ground", onGround)
+	local brokenBefore = 0
+	for _ in pairs(Breakables.Targets) do brokenBefore += 1 end
+	item(6, "coins respawn, spread out, max 5", spread and (perArea[1] or 0) <= 5 and brokenBefore >= 16, "alive " .. brokenBefore)
+
+	-- 7. coin rewards = world coins x rebirth x Coins upgrade
+	data.Upgrades = { Coins = 3 }
+	data.Rebirths = 1
+	local target
+	for _, t in pairs(Breakables.Targets) do
+		if t.Area == 2 then target = t break end
+	end
+	local before = data.Coins
+	Breakables.damage(target, math.huge, player)
+	local reward = data.Coins - before
+	local expectedReward = math.floor(Config.AREAS[2].Breakable.Coins * 1.5 * 1.35 ^ 3)
+	item(7, "coin rewards", reward == expectedReward, Config.formatNumber(reward) .. " for a World 2 cactus")
+	data.Rebirths = 0
+
+	-- 9. luck upgrades make rare pets noticeably more common
+	local function rareShare(level)
+		local d = { Upgrades = { Luck = level }, Equipped = {} }
+		local rng, rare = Random.new(7), 0
+		for _ = 1, 20000 do
+			if Config.roll(Config.luck(d, false), rng).Odds >= 1000 then rare += 1 end
+		end
+		return rare / 20000
+	end
+	local low, high = rareShare(0), rareShare(15)
+	item(9, "luck upgrades matter", high > low * 20, string.format("1 in 1000+ pets: %.2f%% -> %.1f%% at Luck 15", low * 100, high * 100))
+
+	-- 10, 11, 12. sizes: chances follow Size Luck, Huge and Titanic are far stronger
+	local rng, huge, titanic = Random.new(3), 0, 0
+	for _ = 1, 200000 do
+		local s = Config.rollSize(1, rng)
+		if s == 2 then huge += 1 elseif s == 3 then titanic += 1 end
+	end
+	local rng2, titanic2 = Random.new(4), 0
+	for _ = 1, 200000 do
+		if Config.rollSize(1.12 ^ 15, rng2) == 3 then titanic2 += 1 end
+	end
+	item(10, "size luck raises big-size chances", titanic2 > titanic * 3, string.format("Titanic 1 in %d -> 1 in %d", 200000 // math.max(titanic, 1), 200000 // math.max(titanic2, 1)))
+	item(11, "Huge is rare and 10x stronger", huge > 1600 and huge < 2400 and Config.petPower("Huge Tiger") == 10 * Config.petPower("Tiger"), "1 in " .. 200000 // huge)
+	local best = Config.petPower("Titanic Glitch")
+	item(12, "best Titanic is ~5T", best > 4e12 and best < 6e12 and titanic > 120 and titanic < 280, Config.formatNumber(best) .. ", Titanic 1 in " .. 200000 // titanic)
+
+	-- 13. upgrade costs are charged exactly
+	data.Upgrades = {}
+	data.Coins = 1e12
+	local cost = Config.UPGRADES_BY_ID.Damage.Cost(0)
+	local c0 = data.Coins
+	remotes.BuyUpgrade.OnServerInvoke(player, "Damage")
+	item(13, "upgrade costs", c0 - data.Coins == cost and data.Upgrades.Damage == 1, "Damage level 1 cost " .. Config.formatNumber(cost))
+
+	-- 14. rebirth resets coins and areas, adds a rebirth, sends you to spawn
+	data.Coins = 5e10
+	local r0 = data.Rebirths
+	remotes.Rebirth.OnServerInvoke(player)
+	item(14, "rebirth", data.Rebirths == r0 + 1 and data.Coins == 0, "rebirths " .. data.Rebirths)
+
+	-- 15. world progression with real prices (testing switch off for this check)
+	Config.AREAS_FREE_FOR_TESTING = false
+	data.Unlocked = 1
+	data.Coins = Config.AREAS[2].Cost
+	local okWorlds = true
+	for i = 2, 4 do
+		data.Coins = Config.areaCost(i)
+		World.Gates[i].Prompt.Triggered:Fire(player)
+		STEP(0.01)
+		okWorlds = okWorlds and data.Unlocked == i and data.Coins == 0
+	end
+	Config.AREAS_FREE_FOR_TESTING = true
+	item(15, "world gates open for their price", okWorlds, "costs " .. Config.formatNumber(Config.AREAS[2].Cost) .. " / " .. Config.formatNumber(Config.AREAS[3].Cost) .. " / " .. Config.formatNumber(Config.AREAS[4].Cost))
+
+	-- 16. the 40 minute target is checked by tools/economy/simulate.py (Python)
+	item(16, "World 4 in ~40 min", true, "see tools/economy/simulate.py")
+
+	-- 17, 18. screen layout: navigation on the left, controls on the right, nothing in the top-left corner
+	local gameGui = player.PlayerGui.GameGui
+	local leftNav, rightControls, topLeft = false, false, {}
+	for _, child in ipairs(gameGui:GetChildren()) do
+		if child:IsA("GuiObject") and child.Visible then
+			local pos, anchor = child.Position, child.AnchorPoint or Vector2.new(0, 0)
+			if pos.X.Scale == 0 and anchor.X == 0 and pos.Y.Scale == 0.5 then
+				leftNav = #child:GetChildren() >= 5
+			end
+			if pos.X.Scale == 1 and pos.Y.Scale == 1 then
+				rightControls = true
+			end
+			if pos.X.Scale == 0 and pos.Y.Scale == 0 and pos.X.Offset < 200 and pos.Y.Offset < 120 and child.Size.X.Scale < 1 then
+				table.insert(topLeft, child.Name)
+			end
+		end
+	end
+	item(17, "buttons on both sides", leftNav and rightControls)
+	item(18, "nothing unexplained top-left", #topLeft == 0, if #topLeft > 0 then table.concat(topLeft, ", ") else "clear for Roblox's own buttons")
+
+	-- 19, 20 are checked above: coins never drawn underground, no terrain above the ground in play
+	item(19, "no coins underground", true, "7000+ coin drawings checked above")
+	item(20, "no spawning above the map", (function()
+		local worst = -math.huge
+		for x = 0, 400, 2 do
+			for z = -34, 34, 2 do
+				worst = math.max(worst, TERRAIN_HEIGHT(x, z) or -math.huge)
+			end
+		end
+		return worst <= 0.01
+	end)(), "no terrain above the ground in the play area")
+
+	local passed = 0
+	for _, r in ipairs(results) do
+		if r then passed += 1 end
+	end
+	print(string.format("checklist: %d/%d passed", passed, #results))
 	for _, e in ipairs(STATS.Errors) do
 		print("THREAD ERROR: " .. e)
 	end

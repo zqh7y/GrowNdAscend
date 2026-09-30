@@ -9,7 +9,10 @@ rare ones and climb the global **Most Rolls** leaderboard.
 own → earn coins → buy upgrades → roll better pets → repeat.**
 
 - **Living coins:** each world's coins are alive: trees, cactuses, ice cubes
-  and sushi with happy faces that hop about 5 studs every second or so.
+  and sushi with happy faces. They rest, jump, land and rest again (about
+  every 3-4 seconds), each world in its own way: trees spring straight up,
+  cactuses sway and double-bounce, ice cubes slide and spin, sushi flips.
+  Five per area, always on the real ground.
 - **Pets fight for you:** equipped pets go after the living coin nearest to
   you, all together, and hit it on their own. Stronger pets (rarer, bigger)
   hit harder. Hits show lunges, flashes and damage numbers; a broken coin
@@ -27,14 +30,30 @@ own → earn coins → buy upgrades → roll better pets → repeat.**
 - **Leaderboards:** Strongest Pet, Playtime and Rebirths in the Forest;
   Most Rolls in the Top panel.
 
+### Progression (balanced with `tools/economy/simulate.py`)
+
+| | Time for an active player | Pets |
+| --- | --- | --- |
+| World 1 (Forest) | 0-7 min | hundreds → millions |
+| World 2 (Sahara) | ~7-22 min | millions → hundreds of millions |
+| World 3 (Frozen Peaks) | ~22-40 min | hundreds of millions |
+| World 4 (Sakura Jungle) | from ~40 min | around 1B |
+| Endgame | hours | Huge Glitch ~480B (a few hours maxed); **Titanic Glitch ~4.8T**, about 1 in 1.5M rolls fully maxed |
+
+Pet power follows `1M x (odds / 1000)^1.17` (Dog ~700, Tiger 1M, Glitch ~48B),
+Huge is x10 and Titanic x100. Luck, Coins and Damage upgrades multiply
+(x1.25 / x1.35 per level), so they matter at every stage.
+
 Adding things later is one row each: a pet in `Config.PETS`, a size in
 `Config.SIZES` (Giant, Colossal...), an upgrade branch in `Config.UPGRADES`.
 
 ## Screen
 
-Coins at the top, your team and its damage per second at the top left, and
-a compact dock of icon buttons at the bottom (Pets, Upgrades, Roll, Auto,
-Top, Rebirth, Settings), so the middle stays clear for the fights. Panels
+Coins at the top with YOUR TEAM (equipped pets and damage per second)
+under them, navigation down the left (Pets, Upgrades, Rebirth, Top,
+Settings), and the Roll and Auto buttons on the right, so the middle stays
+clear for the fights. The top-left corner is left for Roblox's own menu
+buttons. Every upgrade card shows its level, next step and cost. Panels
 are glassy (about 0.3 transparent). Settings: damage numbers, roll reveal
 animation, sounds. Sounds use built-in Roblox sounds; swap them in
 `Effects.SOUNDS`.
@@ -96,4 +115,7 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/client/Living.luau`, `Pets.luau` | Living coins hopping, pets running and attacking |
 | `src/client/Effects.luau` | Sounds, damage numbers, flying coins, confetti |
 | `src/client/Ui.luau`, `Screen.luau`, `State.luau` | UI kit and icons, panels and toasts, the client's data |
-| `tools/sim/` | Runs the server and client on a fake Roblox to catch errors |
+| `src/shared/Coins.luau`, `Build.luau` | Living coin looks and jump styles; model-building helpers |
+| `src/client/PetModels.luau` | Every pet's model and its tech details by rarity |
+| `tools/sim/` | Runs the server and client on a fake Roblox and plays through a 20-point checklist |
+| `tools/economy/simulate.py` | Simulates players to check the progression targets |

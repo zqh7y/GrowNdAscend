@@ -30,13 +30,30 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
+- The sim ends with a 20-point player checklist (spawning, rolling, pets
+  fighting, coin jumps/landings/respawns, rewards, damage, luck, sizes,
+  upgrades, rebirth, world gates, screen layout, ground). It must say
+  "checklist: 20/20 passed".
+- Economy: `python3 tools/economy/simulate.py` simulates active players.
+  Targets: World 4 around 40 minutes with ~1B pets; the best pet (Titanic
+  Glitch) ~5T and an extreme jackpot. It mirrors the numbers in
+  `Config.luau`, so change both together and rerun it.
+- Ground: the playable strip is flat terrain at Y = 0 (terrain above it is
+  cleared after building). Put things on the ground with
+  `World.groundAt`/`World.flatGround`, never an assumed Y.
+- Living coins: the server keeps data records only
+  (ReplicatedStorage.LivingCoins); the client builds and animates the
+  models from `shared/Coins.luau`. Keep it that way so their behaviour
+  never depends on streaming or on being attacked.
+- The HUD ignores the top bar inset: keep the top-left corner empty
+  (Roblox's menu and chat buttons are there).
 - Keep the map around 8-9K parts in total (the sim prints the counts).
 - Gameplay numbers live in `Config`: add pets to `PETS`, sizes to `SIZES`,
   upgrade branches to `UPGRADES` (the upgrade tree draws itself from it).
   Don't hard-code sizes or upgrade ids elsewhere.
 - The server owns positions and health of living coins and all combat;
-  the client only animates (Living.luau, Pets.luau) from attributes and the
-  PetHits / CoinPop events.
+  the client only animates (Living.luau, Pets.luau) from the coin records
+  and the PetHits / CoinPop events.
 - The map is built in code at server start (`src/server/World`). Every area
   is 100 x 70 studs; keep new props inside that footprint.
 - Art direction: kid-friendly, bright and highly detailed. `Build.part`

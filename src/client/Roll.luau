@@ -19,11 +19,12 @@ local rolling = false
 local autoRoll = false
 local rollButton, autoButton -- set by the HUD
 
--- Luck chip (above the dock) ----------------------------------------------------------
+-- Luck chip ------------------------------------------------------------------------------
 
+-- sits above the Roll and Auto buttons on the right
 local luckChip = Ui.glass({
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -118),
+	AnchorPoint = Vector2.new(1, 1),
+	Position = UDim2.new(1, -16, 1, -226),
 	Size = UDim2.fromOffset(0, 28),
 	AutomaticSize = Enum.AutomaticSize.X,
 	Radius = 14,
@@ -68,11 +69,11 @@ local function refreshLuck()
 	luckChip.Edge.Transparency = if nextIsBonus then 0.2 else 0.82
 end
 
--- Reveal cards (a row above the luck chip) ---------------------------------------------
+-- Reveal cards (a row along the bottom middle) -------------------------------------------
 
 local cardRow = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -156),
+	Position = UDim2.new(0.5, 0, 1, -18),
 	Size = UDim2.fromOffset(700, 86),
 	BackgroundTransparency = 1,
 	Parent = gui,
