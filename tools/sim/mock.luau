@@ -500,9 +500,16 @@ function methods:Raycast(origin, direction, params)
 	assert(isV(origin) and isV(direction), "Raycast needs Vector3s")
 	local h = TERRAIN_HEIGHT(origin.X, origin.Z)
 	if h and h <= origin.Y and h >= origin.Y + direction.Y then
-		return { Position = Vector3.new(origin.X, h, origin.Z), Instance = workspace.Terrain }
+		return { Position = Vector3.new(origin.X, h, origin.Z), Normal = Vector3.new(0, 1, 0), Instance = workspace.Terrain }
 	end
 	return nil
+end
+function methods:BulkMoveTo(parts, cframes, mode)
+	assert(type(parts) == "table" and type(cframes) == "table" and #parts == #cframes, "BulkMoveTo lists")
+	for i, p in ipairs(parts) do
+		assert(getmetatable(cframes[i]) ~= nil, "BulkMoveTo needs CFrames")
+		p.CFrame = cframes[i]
+	end
 end
 function methods:ReplaceMaterial(region, res, from, to)
 	assert(type(region) == "table" and res == 4 and type(from) == "table" and type(to) == "table", "ReplaceMaterial args")

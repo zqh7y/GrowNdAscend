@@ -45,27 +45,28 @@ end
 
 -- Spawning ---------------------------------------------------------------------------
 
--- a free spot that isn't close to any living coin in the area
+-- The free spot furthest from every living coin in the area (at least
+-- SPACING away), so the coins spread over the whole area and the pets have
+-- to move between them. A little randomness keeps it from being predictable.
 local function freeSpot(areaIndex)
-	local candidates = {}
+	local best, bestScore = nil, -math.huge
 	for index, spot in ipairs(World.Areas[areaIndex].Spots) do
 		if not taken[areaIndex][index] then
-			local clear = true
+			local nearest = math.huge
 			for _, target in pairs(Breakables.Targets) do
-				if target.Area == areaIndex and (target.Pos - spot).Magnitude < SPACING then
-					clear = false
-					break
+				if target.Area == areaIndex then
+					nearest = math.min(nearest, (target.Pos - spot).Magnitude, (target.Home - spot).Magnitude)
 				end
 			end
-			if clear then
-				table.insert(candidates, index)
+			if nearest >= SPACING then
+				local score = math.min(nearest, 60) + random:NextNumber(0, 12)
+				if score > bestScore then
+					best, bestScore = index, score
+				end
 			end
 		end
 	end
-	if #candidates == 0 then
-		return nil
-	end
-	return candidates[random:NextInteger(1, #candidates)]
+	return best
 end
 
 local function spawnOne(areaIndex)

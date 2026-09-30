@@ -219,12 +219,12 @@ for i, area in ipairs(Config.AREAS) do
 		if #spots > 0 then
 			return
 		end
-		for _ = 1, 60 do
+		for _ = 1, 90 do
 			local p = space:find(rng, x0 + 7, x0 + LENGTH - 7, -HALF + 6, HALF - 6, 3.5)
 			if p then
 				table.insert(spots, p)
 			end
-			if #spots >= 16 then
+			if #spots >= 24 then
 				break
 			end
 		end

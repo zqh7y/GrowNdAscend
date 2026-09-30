@@ -29,6 +29,7 @@ local DEFAULT = {
 	Rebirths = 0,
 	Playtime = 0, -- seconds played
 	Upgrades = {}, -- [upgrade id] = level bought in the upgrade tree
+	Discovered = {}, -- [animal name] = true once found (the Index)
 	Fusion = nil, -- { Pet = name going in, Ends = os.time() } while the machine is fusing
 	Strongest = 0, -- power of the strongest pet ever owned
 }
@@ -50,6 +51,7 @@ local function load(player)
 	data.Pets = {}
 	data.Equipped = {}
 	data.Upgrades = {}
+	data.Discovered = {}
 	if ok and saved then
 		for k, v in pairs(saved) do
 			data[k] = v
@@ -62,6 +64,13 @@ local function load(player)
 			data.Pets[key] = (data.Pets[key] or 0) + count
 		end
 		data.Huges = nil
+	end
+	-- the Index: everything ever owned counts as discovered (older saves)
+	for name in pairs(data.Pets) do
+		local pet = Config.petInfo(name)
+		if pet then
+			data.Discovered[pet.Name] = true
+		end
 	end
 	-- older fusions stored the result's base name; that's also the input now
 	-- (a normal pet fuses into its huge), so they carry on as they were
@@ -122,6 +131,7 @@ function PlayerData.sync(player)
 		Unlocked = data.Unlocked,
 		Rebirths = data.Rebirths,
 		Upgrades = data.Upgrades,
+		Discovered = data.Discovered,
 		Fusion = data.Fusion,
 		ServerTime = os.time(),
 	})

@@ -79,11 +79,12 @@ rollFunction.OnServerInvoke = function(player)
 	for _ = 1, Config.rollsAtOnce(data) do
 		data.Rolls += 1
 		local isBonus = data.Rolls % Config.BONUS_EVERY == 0
-		local pet = Config.roll(Config.luck(data, isBonus), random)
+		local pet = Config.roll(Config.luck(data, isBonus), random, data.Unlocked)
 		local sizeIndex = Config.rollSize(sizeLuck * (if isBonus then Config.BONUS_LUCK else 1), random)
 		local name = Config.petName(pet.Name, sizeIndex)
 
-		local isFirst = data.Pets[pet.Name] == nil and data.Pets[name] == nil
+		local isFirst = not data.Discovered[pet.Name]
+		data.Discovered[pet.Name] = true
 		data.Pets[name] = (data.Pets[name] or 0) + 1
 		local best = data.Best and Config.PETS_BY_NAME[data.Best]
 		if not best or pet.Odds > best.Odds then

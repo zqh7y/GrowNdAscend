@@ -1,4 +1,6 @@
-"""Simulates an active player to check the economy against the targets:
+"""Simulates an active player to check the economy against the targets
+(the animals are read from Config.luau; rolls only give animals from
+unlocked worlds, like the game):
    ~40 min to World 4 with ~1B pets there; best Titanic ~5T (endgame).
 Usage: python3 tools/economy/simulate.py [runs]
 Keep the numbers here in sync with src/shared/Config.luau (Config is the
@@ -6,8 +8,11 @@ source of truth; this mirrors it so the curve can be tested quickly)."""
 import math, random, sys
 
 # --- mirrors Config.luau -------------------------------------------------------
-PET_ODDS = [2, 3, 5, 8, 12, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000,
-            25000, 50000, 100000, 250000, 1000000, 10000000]
+import os, re
+_config = open(os.path.join(os.path.dirname(__file__), "../../src/shared/Config.luau")).read()
+# (odds, world) for every animal, read straight from Config.luau
+PETS = [(int(o), int(w)) for o, w in re.findall(r'Odds = (\d+), World = (\d+)', _config)]
+PET_ODDS = [o for o, _ in PETS]
 def base_power(odds):  # Config.basePower
     return 1e6 * (odds / 1000) ** 1.17
 SIZES = [(1, 1), (100, 10), (1000, 100)]  # (1 in chance, power multiplier)
@@ -61,8 +66,8 @@ def run(minutes=60, seed=1, verbose=False):
                 bonus = BONUS_LUCK if rolls % BONUS_EVERY == 0 else 1
                 luck = val("Luck") * (1 + sum(pet_luck(o, s) for _, o, s in team)) * bonus
                 odds = 2
-                for o in reversed(PET_ODDS[1:]):
-                    if rng.random() < luck / o:
+                for o, w in reversed(PETS[1:]):
+                    if w <= world and rng.random() < luck / o:
                         odds = o
                         break
                 size = 0
@@ -126,6 +131,6 @@ if __name__ == "__main__":
     luck = UP["Luck"][0](UP["Luck"][2]) * (1 + 6 * pet_luck(1e6, 1))
     size = UP["SizeLuck"][0](UP["SizeLuck"][2])
     per_sec = UP["Rolls"][0](UP["Rolls"][2]) / UP["RollSpeed"][0](UP["RollSpeed"][2])
-    for name, odds, s_i in (("Huge Glitch", 1e7, 1), ("Titanic Galaxy Whale", 1e6, 2), ("Titanic Glitch (5T)", 1e7, 2)):
+    for name, odds, s_i in (("Huge Glitch", 1e7, 1), ("Titanic 1-in-1M animal", 1e6, 2), ("Titanic Glitch (5T)", 1e7, 2)):
         chance = min(1, luck / odds) * size / SIZES[s_i][0]
         print(f"endgame {name}: {fmt(base_power(odds) * SIZES[s_i][1])} power, 1 in {fmt(1/chance)} rolls = {1/chance/per_sec/3600:.1f} hours of auto rolling")

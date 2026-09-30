@@ -260,6 +260,78 @@ if ok then
 			end
 		end
 		print(string.format("pet models: %d to %d parts each", fewest, most))
+		-- every animal moves the way it should: ground animals keep their feet
+		-- on the ground, flyers and swimmers stay up, legs swing when walking,
+		-- wings flap when flying, and nobody drifts off
+		local Creature = C("Creature")
+		local SPECIES = PetModels.SPECIES
+		local moveProblems, checked = {}, 0
+		for _, pet in ipairs(__cache["Shared/Config"].PETS) do
+			for _, sizeIndex in ipairs({ 1, 3 }) do
+				local name = __cache["Shared/Config"].petName(pet.Name, sizeIndex)
+				local size = __cache["Shared/Config"].SIZES[sizeIndex]
+				local okC, err = pcall(function()
+					local model, animated, rig = PetModels.build(name)
+					model.Parent = workspace
+					if size.Scale ~= 1 then
+						model:ScaleTo(size.Scale)
+					end
+					local c = Creature.new(model, rig, size.Scale, animated)
+					local start = Vector3.new(20, 0, 5)
+					c:teleport(start)
+					local ground = c.GroundY
+					local goal = start + Vector3.new(30, 0, 0)
+					c:moveTo(goal)
+					local lowest, highest, limbMoved = math.huge, -math.huge, 0
+					local move = SPECIES[pet.Name].Move
+					local airborne = move == "fly" or move == "hover" or move == "swim"
+					local watch = if airborne
+						then (rig.Wings[1] and rig.Wings[1].Parts[1]) or (rig.Tail and rig.Tail.Parts[1]) or (rig.Legs[1] and rig.Legs[1].Parts[#rig.Legs[1].Parts])
+						else (rig.Legs[1] and rig.Legs[1].Parts[1]) or (rig.Wings[1] and rig.Wings[1].Parts[1])
+					local last
+					for frame = 1, 240 do
+						c:step(1 / 60, frame / 60)
+						local feet = c.Pivot.Position.Y + rig.FootY * size.Scale
+						lowest, highest = math.min(lowest, feet), math.max(highest, feet)
+						if watch then
+							local rel = c.Pivot:ToObjectSpace(watch.CFrame)
+							if last and (rel.Position - last).Magnitude > 0.001 then
+								limbMoved += 1
+							end
+							last = rel.Position
+						end
+					end
+					local travelled = (c.Position - start).Magnitude
+					if travelled < 20 then
+						table.insert(moveProblems, name .. " only moved " .. string.format("%.1f", travelled))
+					end
+					if move == "fly" or move == "swim" or move == "hover" then
+						if lowest < ground + 0.8 then
+							table.insert(moveProblems, name .. " (" .. move .. ") touched the ground")
+						end
+					elseif move == "hop" then
+						if lowest < ground - 0.3 or highest < ground + 0.5 then
+							table.insert(moveProblems, string.format("%s hop %.2f..%.2f", name, lowest - ground, highest - ground))
+						end
+					elseif lowest < ground - 0.3 or lowest > ground + 0.4 then
+						table.insert(moveProblems, string.format("%s feet at %.2f above ground", name, lowest - ground))
+					end
+					if watch and move ~= "hop" and limbMoved < 30 then
+						table.insert(moveProblems, name .. " limbs barely moved (" .. limbMoved .. ")")
+					end
+					model:Destroy()
+					checked += 1
+				end)
+				if not okC then
+					table.insert(moveProblems, name .. " error: " .. tostring(err))
+				end
+			end
+		end
+		print(string.format("animal movement: %d animals checked, %d problems", checked, #moveProblems))
+		for i = 1, math.min(#moveProblems, 15) do
+			print("  MOVE: " .. moveProblems[i])
+		end
+		STATS.MoveProblems = #moveProblems
 		try("PetsPanel.open", C("PetsPanel").open)
 		try("UpgradeTree.open", C("UpgradeTree").open)
 		try("UpgradeTree.select", C("UpgradeTree").select, "SizeLuck")

@@ -4,28 +4,85 @@ local Config = {}
 
 -- Pets -------------------------------------------------------------------------
 
--- Every pet you can roll, from most common to rarest. Odds is "1 in Odds".
+-- Every animal in the game (the Index has all 70), from most common to
+-- rarest. Odds is "1 in Odds"; World is where it lives: you can only roll it
+-- once that world is unlocked, and each world's animals cover its own band
+-- of rarity (and so of power), which is what the progression is built on.
 Config.PETS = {
-	{ Name = "Dog", Odds = 2, Color = Color3.fromRGB(200, 150, 100) },
-	{ Name = "Cat", Odds = 3, Color = Color3.fromRGB(255, 170, 80) },
-	{ Name = "Bunny", Odds = 5, Color = Color3.fromRGB(245, 240, 240) },
-	{ Name = "Chick", Odds = 8, Color = Color3.fromRGB(255, 225, 70) },
-	{ Name = "Mouse", Odds = 12, Color = Color3.fromRGB(170, 170, 180) },
-	{ Name = "Fox", Odds = 25, Color = Color3.fromRGB(240, 110, 40) },
-	{ Name = "Panda", Odds = 50, Color = Color3.fromRGB(40, 40, 45) },
-	{ Name = "Penguin", Odds = 100, Color = Color3.fromRGB(60, 80, 120) },
-	{ Name = "Owl", Odds = 250, Color = Color3.fromRGB(140, 100, 70) },
-	{ Name = "Wolf", Odds = 500, Color = Color3.fromRGB(120, 130, 160) },
-	{ Name = "Tiger", Odds = 1000, Color = Color3.fromRGB(255, 140, 20) },
-	{ Name = "Unicorn", Odds = 2500, Color = Color3.fromRGB(255, 170, 230) },
-	{ Name = "Dragon", Odds = 5000, Color = Color3.fromRGB(220, 40, 40) },
-	{ Name = "Phoenix", Odds = 10000, Color = Color3.fromRGB(255, 120, 20) },
-	{ Name = "Kraken", Odds = 25000, Color = Color3.fromRGB(80, 40, 140) },
-	{ Name = "Griffin", Odds = 50000, Color = Color3.fromRGB(230, 200, 120) },
-	{ Name = "Celestial Lion", Odds = 100000, Color = Color3.fromRGB(255, 240, 150) },
-	{ Name = "Void Serpent", Odds = 250000, Color = Color3.fromRGB(30, 10, 50) },
-	{ Name = "Galaxy Whale", Odds = 1000000, Color = Color3.fromRGB(70, 60, 200) },
-	{ Name = "Glitch", Odds = 10000000, Color = Color3.fromRGB(0, 255, 140) },
+	-- World 1: Forest
+	{ Name = "Dog", Odds = 2, World = 1, Color = Color3.fromRGB(200, 150, 100) },
+	{ Name = "Cat", Odds = 3, World = 1, Color = Color3.fromRGB(255, 170, 80) },
+	{ Name = "Bunny", Odds = 4, World = 1, Color = Color3.fromRGB(245, 240, 240) },
+	{ Name = "Chick", Odds = 5, World = 1, Color = Color3.fromRGB(255, 225, 70) },
+	{ Name = "Mouse", Odds = 7, World = 1, Color = Color3.fromRGB(170, 170, 180) },
+	{ Name = "Hamster", Odds = 9, World = 1, Color = Color3.fromRGB(240, 190, 120) },
+	{ Name = "Duck", Odds = 12, World = 1, Color = Color3.fromRGB(255, 235, 120) },
+	{ Name = "Frog", Odds = 16, World = 1, Color = Color3.fromRGB(110, 210, 90) },
+	{ Name = "Piglet", Odds = 21, World = 1, Color = Color3.fromRGB(255, 170, 190) },
+	{ Name = "Lamb", Odds = 28, World = 1, Color = Color3.fromRGB(250, 248, 240) },
+	{ Name = "Squirrel", Odds = 38, World = 1, Color = Color3.fromRGB(205, 120, 60) },
+	{ Name = "Hedgehog", Odds = 50, World = 1, Color = Color3.fromRGB(170, 130, 100) },
+	{ Name = "Fox", Odds = 70, World = 1, Color = Color3.fromRGB(240, 110, 40) },
+	{ Name = "Raccoon", Odds = 90, World = 1, Color = Color3.fromRGB(150, 150, 160) },
+	{ Name = "Deer", Odds = 125, World = 1, Color = Color3.fromRGB(200, 140, 90) },
+	{ Name = "Owl", Odds = 170, World = 1, Color = Color3.fromRGB(140, 100, 70) },
+	{ Name = "Bear", Odds = 225, World = 1, Color = Color3.fromRGB(150, 95, 60) },
+	{ Name = "Wolf", Odds = 300, World = 1, Color = Color3.fromRGB(120, 130, 160) },
+	{ Name = "Parrot", Odds = 400, World = 1, Color = Color3.fromRGB(70, 200, 110) },
+	{ Name = "Moose", Odds = 550, World = 1, Color = Color3.fromRGB(130, 90, 60) },
+	{ Name = "Unicorn", Odds = 750, World = 1, Color = Color3.fromRGB(255, 170, 230) },
+	{ Name = "Forest Guardian", Odds = 1000, World = 1, Color = Color3.fromRGB(90, 220, 140) },
+	-- World 2: Sahara
+	{ Name = "Camel", Odds = 1250, World = 2, Color = Color3.fromRGB(230, 180, 115) },
+	{ Name = "Meerkat", Odds = 1500, World = 2, Color = Color3.fromRGB(215, 170, 110) },
+	{ Name = "Fennec Fox", Odds = 1800, World = 2, Color = Color3.fromRGB(250, 210, 150) },
+	{ Name = "Lizard", Odds = 2200, World = 2, Color = Color3.fromRGB(120, 200, 90) },
+	{ Name = "Tortoise", Odds = 2600, World = 2, Color = Color3.fromRGB(130, 170, 90) },
+	{ Name = "Scorpion", Odds = 3200, World = 2, Color = Color3.fromRGB(230, 110, 60) },
+	{ Name = "Cobra", Odds = 3800, World = 2, Color = Color3.fromRGB(200, 170, 60) },
+	{ Name = "Vulture", Odds = 4500, World = 2, Color = Color3.fromRGB(120, 100, 110) },
+	{ Name = "Hyena", Odds = 5500, World = 2, Color = Color3.fromRGB(200, 170, 120) },
+	{ Name = "Cheetah", Odds = 6500, World = 2, Color = Color3.fromRGB(250, 195, 90) },
+	{ Name = "Lion", Odds = 8000, World = 2, Color = Color3.fromRGB(240, 175, 70) },
+	{ Name = "Falcon", Odds = 9500, World = 2, Color = Color3.fromRGB(150, 120, 100) },
+	{ Name = "Golden Scarab", Odds = 11500, World = 2, Color = Color3.fromRGB(255, 200, 50) },
+	{ Name = "Anubis Jackal", Odds = 14000, World = 2, Color = Color3.fromRGB(50, 55, 80) },
+	{ Name = "Griffin", Odds = 17000, World = 2, Color = Color3.fromRGB(230, 200, 120) },
+	{ Name = "Sphinx", Odds = 20000, World = 2, Color = Color3.fromRGB(245, 210, 140) },
+	-- World 3: Frozen Peaks
+	{ Name = "Penguin", Odds = 25000, World = 3, Color = Color3.fromRGB(60, 80, 120) },
+	{ Name = "Snow Hare", Odds = 30000, World = 3, Color = Color3.fromRGB(245, 248, 255) },
+	{ Name = "Arctic Fox", Odds = 37000, World = 3, Color = Color3.fromRGB(235, 240, 250) },
+	{ Name = "Seal", Odds = 45000, World = 3, Color = Color3.fromRGB(170, 180, 200) },
+	{ Name = "Husky", Odds = 55000, World = 3, Color = Color3.fromRGB(150, 160, 180) },
+	{ Name = "Snowy Owl", Odds = 67000, World = 3, Color = Color3.fromRGB(248, 250, 255) },
+	{ Name = "Walrus", Odds = 82000, World = 3, Color = Color3.fromRGB(180, 130, 100) },
+	{ Name = "Reindeer", Odds = 100000, World = 3, Color = Color3.fromRGB(170, 120, 80) },
+	{ Name = "Polar Bear", Odds = 120000, World = 3, Color = Color3.fromRGB(250, 250, 245) },
+	{ Name = "Snow Leopard", Odds = 150000, World = 3, Color = Color3.fromRGB(230, 232, 240) },
+	{ Name = "Orca", Odds = 180000, World = 3, Color = Color3.fromRGB(40, 45, 70) },
+	{ Name = "Narwhal", Odds = 220000, World = 3, Color = Color3.fromRGB(150, 180, 220) },
+	{ Name = "Yeti", Odds = 270000, World = 3, Color = Color3.fromRGB(235, 245, 255) },
+	{ Name = "Mammoth", Odds = 330000, World = 3, Color = Color3.fromRGB(150, 105, 75) },
+	{ Name = "Ice Phoenix", Odds = 400000, World = 3, Color = Color3.fromRGB(140, 220, 255) },
+	{ Name = "Frost Dragon", Odds = 500000, World = 3, Color = Color3.fromRGB(120, 200, 255) },
+	-- World 4: Sakura Jungle
+	{ Name = "Shiba", Odds = 600000, World = 4, Color = Color3.fromRGB(235, 160, 90) },
+	{ Name = "Red Panda", Odds = 720000, World = 4, Color = Color3.fromRGB(215, 90, 50) },
+	{ Name = "Koi", Odds = 870000, World = 4, Color = Color3.fromRGB(255, 140, 60) },
+	{ Name = "Crane", Odds = 1050000, World = 4, Color = Color3.fromRGB(250, 250, 250) },
+	{ Name = "Tanuki", Odds = 1270000, World = 4, Color = Color3.fromRGB(140, 110, 90) },
+	{ Name = "Panda", Odds = 1500000, World = 4, Color = Color3.fromRGB(40, 40, 45) },
+	{ Name = "Kitsune", Odds = 1850000, World = 4, Color = Color3.fromRGB(255, 245, 235) },
+	{ Name = "Tiger", Odds = 2200000, World = 4, Color = Color3.fromRGB(255, 140, 20) },
+	{ Name = "Kirin", Odds = 2700000, World = 4, Color = Color3.fromRGB(255, 210, 120) },
+	{ Name = "Dragon", Odds = 3250000, World = 4, Color = Color3.fromRGB(220, 40, 40) },
+	{ Name = "Phoenix", Odds = 3900000, World = 4, Color = Color3.fromRGB(255, 120, 20) },
+	{ Name = "Kraken", Odds = 4700000, World = 4, Color = Color3.fromRGB(80, 40, 140) },
+	{ Name = "Celestial Lion", Odds = 5700000, World = 4, Color = Color3.fromRGB(255, 240, 150) },
+	{ Name = "Void Serpent", Odds = 6900000, World = 4, Color = Color3.fromRGB(60, 30, 110) },
+	{ Name = "Galaxy Whale", Odds = 8300000, World = 4, Color = Color3.fromRGB(70, 60, 200) },
+	{ Name = "Glitch", Odds = 10000000, World = 4, Color = Color3.fromRGB(0, 255, 140) },
 }
 -- Power grows a little faster than rarity: power = 1M x (odds / 1000)^1.17,
 -- so a Dog is ~700, a Tiger 1M, a Galaxy Whale ~3.2B and a Glitch ~48B.
@@ -157,11 +214,13 @@ function Config.luck(data, isBonus)
 end
 
 -- Try the rarest pet first, then the next rarest, and so on. Luck multiplies
--- every pet's chance; if nothing hits you get the most common pet.
-function Config.roll(luck, random)
+-- every pet's chance; if nothing hits you get the most common pet. Only
+-- animals from worlds up to `unlocked` can come out.
+function Config.roll(luck, random, unlocked)
+	unlocked = unlocked or math.huge
 	for i = #Config.PETS, 2, -1 do
 		local pet = Config.PETS[i]
-		if random:NextNumber() < luck / pet.Odds then
+		if pet.World <= unlocked and random:NextNumber() < luck / pet.Odds then
 			return pet
 		end
 	end
@@ -171,7 +230,7 @@ end
 -- Seconds the fusion machine takes: rarer pets and bigger sizes take longer
 function Config.fuseTime(name)
 	local pet, size = Config.petInfo(name)
-	return (30 + (pet.Index - 1) * 20) * size.Index
+	return (30 + (pet.Index - 1) * 6) * size.Index
 end
 
 -- Upgrades ---------------------------------------------------------------------------
