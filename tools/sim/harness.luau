@@ -385,24 +385,10 @@ if ok then
 			frames(30)
 		end
 		print(string.format("client fight 10s: coins +%d, pets equipped %d", data.Coins - before, #data.Equipped))
-		-- no living coin is ever drawn below the ground, over many frames
-		local lowest, checked = math.huge, 0
-		for _ = 1, 400 do
-			frames(1)
-			for _, model in ipairs(workspace.LivingCoins:GetChildren()) do
-				local at = model.DrawnAt
-				if at then
-					local ground = TERRAIN_HEIGHT(at.Position.X, at.Position.Z)
-					lowest = math.min(lowest, at.Position.Y - ground)
-					checked += 1
-				end
-			end
-		end
-		print(string.format("coin drawings checked: %d, lowest above ground: %.3f", checked, lowest))
-		-- and the parts themselves: nothing of a living coin may sink into the
-		-- ground (checks the real part positions, not just the pivot)
+		-- nothing of a living coin may sink into the ground, over many frames
+		-- (checks every real part's bottom, not the model's pivot)
 		local deepest, deepestName = math.huge, ""
-		for _ = 1, 120 do
+		for _ = 1, 400 do
 			frames(1)
 			for _, model in ipairs(workspace.LivingCoins:GetChildren()) do
 				local feet = model:GetPivot().Position
@@ -424,7 +410,7 @@ if ok then
 		end
 		STATS.CoinDepth = deepest
 		print(string.format("living coin parts: deepest %.2f studs below/above the ground (%s)", deepest, deepestName))
-		if lowest < -0.01 then
+		if deepest < -0.3 then
 			print("GAME ERROR: a living coin was drawn underground")
 		end
 		try("Effects.coins", C("Effects").coins, Vector3.new(10, 2, 0), 12345)
@@ -855,7 +841,7 @@ if ok then
 	item(18, "nothing unexplained top-left", #topLeft == 0, if #topLeft > 0 then table.concat(topLeft, ", ") else "clear for Roblox's own buttons")
 
 	-- 19, 20 are checked above: coins never drawn underground, no terrain above the ground in play
-	item(19, "no coins underground", (STATS.CoinDepth or -99) > -0.6, string.format("deepest part %.2f studs from the ground", STATS.CoinDepth or -99))
+	item(19, "no coins underground", (STATS.CoinDepth or -99) > -0.3, string.format("deepest part %.2f studs from the ground over 400 frames", STATS.CoinDepth or -99))
 	item(20, "no spawning above the map", (function()
 		local worst = -math.huge
 		for x = 0, 400, 2 do

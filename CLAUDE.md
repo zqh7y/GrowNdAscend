@@ -96,6 +96,9 @@ for how it plays and where the code lives.
 - Every target is logged to Output at start (`[Targets] ...`) and the client
   prints how many it drew; check those first if targets seem missing.
 - Pivots: Roblox ignores Model.WorldPivot once a PrimaryPart is set. Use
-  `Build.setPivot(model, part, cframe)` to put a model's pivot somewhere
-  (e.g. at a living coin's feet). The sim's mock follows this rule, and
-  checks that no part of a living coin sinks into the ground.
+  `Build.setPivot(model, part, cframe)` to put a model's pivot somewhere.
+  Living coins don't use the pivot or Model:ScaleTo at all: Living.luau
+  places every part from its measured offset to the feet (BulkMoveTo), so
+  they always stand on the ground. At start the client prints the lowest
+  part of any target ("[Targets] lowest part ...") to Output; the sim
+  checks every part of every coin against the ground.

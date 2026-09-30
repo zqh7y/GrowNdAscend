@@ -8,6 +8,12 @@
 --   sushi:  a hop with a somersault
 -- All of them breathe while they rest, turn to face where they jump, and
 -- flash and shake when a pet hits them. None of this depends on being hit.
+--
+-- Placing: every part's offset from the coin's feet is measured once when
+-- it's built (at the origin), and each frame every part is put at
+-- feet * offset (scaled for squash and stretch) with BulkMoveTo. It never
+-- goes through the model's pivot or Model:ScaleTo, so the feet are always
+-- exactly on the ground the server measured.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -120,6 +126,21 @@ local function add(data)
 	local extents = model:GetExtentsSize()
 	local height = extents.Y
 	marker(model, area, math.max(extents.X, extents.Z) + 1.5)
+	-- every part's place relative to the feet (the model is built with its
+	-- feet at the origin), and how low the lowest part reaches
+	local parts, offsets, sizes, bottom = {}, {}, {}, math.huge
+	for _, p in ipairs(model:GetDescendants()) do
+		if p:IsA("BasePart") then
+			table.insert(parts, p)
+			table.insert(offsets, p.CFrame)
+			table.insert(sizes, p.Size)
+			if p.Name ~= "Marker" then
+				local cf, size = p.CFrame, p.Size
+				local halfY = (math.abs(cf.RightVector.Y) * size.X + math.abs(cf.UpVector.Y) * size.Y + math.abs(cf.LookVector.Y) * size.Z) / 2
+				bottom = math.min(bottom, cf.Position.Y - halfY)
+			end
+		end
+	end
 	-- an outline in the world's colour (it also flashes white when hit)
 	local highlight = Instance.new("Highlight")
 	highlight.FillColor = Color3.new(1, 1, 1)
@@ -139,6 +160,11 @@ local function add(data)
 		Position = data:GetAttribute("HopTo"),
 		Bar = healthBar(model, area, height),
 		Highlight = highlight,
+		Parts = parts,
+		Offsets = offsets,
+		Sizes = sizes,
+		Frames = table.create(#parts),
+		Lift = math.max(-bottom, 0), -- lifts anything built below the feet up onto the ground
 	}
 	coins[id] = coin
 	data:GetAttributeChangedSignal("Health"):Connect(function()
@@ -176,6 +202,25 @@ function Living.counts()
 	return counts
 end
 task.delay(5, function()
+	-- check what's actually drawn: the lowest part of every coin vs the
+	-- ground height the server measured for it
+	local worst, worstName = math.huge, nil
+	for _, coin in pairs(coins) do
+		local groundY = coin.Position and coin.Position.Y or 0
+		for _, part in ipairs(coin.Parts) do
+			if part.Name ~= "Marker" then
+				local cf, size = part.CFrame, part.Size
+				local halfY = (math.abs(cf.RightVector.Y) * size.X + math.abs(cf.UpVector.Y) * size.Y + math.abs(cf.LookVector.Y) * size.Z) / 2
+				local depth = cf.Position.Y - halfY - groundY
+				if depth < worst then
+					worst, worstName = depth, coin.Model.Name
+				end
+			end
+		end
+	end
+	if worst < math.huge then
+		print(string.format("[Targets] lowest part of any target: %.2f studs from the ground (%s)", worst, worstName or "?"))
+	end
 	local counts = Living.counts()
 	local parts = {}
 	for i, n in ipairs(counts) do
@@ -183,6 +228,12 @@ task.delay(5, function()
 	end
 	print("[Targets] drawn on this screen: " .. table.concat(parts, ", "))
 end)
+
+-- Where a coin's feet are drawn right now (a CFrame), or nil
+function Living.feet(id)
+	local coin = coins[id]
+	return coin and coin.Feet
+end
 
 -- Where a coin is right now (its feet), as drawn, or nil if it's gone
 function Living.position(id)
@@ -295,15 +346,24 @@ RunService.RenderStepped:Connect(function(dt)
 		local wobble = if resting and style.Motion ~= "skate" then math.sin(clock * 2.2 + coin.Phase) * math.rad(3) else 0
 		coin.Shake = math.max(coin.Shake - dt * 2.5, 0)
 		local shake = math.sin(clock * 60) * coin.Shake * math.rad(12)
-		coin.Model:PivotTo(CFrame.new(ground + Vector3.new(0, up, 0)) * CFrame.Angles(0, coin.Yaw, 0) * turn * CFrame.Angles(0, 0, wobble + shake))
-
 		-- grow in when new, then squash and stretch
 		local grow = math.clamp((now - (data:GetAttribute("Born") or 0)) / 0.5, 0.05, 1)
-		local size = grow * (scale + breathe)
-		if math.abs(size - coin.Scale) > 0.012 then
+		local size = math.max(grow * (scale + breathe), 0.05)
+		local resize = math.abs(size - coin.Scale) > 0.012
+		if resize then
 			coin.Scale = size
-			coin.Model:ScaleTo(math.max(size, 0.05))
 		end
+		local s = coin.Scale
+		local feet = CFrame.new(ground + Vector3.new(0, up + coin.Lift * s, 0)) * CFrame.Angles(0, coin.Yaw, 0) * turn * CFrame.Angles(0, 0, wobble + shake)
+		coin.Feet = feet
+		for i, part in ipairs(coin.Parts) do
+			local offset = coin.Offsets[i]
+			coin.Frames[i] = feet * CFrame.new(offset.Position * s) * offset.Rotation
+			if resize then
+				part.Size = coin.Sizes[i] * s
+			end
+		end
+		Workspace:BulkMoveTo(coin.Parts, coin.Frames, Enum.BulkMoveMode.FireCFrameChanged)
 
 		if coin.Flash then
 			coin.Flash = math.max(coin.Flash - dt * 6, 0)
