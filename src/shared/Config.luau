@@ -2,6 +2,9 @@
 -- server and the client so the UI always shows exactly what the server does.
 local Config = {}
 
+-- Shown on screen and in Output, so it's easy to tell which version is running
+Config.BUILD = "build 3 (coins on client ground)"
+
 -- Pets -------------------------------------------------------------------------
 
 -- Every animal in the game (the Index has all 70), from most common to

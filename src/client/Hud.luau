@@ -230,4 +230,19 @@ State.watch(function()
 	upgradeDot.Visible = UpgradeTree.anyAffordable()
 end)
 
+-- which version is running (bottom left, small)
+Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UDim2.new(0, 10, 1, -6),
+	Size = UDim2.fromOffset(320, 16),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 12,
+	Text = Config.BUILD,
+	TextTransparency = 0.35,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Parent = gui,
+})
+print("[Hatch Incremental] " .. Config.BUILD)
+
 return {}

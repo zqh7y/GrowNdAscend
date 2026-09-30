@@ -27,6 +27,17 @@ local Living = {}
 
 local NEAR = 160 -- coins further than this from the camera update less often
 
+-- The ground as this screen sees it: a ray straight down onto the terrain.
+-- Coins stand on this (the server's height is only used if it finds none),
+-- so they can't end up inside the ground even if the two disagree.
+local groundRay = RaycastParams.new()
+groundRay.FilterType = Enum.RaycastFilterType.Include
+groundRay.FilterDescendantsInstances = { Workspace.Terrain }
+local function onGround(position)
+	local hit = Workspace:Raycast(Vector3.new(position.X, position.Y + 60, position.Z), Vector3.new(0, -160, 0), groundRay)
+	return if hit then Vector3.new(position.X, hit.Position.Y, position.Z) else position
+end
+
 local visuals = Instance.new("Folder")
 visuals.Name = "LivingCoins"
 visuals.Parent = Workspace
@@ -312,6 +323,12 @@ RunService.RenderStepped:Connect(function(dt)
 		local data, style = coin.Data, coin.Style
 		local from = data:GetAttribute("HopFrom")
 		local to = data:GetAttribute("HopTo")
+		-- measure the ground under both ends of the jump (once per jump)
+		if coin.HopKey ~= to then
+			coin.HopKey = to
+			coin.From, coin.To = onGround(from), onGround(to)
+		end
+		from, to = coin.From, coin.To
 		local start = data:GetAttribute("HopStart") or 0
 		local t = (now - start) / style.Air
 
