@@ -20,6 +20,11 @@ local state = nil -- latest data from the server
 local rolling = false
 local autoRoll = false
 
+local function commas(n)
+	local digits = tostring(math.floor(n))
+	return (digits:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", ""))
+end
+
 -- Screen -----------------------------------------------------------------------
 
 local gui = Ui.new("ScreenGui", {
@@ -37,51 +42,59 @@ end
 fitScreen()
 Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitScreen)
 
--- Stats (top middle)
-local statsBox = Ui.new("Frame", {
+-- Stats (top middle) ---------------------------------------------------------------
+
+local statsBox = Ui.glass({
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 14),
-	Size = UDim2.fromOffset(380, 84),
-	BackgroundColor3 = Ui.DARK,
-	BackgroundTransparency = 0.15,
+	Position = UDim2.new(0.5, 0, 0, 16),
+	Size = UDim2.fromOffset(340, 72),
+	Radius = 22,
 	Parent = gui,
-}, { Ui.corner(18), Ui.stroke(Ui.GOLD, 3) })
+})
 local rollsText = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(12, 6),
-	Size = UDim2.new(1, -24, 0, 44),
-	Text = "🎲 0 Rolls",
-	TextColor3 = Ui.GOLD,
+	Position = UDim2.fromOffset(0, 10),
+	Size = UDim2.new(1, 0, 0, 30),
+	TextScaled = false,
+	TextSize = 28,
+	Text = "0 ROLLS",
 	Parent = statsBox,
 })
 local bestText = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(12, 52),
-	Size = UDim2.new(1, -24, 0, 24),
-	Text = "Best: nothing yet",
+	Position = UDim2.fromOffset(0, 44),
+	Size = UDim2.new(1, 0, 0, 18),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 15,
+	Text = "BEST  ·  nothing yet",
 	TextColor3 = Ui.MUTED,
 	Parent = statsBox,
 })
 
--- Reveal card (above the roll button) ------------------------------------------
+-- Reveal card (above the roll button) ----------------------------------------------
 
-local card = Ui.new("Frame", {
+local card = Ui.glass({
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -170),
-	Size = UDim2.fromOffset(340, 110),
-	BackgroundColor3 = Ui.DARK,
-	BackgroundTransparency = 0.1,
+	Position = UDim2.new(0.5, 0, 1, -178),
+	Size = UDim2.fromOffset(320, 96),
+	Radius = 20,
 	Visible = false,
 	Parent = gui,
-}, { Ui.corner(18), Ui.padding(10) })
-local cardStroke = Ui.stroke(Ui.GREY, 4)
-cardStroke.Parent = card
+})
+local cardEdge = card.Edge
 local cardName = Ui.new("TextLabel", {
-	Size = UDim2.new(1, 0, 0, 50),
+	Position = UDim2.fromOffset(0, 16),
+	Size = UDim2.new(1, 0, 0, 36),
+	TextScaled = false,
+	TextSize = 32,
 	Text = "",
 	Parent = card,
 })
 local cardOdds = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 54),
-	Size = UDim2.new(1, 0, 0, 34),
+	Position = UDim2.fromOffset(0, 58),
+	Size = UDim2.new(1, 0, 0, 20),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 16,
 	Text = "",
 	Parent = card,
 })
@@ -90,35 +103,50 @@ local cardScale = Ui.new("UIScale", { Parent = card })
 local function showOnCard(pet)
 	local rarity = Config.rarity(pet.Odds)
 	cardName.Text = pet.Name
-	cardName.TextColor3 = pet.Color:Lerp(Color3.new(1, 1, 1), 0.35)
-	cardOdds.Text = rarity.Name .. " · " .. Config.formatOdds(pet.Odds)
+	cardOdds.Text = rarity.Name:upper() .. "  ·  " .. Config.formatOdds(pet.Odds)
 	cardOdds.TextColor3 = rarity.Color
-	cardStroke.Color = rarity.Color
+	cardEdge.Color = rarity.Color
+	cardEdge.Transparency = 0.1
 end
 
--- Big reveal for rare rolls (full screen) ---------------------------------------
+-- Big reveal for rare rolls (full screen) -------------------------------------------
 
 local flash = Ui.new("Frame", {
 	Size = UDim2.fromScale(1, 1),
-	BackgroundColor3 = Color3.new(1, 1, 1),
+	BackgroundColor3 = Color3.new(0, 0, 0),
 	BackgroundTransparency = 1,
 	Visible = false,
 	ZIndex = 40,
 	Parent = gui,
 })
+local flashGlow = Ui.new("UIGradient", { Rotation = 90, Parent = flash })
+local bigRarity = Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.36),
+	Size = UDim2.fromOffset(700, 30),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 26,
+	ZIndex = 41,
+	Parent = flash,
+})
 local bigName = Ui.new("TextLabel", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.42),
-	Size = UDim2.fromOffset(900, 120),
-	TextStrokeTransparency = 0,
+	Position = UDim2.fromScale(0.5, 0.46),
+	Size = UDim2.fromOffset(900, 100),
+	TextScaled = false,
+	TextSize = 88,
 	ZIndex = 41,
 	Parent = flash,
 })
 local bigOdds = Ui.new("TextLabel", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.56),
-	Size = UDim2.fromOffset(700, 60),
-	TextStrokeTransparency = 0,
+	Size = UDim2.fromOffset(700, 40),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 32,
+	TextColor3 = Ui.TEXT,
 	ZIndex = 41,
 	Parent = flash,
 })
@@ -126,39 +154,64 @@ local bigScale = Ui.new("UIScale", { Parent = flash })
 
 local function bigReveal(pet)
 	local rarity = Config.rarity(pet.Odds)
-	flash.BackgroundColor3 = rarity.Color
+	flashGlow.Color = ColorSequence.new(Color3.new(0, 0, 0), rarity.Color:Lerp(Color3.new(0, 0, 0), 0.4))
+	flash.BackgroundColor3 = Color3.new(1, 1, 1)
 	flash.BackgroundTransparency = 0
 	flash.Visible = true
-	bigName.Text = pet.Name:upper() .. "!"
+	bigRarity.Text = rarity.Name:upper()
+	bigRarity.TextColor3 = rarity.Color
+	bigName.Text = pet.Name
 	bigName.TextColor3 = Color3.new(1, 1, 1)
-	bigName.TextStrokeColor3 = pet.Color
-	bigOdds.Text = rarity.Name .. " · " .. Config.formatOdds(pet.Odds)
-	bigOdds.TextColor3 = Color3.new(1, 1, 1)
-	bigOdds.TextStrokeColor3 = rarity.Color
-	bigScale.Scale = 0.3
-	TweenService:Create(flash, TweenInfo.new(0.6), { BackgroundTransparency = 0.55 }):Play()
+	bigOdds.Text = Config.formatOdds(pet.Odds)
+	bigScale.Scale = 0.6
+	TweenService:Create(flash, TweenInfo.new(0.5), { BackgroundTransparency = 0.15 }):Play()
 	TweenService:Create(bigScale, TweenInfo.new(0.5, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	-- rarer rolls stay on screen longer
 	task.wait(math.clamp(math.log10(pet.Odds) - 1.5, 1.5, 4))
-	TweenService:Create(flash, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
-	TweenService:Create(bigScale, TweenInfo.new(0.4), { Scale = 0 }):Play()
-	task.wait(0.4)
+	TweenService:Create(flash, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
+	TweenService:Create(bigScale, TweenInfo.new(0.35), { Scale = 0.8 }):Play()
+	task.wait(0.35)
 	flash.Visible = false
 end
 
--- Roll button + auto roll (bottom middle) ---------------------------------------
+-- Luck chip, Roll button, Auto (bottom middle) ----------------------------------------
 
-local luckText = Ui.new("TextLabel", {
+local luckChip = Ui.glass({
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -138),
-	Size = UDim2.fromOffset(420, 26),
-	Text = "",
-	TextColor3 = Ui.GREEN,
-	TextStrokeTransparency = 0.4,
+	Position = UDim2.new(0.5, 0, 1, -132),
+	Size = UDim2.fromOffset(300, 34),
+	Radius = 17,
 	Parent = gui,
+}, {
+	Ui.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 8),
+	}),
+})
+local luckIcon = Ui.icon("spark", 14, Ui.SUCCESS, { LayoutOrder = 0, Parent = luckChip })
+local luckText = Ui.new("TextLabel", {
+	LayoutOrder = 1,
+	AutomaticSize = Enum.AutomaticSize.X,
+	Size = UDim2.fromOffset(0, 18),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 15,
+	Text = "",
+	Parent = luckChip,
 })
 
 local rollButton, autoButton
+
+local function setLuckColor(color)
+	for _, d in ipairs(luckIcon:GetDescendants()) do
+		if d:IsA("Frame") and d.BackgroundTransparency < 1 then
+			d.BackgroundColor3 = color
+		end
+	end
+	luckChip.Edge.Color = color
+end
 
 local function refreshLuck()
 	if not state then
@@ -167,9 +220,11 @@ local function refreshLuck()
 	local untilBonus = Config.BONUS_EVERY - state.Rolls % Config.BONUS_EVERY
 	local nextIsBonus = untilBonus == 1
 	local luck = Config.luck(state.Equipped, nextIsBonus)
-	luckText.Text = "🍀 Luck x" .. string.format("%.2f", luck) .. "   ·   "
-		.. (if nextIsBonus then "✨ BONUS ROLL NEXT! ✨" else "Bonus roll in " .. untilBonus)
-	luckText.TextColor3 = if nextIsBonus then Ui.GOLD else Ui.GREEN
+	luckText.Text = "LUCK x" .. string.format("%.2f", luck) .. "   ·   "
+		.. (if nextIsBonus then "BONUS ROLL NEXT" else "BONUS IN " .. untilBonus)
+	luckText.TextColor3 = if nextIsBonus then Ui.GOLD else Ui.TEXT
+	setLuckColor(if nextIsBonus then Ui.GOLD else Ui.SUCCESS)
+	luckChip.Edge.Transparency = if nextIsBonus then 0.2 else 0.82
 end
 
 -- random names flicker past before the real result lands
@@ -178,30 +233,32 @@ local function spinTo(pet)
 	local steps = 9
 	for i = 1, steps do
 		-- mostly common pets flash by, like a real roll
-		local fake = Config.PETS[math.random(1, math.min(#Config.PETS, 4 + i))]
-		showOnCard(fake)
-		cardScale.Scale = 0.94
+		showOnCard(Config.PETS[math.random(1, math.min(#Config.PETS, 4 + i))])
+		cardScale.Scale = 0.96
 		TweenService:Create(cardScale, TweenInfo.new(0.05), { Scale = 1 }):Play()
 		task.wait(0.03 + i * 0.012)
 	end
 	showOnCard(pet)
-	cardScale.Scale = 1.25
-	TweenService:Create(cardScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	cardScale.Scale = 1.15
+	TweenService:Create(cardScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 end
 
 local function floatText(text, color)
 	local label = Ui.new("TextLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 1, -300),
-		Size = UDim2.fromOffset(360, 40),
+		Size = UDim2.fromOffset(420, 28),
+		TextScaled = false,
+		TextSize = 22,
 		Text = text,
 		TextColor3 = color,
-		TextStrokeTransparency = 0.2,
+		TextStrokeColor3 = Color3.fromRGB(10, 10, 25),
+		TextStrokeTransparency = 0.4,
 		ZIndex = 20,
 		Parent = gui,
 	})
 	TweenService:Create(label, TweenInfo.new(1.4, Enum.EasingStyle.Quad), {
-		Position = label.Position - UDim2.fromOffset(0, 90),
+		Position = label.Position - UDim2.fromOffset(0, 80),
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
 	}):Play()
@@ -215,17 +272,17 @@ local function doRoll()
 		return
 	end
 	rolling = true
-	rollButton.Text = "🎲 ..."
+	Ui.setText(rollButton, "ROLLING")
 	local started = os.clock()
 	local ok, result = pcall(rollFunction.InvokeServer, rollFunction)
 	if ok and result then
 		local pet = Config.PETS_BY_NAME[result.Pet]
 		spinTo(pet)
 		if result.Bonus then
-			floatText("✨ Bonus roll x" .. Config.BONUS_LUCK .. " luck!", Ui.GOLD)
+			floatText("BONUS ROLL  ·  " .. Config.BONUS_LUCK .. "x LUCK", Ui.GOLD)
 		end
 		if result.First then
-			floatText("🆕 New pet: " .. pet.Name .. "!", Config.rarity(pet.Odds).Color)
+			floatText("NEW  ·  " .. pet.Name, Config.rarity(pet.Odds).Color)
 		end
 		if pet.Odds >= Config.BIG_ROLL then
 			bigReveal(pet)
@@ -236,43 +293,47 @@ local function doRoll()
 	if left > 0 then
 		task.wait(left)
 	end
-	rollButton.Text = "🎲 ROLL"
+	Ui.setText(rollButton, "ROLL")
 	rolling = false
 end
 
 rollButton = Ui.button({
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -24),
-	Size = UDim2.fromOffset(240, 104),
-	Text = "🎲 ROLL",
-	BackgroundColor3 = Color3.new(1, 1, 1),
+	Position = UDim2.new(0.5, 0, 1, -28),
+	Size = UDim2.fromOffset(250, 88),
+	Radius = 26,
+	Text = "ROLL",
+	Icon = "dice",
+	TextSize = 32,
 	Parent = gui,
 }, function()
 	task.spawn(doRoll)
-end)
-Ui.gradient(Color3.fromRGB(90, 200, 255), Color3.fromRGB(120, 80, 240)).Parent = rollButton
-Ui.stroke(Color3.new(1, 1, 1), 4).Parent = rollButton
-Ui.padding(18).Parent = rollButton
+end, "primary")
 
 local function refreshAuto()
 	if not state then
 		return
 	end
+	-- style first so a new icon gets the style's colour
 	if state.Rolls < Config.AUTO_ROLL_AT then
-		autoButton.Text = "🔒 Auto (" .. state.Rolls .. "/" .. Config.AUTO_ROLL_AT .. ")"
-		autoButton.BackgroundColor3 = Ui.GREY
+		Ui.setStyle(autoButton, "disabled")
+		Ui.setIcon(autoButton, "lock")
+		Ui.setText(autoButton, state.Rolls .. "/" .. Config.AUTO_ROLL_AT)
 	else
-		autoButton.Text = if autoRoll then "🔁 Auto: ON" else "🔁 Auto: OFF"
-		autoButton.BackgroundColor3 = if autoRoll then Ui.GREEN else Ui.GREY
+		Ui.setStyle(autoButton, if autoRoll then "success" else "glass")
+		Ui.setIcon(autoButton, "loop")
+		Ui.setText(autoButton, if autoRoll then "AUTO ON" else "AUTO")
 	end
 end
 
 autoButton = Ui.button({
 	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0.5, 136, 1, -40),
-	Size = UDim2.fromOffset(170, 64),
-	Text = "🔁 Auto: OFF",
-	BackgroundColor3 = Ui.GREY,
+	Position = UDim2.new(0.5, 141, 1, -40),
+	Size = UDim2.fromOffset(150, 64),
+	Radius = 20,
+	Text = "AUTO",
+	Icon = "loop",
+	TextSize = 18,
 	Parent = gui,
 }, function()
 	if not state or state.Rolls < Config.AUTO_ROLL_AT then
@@ -280,9 +341,7 @@ autoButton = Ui.button({
 	end
 	autoRoll = not autoRoll
 	refreshAuto()
-end)
-Ui.padding(12).Parent = autoButton
-Ui.stroke(Color3.new(1, 1, 1), 3).Parent = autoButton
+end, "glass")
 
 task.spawn(function()
 	while true do
@@ -296,46 +355,63 @@ end)
 
 -- Modals -------------------------------------------------------------------------
 
-local function modal(accent, width, height)
+local function modal(width, height)
 	local shade = Ui.new("TextButton", {
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.45,
+		BackgroundColor3 = Color3.fromRGB(5, 6, 15),
+		BackgroundTransparency = 0.35,
 		Text = "",
 		AutoButtonColor = false,
 		Visible = false,
 		ZIndex = 30,
 		Parent = gui,
 	})
-	local box = Ui.new("Frame", {
+	local box = Ui.glass({
 		Name = "Box",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(width, height),
-		BackgroundColor3 = Ui.DARK,
+		BackgroundTransparency = 0.06,
+		Radius = 24,
 		ZIndex = 31,
 		Parent = shade,
-	}, { Ui.corner(20), Ui.stroke(accent, 4), Ui.padding(18) })
-	local close = Ui.button({
+	}, { Ui.padding(22) })
+	Ui.button({
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
-		Size = UDim2.fromOffset(44, 44),
-		Text = "✕",
-		BackgroundColor3 = Color3.fromRGB(230, 70, 80),
+		Size = UDim2.fromOffset(40, 40),
+		Radius = 20,
+		Icon = "close",
+		IconSize = 14,
 		ZIndex = 33,
 		Parent = box,
 	}, function()
 		shade.Visible = false
-	end)
-	Ui.padding(8).Parent = close
+	end, "glass")
 	return shade, box
 end
 
-local function title(box, text, color)
+local function title(box, text)
 	return Ui.new("TextLabel", {
-		Size = UDim2.new(1, -60, 0, 44),
+		Size = UDim2.new(1, -60, 0, 30),
+		TextScaled = false,
+		TextSize = 26,
 		Text = text,
-		TextColor3 = color,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 32,
+		Parent = box,
+	})
+end
+
+local function subtitle(box, text)
+	return Ui.new("TextLabel", {
+		Position = UDim2.fromOffset(0, 36),
+		Size = UDim2.new(1, -60, 0, 18),
+		Font = Ui.FONT_MEDIUM,
+		TextScaled = false,
+		TextSize = 15,
+		Text = text,
+		TextColor3 = Ui.MUTED,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 32,
 		Parent = box,
@@ -347,7 +423,8 @@ local function scrollList(box, top, layout)
 		Position = UDim2.fromOffset(0, top),
 		Size = UDim2.new(1, 0, 1, -top),
 		BackgroundTransparency = 1,
-		ScrollBarThickness = 6,
+		ScrollBarThickness = 4,
+		ScrollBarImageColor3 = Ui.MUTED,
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		ZIndex = 32,
@@ -355,84 +432,66 @@ local function scrollList(box, top, layout)
 	}, { layout, Ui.new("UIPadding", { PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 4) }) })
 end
 
--- Pets panel: every pet in the game, owned ones can be equipped ------------------
+-- Pets panel: every pet in the game, owned ones can be equipped --------------------
 
-local petsModal, petsBox = modal(Ui.PURPLE, 720, 560)
-local petsTitle = title(petsBox, "🎒 Pets", Ui.PURPLE)
-local equipHint = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 46),
-	Size = UDim2.new(1, 0, 0, 24),
-	Text = "Equip up to " .. Config.MAX_EQUIPPED .. " pets. Rarer pets give more luck!",
-	TextColor3 = Ui.MUTED,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	ZIndex = 32,
-	Parent = petsBox,
-})
-local petsGrid = scrollList(petsBox, 80, Ui.new("UIGridLayout", {
-	CellSize = UDim2.fromOffset(158, 176),
-	CellPadding = UDim2.fromOffset(10, 10),
+local petsModal, petsBox = modal(720, 560)
+local petsTitle = title(petsBox, "Pets")
+local equipHint = subtitle(petsBox, "")
+local petsGrid = scrollList(petsBox, 72, Ui.new("UIGridLayout", {
+	CellSize = UDim2.fromOffset(154, 168),
+	CellPadding = UDim2.fromOffset(12, 12),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 }))
 
-local petCells = {} -- [pet name] = { Frame, Name, Count, Luck, Equip, Stroke }
+local petCells = {} -- [pet name] = { Name, Count, Luck, Equip }
 for _, pet in ipairs(Config.PETS) do
 	local rarity = Config.rarity(pet.Odds)
 	local frame = Ui.new("Frame", {
 		LayoutOrder = -pet.Index, -- rarest first
-		BackgroundColor3 = Ui.PANEL,
+		BackgroundColor3 = Ui.GLASS_LIGHT,
+		BackgroundTransparency = 0.3,
 		ZIndex = 32,
 		Parent = petsGrid,
-	}, { Ui.corner(14), Ui.padding(8) })
-	local stroke = Ui.stroke(rarity.Color, 2)
-	stroke.Parent = frame
-	local nameLabel = Ui.new("TextLabel", {
-		Size = UDim2.new(1, 0, 0, 30),
+	}, { Ui.corner(16), Ui.padding(10), Ui.stroke(rarity.Color, 1.5, 0.45) })
+	-- rarity colour strip along the top
+	Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, -4),
+		Size = UDim2.new(0.4, 0, 0, 3),
+		BackgroundColor3 = rarity.Color,
 		ZIndex = 33,
 		Parent = frame,
-	})
-	Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(0, 32),
-		Size = UDim2.new(1, 0, 0, 20),
-		Text = rarity.Name,
-		TextColor3 = rarity.Color,
-		ZIndex = 33,
-		Parent = frame,
-	})
-	Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(0, 54),
-		Size = UDim2.new(1, 0, 0, 20),
-		Text = Config.formatOdds(pet.Odds),
-		TextColor3 = Ui.MUTED,
-		ZIndex = 33,
-		Parent = frame,
-	})
-	local countLabel = Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(0, 76),
-		Size = UDim2.new(1, 0, 0, 20),
-		TextColor3 = Ui.MUTED,
-		ZIndex = 33,
-		Parent = frame,
-	})
-	local luckLabel = Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(0, 98),
-		Size = UDim2.new(1, 0, 0, 20),
-		Text = "🍀 +" .. math.floor(Config.petLuck(pet) * 100 + 0.5) .. "% luck",
-		TextColor3 = Ui.GREEN,
-		ZIndex = 33,
-		Parent = frame,
-	})
+	}, { Ui.corner(0.5) })
+	local function line(y, size, font, text, color)
+		return Ui.new("TextLabel", {
+			Position = UDim2.fromOffset(0, y),
+			Size = UDim2.new(1, 0, 0, size + 2),
+			Font = font,
+			TextScaled = false,
+			TextSize = size,
+			Text = text,
+			TextColor3 = color,
+			ZIndex = 33,
+			Parent = frame,
+		})
+	end
+	local nameLabel = line(6, 19, Ui.FONT, "", Ui.TEXT)
+	line(32, 12, Ui.FONT, rarity.Name:upper(), rarity.Color)
+	line(50, 13, Ui.FONT_MEDIUM, Config.formatOdds(pet.Odds), Ui.MUTED)
+	local countLabel = line(70, 13, Ui.FONT_MEDIUM, "", Ui.MUTED)
+	local luckLabel = line(90, 13, Ui.FONT_MEDIUM, "+" .. math.floor(Config.petLuck(pet) * 100 + 0.5) .. "% LUCK", Ui.SUCCESS)
 	local equip = Ui.button({
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, 0),
-		Size = UDim2.new(1, 0, 0, 36),
-		Text = "Equip",
-		BackgroundColor3 = Ui.GREEN,
+		Size = UDim2.new(1, 0, 0, 34),
+		Radius = 12,
+		Text = "EQUIP",
+		TextSize = 14,
 		ZIndex = 33,
 		Parent = frame,
 	}, function()
 		equipFunction:InvokeServer(pet.Name)
-	end)
-	Ui.padding(6).Parent = equip
+	end, "success")
 	petCells[pet.Name] = { Name = nameLabel, Count = countLabel, Luck = luckLabel, Equip = equip }
 end
 
@@ -448,70 +507,62 @@ local function refreshPets()
 		if owned > 0 then
 			found += 1
 			cell.Name.Text = pet.Name
-			cell.Name.TextColor3 = Color3.new(1, 1, 1)
-			cell.Count.Text = "Rolled x" .. Config.formatNumber(owned)
+			cell.Name.TextColor3 = Ui.TEXT
+			cell.Count.Text = "ROLLED x" .. Config.formatNumber(owned)
 			cell.Luck.Visible = true
 			cell.Equip.Visible = true
-			cell.Equip.Text = if equipped then "Unequip" else "Equip"
-			cell.Equip.BackgroundColor3 = if equipped
-				then Color3.fromRGB(230, 70, 80)
-				elseif #state.Equipped >= Config.MAX_EQUIPPED then Ui.GREY
-				else Ui.GREEN
+			Ui.setText(cell.Equip, if equipped then "UNEQUIP" else "EQUIP")
+			Ui.setStyle(cell.Equip, if equipped
+				then "danger"
+				elseif #state.Equipped >= Config.MAX_EQUIPPED then "disabled"
+				else "success")
 		else
 			-- not found yet: show only the odds, as something to chase
 			cell.Name.Text = "???"
 			cell.Name.TextColor3 = Ui.MUTED
-			cell.Count.Text = "Not found yet"
+			cell.Count.Text = "NOT FOUND YET"
 			cell.Luck.Visible = false
 			cell.Equip.Visible = false
 		end
 	end
-	petsTitle.Text = "🎒 Pets  (" .. found .. "/" .. #Config.PETS .. " found)"
-	equipHint.Text = "Equipped " .. #state.Equipped .. "/" .. Config.MAX_EQUIPPED .. ". Rarer pets give more luck!"
+	petsTitle.Text = "Pets  ·  " .. found .. "/" .. #Config.PETS
+	equipHint.Text = "Equipped " .. #state.Equipped .. "/" .. Config.MAX_EQUIPPED .. "  ·  rarer pets give more luck"
 end
 
 -- Leaderboard ----------------------------------------------------------------------
 
-local boardModal, boardBox = modal(Ui.GOLD, 520, 600)
-title(boardBox, "🏆 Most Rolls", Ui.GOLD)
-local myRankText = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 46),
-	Size = UDim2.new(1, 0, 0, 24),
-	Text = "",
-	TextColor3 = Ui.MUTED,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	ZIndex = 32,
-	Parent = boardBox,
-})
-local boardList = scrollList(boardBox, 80, Ui.new("UIListLayout", {
+local boardModal, boardBox = modal(520, 600)
+title(boardBox, "Top Rollers")
+local myRankText = subtitle(boardBox, "")
+local boardList = scrollList(boardBox, 72, Ui.new("UIListLayout", {
 	Padding = UDim.new(0, 6),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 }))
 
 -- Side buttons (left) ------------------------------------------------------------
 
-local function sideButton(y, text, color, onClick)
-	local button = Ui.button({
-		Position = UDim2.new(0, 16, 0.5, y),
-		Size = UDim2.fromOffset(180, 60),
+local function sideButton(y, text, icon, onClick)
+	return Ui.button({
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 20, 0.5, y),
+		Size = UDim2.fromOffset(170, 56),
+		Radius = 18,
 		Text = text,
-		BackgroundColor3 = color,
+		Icon = icon,
+		TextSize = 18,
 		Parent = gui,
-	}, onClick)
-	Ui.padding(10).Parent = button
-	Ui.stroke(Color3.new(1, 1, 1), 3).Parent = button
-	return button
+	}, onClick, "glass")
 end
 
-sideButton(-70, "🎒 Pets", Ui.PURPLE, function()
+sideButton(-36, "PETS", "grid", function()
 	refreshPets()
 	Ui.popIn(petsModal)
 end)
-local boardButton = sideButton(10, "🏆 Top Rollers", Color3.fromRGB(230, 160, 30), function()
+local boardButton = sideButton(36, "TOP", "podium", function()
 	Ui.popIn(boardModal)
 end)
 
-local MEDALS = { "🥇", "🥈", "🥉" }
+local MEDALS = { Ui.GOLD, Color3.fromRGB(200, 210, 225), Color3.fromRGB(225, 150, 95) }
 leaderboardEvent.OnClientEvent:Connect(function(entries)
 	for _, child in ipairs(boardList:GetChildren()) do
 		if child:IsA("Frame") then
@@ -526,21 +577,34 @@ leaderboardEvent.OnClientEvent:Connect(function(entries)
 		end
 		local row = Ui.new("Frame", {
 			LayoutOrder = i,
-			Size = UDim2.new(1, 0, 0, 44),
-			BackgroundColor3 = if mine then Color3.fromRGB(90, 70, 150) else Ui.PANEL,
+			Size = UDim2.new(1, 0, 0, 46),
+			BackgroundColor3 = Ui.GLASS_LIGHT,
+			BackgroundTransparency = if mine then 0 else 0.4,
 			ZIndex = 32,
 			Parent = boardList,
-		}, { Ui.corner(10) })
+		}, { Ui.corner(14) })
+		if mine then
+			Ui.stroke(Ui.PRIMARY_B, 1.5, 0.2).Parent = row
+		end
 		Ui.new("TextLabel", {
-			Position = UDim2.fromOffset(8, 6),
-			Size = UDim2.fromOffset(52, 32),
-			Text = MEDALS[i] or ("#" .. i),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 10, 0.5, 0),
+			Size = UDim2.fromOffset(30, 30),
+			BackgroundTransparency = if MEDALS[i] then 0 else 1,
+			BackgroundColor3 = MEDALS[i] or Ui.GLASS,
+			TextScaled = false,
+			TextSize = 15,
+			Text = tostring(i),
+			TextColor3 = if MEDALS[i] then Color3.fromRGB(20, 20, 35) else Ui.MUTED,
 			ZIndex = 33,
 			Parent = row,
-		})
+		}, { Ui.corner(0.5) })
 		Ui.new("TextLabel", {
-			Position = UDim2.fromOffset(68, 8),
-			Size = UDim2.new(1, -220, 0, 28),
+			Position = UDim2.fromOffset(54, 0),
+			Size = UDim2.new(1, -200, 1, 0),
+			Font = Ui.FONT_MEDIUM,
+			TextScaled = false,
+			TextSize = 17,
 			Text = entry.Name,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 33,
@@ -548,27 +612,29 @@ leaderboardEvent.OnClientEvent:Connect(function(entries)
 		})
 		Ui.new("TextLabel", {
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -10, 0, 8),
-			Size = UDim2.fromOffset(140, 28),
-			Text = "🎲 " .. Config.formatNumber(entry.Rolls),
-			TextColor3 = Ui.GOLD,
+			Position = UDim2.new(1, -14, 0, 0),
+			Size = UDim2.new(0, 140, 1, 0),
+			TextScaled = false,
+			TextSize = 17,
+			Text = commas(entry.Rolls),
+			TextColor3 = if mine then Ui.PRIMARY_A else Ui.TEXT,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			ZIndex = 33,
 			Parent = row,
 		})
 	end
-	myRankText.Text = if myRank then "You are #" .. myRank .. "!" else "Keep rolling to get on the board!"
-	boardButton.Text = if myRank then "🏆 You're #" .. myRank else "🏆 Top Rollers"
+	myRankText.Text = if myRank then "You're #" .. myRank .. " in the world" else "Keep rolling to get on the board"
+	Ui.setText(boardButton, if myRank then "TOP  #" .. myRank else "TOP")
 end)
 
 -- Updates ------------------------------------------------------------------------
 
 stateEvent.OnClientEvent:Connect(function(newState)
 	state = newState
-	rollsText.Text = "🎲 " .. Config.formatNumber(state.Rolls) .. " Rolls"
+	rollsText.Text = commas(state.Rolls) .. (if state.Rolls == 1 then " ROLL" else " ROLLS")
 	local best = state.Best and Config.PETS_BY_NAME[state.Best]
 	if best then
-		bestText.Text = "Best: " .. best.Name .. " (" .. Config.formatOdds(best.Odds) .. ")"
+		bestText.Text = "BEST  ·  " .. best.Name .. "  ·  " .. Config.formatOdds(best.Odds)
 		bestText.TextColor3 = Config.rarity(best.Odds).Color
 	end
 	Pets.update(state.Equipped)
