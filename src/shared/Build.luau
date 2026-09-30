@@ -37,11 +37,23 @@ function Build.part(parent, props, className)
 	return p
 end
 
+-- Sets a model's primary part and puts the model's pivot at `pivot`.
+-- (Roblox ignores Model.WorldPivot once a PrimaryPart is set: the pivot is
+-- then the primary part's pivot, so it has to be moved with PivotOffset.)
+function Build.setPivot(model, primary, pivot)
+	model.PrimaryPart = primary
+	primary.PivotOffset = primary.CFrame:ToObjectSpace(pivot)
+	return model
+end
+
 -- Scales a finished model around a point on the ground (so it stays standing
 -- on the ground instead of floating or sinking)
 function Build.scale(model, ground, factor)
+	local primary = model.PrimaryPart
+	model.PrimaryPart = nil -- so WorldPivot is used
 	model.WorldPivot = CFrame.new(ground)
 	model:ScaleTo(factor)
+	model.PrimaryPart = primary
 	return model
 end
 

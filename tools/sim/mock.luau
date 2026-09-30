@@ -159,6 +159,19 @@ CF.__sub = function(a, b)
 	assert(isCF(a) and isV(b), "CFrame - needs Vector3")
 	return mk(a.p - b, a.r)
 end
+-- Gram-Schmidt on the rotation's columns
+function ORTHONORMALIZE(c)
+	local r = c.r
+	local x = Vector3.new(r[1][1], r[2][1], r[3][1])
+	local y = Vector3.new(r[1][2], r[2][2], r[3][2])
+	if x.Magnitude < 1e-9 or y.Magnitude < 1e-9 then
+		return c
+	end
+	x = x.Unit
+	y = (y - x * x:Dot(y)).Unit
+	local z = x:Cross(y)
+	return mk(c.p, { { x.X, y.X, z.X }, { x.Y, y.Y, z.Y }, { x.Z, y.Z, z.Z } })
+end
 function CF.Lerp(a, b, t)
 	return mk(a.p:Lerp(b.p, t), b.r)
 end
@@ -423,11 +436,14 @@ end
 function methods:GetPivot()
 	assert(self.ClassName == "Model" or BASEPART[self.ClassName], "GetPivot on " .. self.ClassName)
 	if self.ClassName == "Model" then
+		-- like Roblox: with a PrimaryPart the pivot is that part's pivot
+		-- (its CFrame * PivotOffset) and WorldPivot is ignored
+		local primary = rawget(self, "_props").PrimaryPart
+		if primary then
+			return primary.CFrame * (rawget(primary, "_props").PivotOffset or CFrame.new())
+		end
 		if rawget(self, "_props").WorldPivot then
 			return rawget(self, "_props").WorldPivot
-		end
-		if self.PrimaryPart then
-			return self.PrimaryPart.CFrame
 		end
 		local first = self:FindFirstChildWhichIsA("BasePart")
 		return if first then first.CFrame else CFrame.new()
@@ -445,7 +461,9 @@ function methods:PivotTo(cf)
 				d.CFrame = delta * d.CFrame
 			end
 		end
-		rawget(self, "_props").WorldPivot = cf
+		if not rawget(self, "_props").PrimaryPart then
+			rawget(self, "_props").WorldPivot = cf
+		end
 	else
 		self.CFrame = cf
 	end
@@ -463,6 +481,11 @@ function methods:ScaleTo(n)
 			local rel = pivot:ToObjectSpace(d.CFrame)
 			d.CFrame = pivot * CFrame.new(rel.Position * ratio) * rel.Rotation
 			d.Size = d.Size * ratio
+			-- a part's pivot offset scales with it (so the model's pivot stays put)
+			local offset = rawget(d, "_props").PivotOffset
+			if offset then
+				rawget(d, "_props").PivotOffset = CFrame.new(offset.Position * ratio) * offset.Rotation
+			end
 		end
 	end
 end
@@ -715,6 +738,9 @@ InstMT.__newindex = function(self, k, v)
 	end
 	if k == "CFrame" then
 		assert(isCF(v), "CFrame property must be a CFrame (" .. tostring(self.Name) .. ")")
+		-- like Roblox, a part's rotation is kept orthonormal (so tiny float
+		-- errors from moving things every frame never build up)
+		v = ORTHONORMALIZE(v)
 	elseif k == "Size" and BASEPART[self.ClassName] then
 		assert(isV(v), "Part Size must be a Vector3")
 		assert(v.X >= 0 and v.Y >= 0 and v.Z >= 0, "negative part size on " .. tostring(self.Name))

@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Build = require(ReplicatedStorage.Shared.Build)
 local Coins = require(ReplicatedStorage.Shared.Coins)
 
 local Living = {}
@@ -81,8 +82,7 @@ local function fallback(areaIndex, parent)
 	body.CanCollide = false
 	body.Material = Enum.Material.SmoothPlastic
 	body.Parent = model
-	model.PrimaryPart = body
-	model.WorldPivot = CFrame.new()
+	Build.setPivot(model, body, CFrame.new())
 	model.Parent = parent
 	return model
 end

@@ -243,8 +243,7 @@ function Coins.build(area, parent, seed)
 			p.CanTouch = false
 		end
 	end
-	model.PrimaryPart = body
-	model.WorldPivot = CFrame.new() -- the pivot is the feet
+	Build.setPivot(model, body, CFrame.new()) -- the pivot is the feet
 	return model
 end
 

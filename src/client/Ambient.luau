@@ -20,6 +20,7 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 
+local Build = require(ReplicatedStorage.Shared.Build)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Creature = require(script.Parent.Creature)
 local PetModels = require(script.Parent.PetModels)
@@ -566,8 +567,7 @@ local function person()
 		local arm = block(CFrame.new(side * 1.5, -0.1, 0), Vector3.new(0.9, 1.9, 0.9), if random:NextNumber() < 0.5 then shirt else skin)
 		table.insert(rig.Legs, { Parts = { arm }, Hip = Vector3.new(side * 1.5, 0.8, 0), Phase = if side < 0 then math.pi else 0 })
 	end
-	model.PrimaryPart = torso
-	model.WorldPivot = CFrame.new()
+	Build.setPivot(model, torso, CFrame.new())
 	return model, rig
 end
 

@@ -399,6 +399,31 @@ if ok then
 			end
 		end
 		print(string.format("coin drawings checked: %d, lowest above ground: %.3f", checked, lowest))
+		-- and the parts themselves: nothing of a living coin may sink into the
+		-- ground (checks the real part positions, not just the pivot)
+		local deepest, deepestName = math.huge, ""
+		for _ = 1, 120 do
+			frames(1)
+			for _, model in ipairs(workspace.LivingCoins:GetChildren()) do
+				local feet = model:GetPivot().Position
+				local ground = TERRAIN_HEIGHT(feet.X, feet.Z) or 0
+				for _, part in ipairs(model:GetDescendants()) do
+					if part:IsA("BasePart") and part.Name ~= "Marker" then
+						local cf, size = part.CFrame, part.Size
+						local halfY = (math.abs(cf.RightVector.Y) * size.X + math.abs(cf.UpVector.Y) * size.Y + math.abs(cf.LookVector.Y) * size.Z) / 2
+						if part.Shape and part.Shape.Name == "Ball" then
+							halfY = size.X / 2
+						end
+						local bottom = cf.Position.Y - halfY - ground
+						if bottom < deepest then
+							deepest, deepestName = bottom, model.Name
+						end
+					end
+				end
+			end
+		end
+		STATS.CoinDepth = deepest
+		print(string.format("living coin parts: deepest %.2f studs below/above the ground (%s)", deepest, deepestName))
 		if lowest < -0.01 then
 			print("GAME ERROR: a living coin was drawn underground")
 		end
@@ -830,7 +855,7 @@ if ok then
 	item(18, "nothing unexplained top-left", #topLeft == 0, if #topLeft > 0 then table.concat(topLeft, ", ") else "clear for Roblox's own buttons")
 
 	-- 19, 20 are checked above: coins never drawn underground, no terrain above the ground in play
-	item(19, "no coins underground", true, "7000+ coin drawings checked above")
+	item(19, "no coins underground", (STATS.CoinDepth or -99) > -0.6, string.format("deepest part %.2f studs from the ground", STATS.CoinDepth or -99))
 	item(20, "no spawning above the map", (function()
 		local worst = -math.huge
 		for x = 0, 400, 2 do

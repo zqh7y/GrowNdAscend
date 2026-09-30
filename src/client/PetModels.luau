@@ -16,6 +16,7 @@
 --   animated  glowing/spinning bits { Part, Kind = "pulse"|"spin"|"orbit"|"flap"|"rainbow" }
 --   rig       what the Creature system moves: Legs, Wings, Tail, FootY, Move, Speed
 --   head      the head's centre (for name tags)
+local Build = require(game:GetService("ReplicatedStorage").Shared.Build)
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 
 local PetModels = {}
@@ -690,8 +691,7 @@ function PetModels.build(name, plain)
 
 	local body = model:FindFirstChildWhichIsA("BasePart")
 	body.Name = "Body"
-	model.PrimaryPart = body
-	model.WorldPivot = CFrame.new()
+	Build.setPivot(model, body, CFrame.new())
 
 	if not plain and (level >= 5 or size.Index >= 2) then
 		local sparkles = Instance.new("ParticleEmitter")
