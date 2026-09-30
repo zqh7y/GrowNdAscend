@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 3 (coins on client ground)"
+Config.BUILD = "build 4 (things stand on the real floor)"
 
 -- Pets -------------------------------------------------------------------------
 

@@ -27,15 +27,13 @@ local Living = {}
 
 local NEAR = 160 -- coins further than this from the camera update less often
 
--- The ground as this screen sees it: a ray straight down onto the terrain.
--- Coins stand on this (the server's height is only used if it finds none),
--- so they can't end up inside the ground even if the two disagree.
-local groundRay = RaycastParams.new()
-groundRay.FilterType = Enum.RaycastFilterType.Include
-groundRay.FilterDescendantsInstances = { Workspace.Terrain }
+-- The ground as the player walks on it (Ground.luau: terrain, or any solid
+-- floor above it). Coins stand on this; the server's height is only used if
+-- nothing is found.
+local Ground = require(script.Parent.Ground)
 local function onGround(position)
-	local hit = Workspace:Raycast(Vector3.new(position.X, position.Y + 60, position.Z), Vector3.new(0, -160, 0), groundRay)
-	return if hit then Vector3.new(position.X, hit.Position.Y, position.Z) else position
+	local y = Ground.at(position.X, position.Z, position.Y + 8, 60)
+	return if y then Vector3.new(position.X, y, position.Z) else position
 end
 
 local visuals = Instance.new("Folder")

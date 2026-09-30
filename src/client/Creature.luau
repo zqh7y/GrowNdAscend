@@ -24,27 +24,11 @@
 local Creature = {}
 Creature.__index = Creature
 
-local rayParams = RaycastParams.new()
-rayParams.FilterType = Enum.RaycastFilterType.Include
-local function refreshFilter()
-	local list = { workspace.Terrain }
-	local map = workspace:FindFirstChild("Map")
-	if map then
-		table.insert(list, map)
-	end
-	rayParams.FilterDescendantsInstances = list
-end
-refreshFilter()
-workspace.ChildAdded:Connect(function(child)
-	if child.Name == "Map" then
-		refreshFilter()
-	end
-end)
-
--- The ground under (x, z), searching from `fromY` down; nil if there's none
+-- The ground under (x, z), searching from `fromY` down; nil if there's none.
+-- It's whatever solid thing the player would stand on (Ground.luau).
+local Ground = require(script.Parent.Ground)
 function Creature.ground(x, z, fromY)
-	local hit = workspace:Raycast(Vector3.new(x, fromY + 4, z), Vector3.new(0, -40, 0), rayParams)
-	return hit and hit.Position.Y
+	return (Ground.at(x, z, fromY + 4, 40))
 end
 
 local HEIGHTS = { fly = 4.5, hover = 1.6, swim = 2.4 } -- above the ground, before scaling
