@@ -10,6 +10,16 @@ local DEFAULTS = {
 	Material = Enum.Material.SmoothPlastic,
 }
 
+-- The map's look is clean and toy-like: smooth plastic everywhere, with
+-- glass (water, ice, domes), neon (glowing bits) and force fields (gates) as
+-- the only other materials. Realistic textures (wood grain, slate...) are
+-- swapped for smooth plastic.
+local KEEP_MATERIAL = {
+	[Enum.Material.Glass] = true,
+	[Enum.Material.Neon] = true,
+	[Enum.Material.ForceField] = true,
+}
+
 -- Build.part(parent, { props }) -> anchored Part
 function Build.part(parent, props, className)
 	local p = Instance.new(className or "Part")
@@ -19,8 +29,34 @@ function Build.part(parent, props, className)
 	for k, v in pairs(props) do
 		p[k] = v
 	end
+	if not KEEP_MATERIAL[p.Material] then
+		p.Material = Enum.Material.SmoothPlastic
+	end
 	p.Parent = parent
 	return p
+end
+
+-- Scales a finished model around a point on the ground (so it stays standing
+-- on the ground instead of floating or sinking)
+function Build.scale(model, ground, factor)
+	model.WorldPivot = CFrame.new(ground)
+	model:ScaleTo(factor)
+	return model
+end
+
+-- Flat grass: a few thin blades lying flat on the ground in a star, so it
+-- looks like drawn-on grass and never sticks up
+function Build.flatGrass(parent, rng, base, color)
+	for k = 1, 4 do
+		local length = rng:NextNumber(0.9, 1.6)
+		Build.ghost(Build.part(parent, {
+			Size = Vector3.new(0.22, 0.04, length),
+			CFrame = CFrame.new(base + Vector3.new(0, 0.04, 0))
+				* CFrame.Angles(0, math.rad(k * 45 + rng:NextNumber(-15, 15)), 0)
+				* CFrame.new(0, 0, -length / 2),
+			Color = Build.vary(rng, color, 0.06),
+		}))
+	end
 end
 
 function Build.ball(parent, position, diameter, props)

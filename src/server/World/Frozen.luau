@@ -7,7 +7,7 @@ local Frozen = {}
 
 Frozen.GROUND = Enum.Material.Snow
 
-local ICE = Color3.fromRGB(170, 225, 250)
+local ICE = Color3.fromRGB(150, 225, 255)
 local SNOW = Color3.fromRGB(245, 250, 255)
 
 local function iceProps(rng, transparency)
@@ -21,8 +21,8 @@ end
 
 local function pine(parent, rng, base, scale)
 	local model = Build.model(parent, "Pine")
-	Build.cylinder(model, base, 3 * scale, 1.2 * scale, { Color = Color3.fromRGB(95, 65, 45), Material = Enum.Material.Wood })
-	local green = Build.vary(rng, Color3.fromRGB(40, 95, 70))
+	Build.cylinder(model, base, 3 * scale, 1.2 * scale, { Color = Color3.fromRGB(160, 105, 70) })
+	local green = Build.vary(rng, Color3.fromRGB(60, 175, 120), 0.04)
 	for k = 0, 3 do
 		local width = (8 - k * 1.8) * scale
 		local y = (2.5 + k * 2.6) * scale
@@ -57,7 +57,7 @@ local function igloo(parent, center)
 		Color = SNOW,
 		Material = Enum.Material.Snow,
 	})
-	Build.block(model, center + Vector3.new(0, 0, dir * 15.05), Vector3.new(4.5, 3.8, 0.2), { Color = Color3.fromRGB(25, 30, 45), CanCollide = false })
+	Build.block(model, center + Vector3.new(0, 0, dir * 15.05), Vector3.new(4.5, 3.8, 0.2), { Color = Color3.fromRGB(90, 160, 230), CanCollide = false })
 	return model
 end
 
@@ -122,79 +122,79 @@ function Frozen.build(ctx)
 
 	-- the frozen sea: a step down from the snowy shore, then flat glacier ice
 	for _, s in ipairs({ -1, 1 }) do
-		local width = side - (half + 8)
-		local cz = s * (half + 8 + width / 2)
+		local width = side - (half + 6)
+		local cz = s * (half + 6 + width / 2)
 		terrain:FillBlock(CFrame.new(x0 + length / 2, -2, cz), Vector3.new(length, 4, width), Enum.Material.Air)
 		terrain:FillBlock(CFrame.new(x0 + length / 2, -8, cz), Vector3.new(length, 8, width), Enum.Material.Glacier)
 		-- ice floes and icebergs on the sea
-		for _ = 1, 16 do
-			local p = Vector3.new(rng:NextNumber(x0 + 5, x1 - 5), -4, s * rng:NextNumber(half + 16, side - 10))
+		for _ = 1, 9 do
+			local p = Vector3.new(rng:NextNumber(x0 + 4, x1 - 4), -4, s * rng:NextNumber(half + 12, half + 55))
 			local props = iceProps(rng, 0.1)
-			props.Size = Vector3.new(rng:NextNumber(6, 14), 0.6, rng:NextNumber(6, 14))
-			props.CFrame = CFrame.new(p + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 90)), 0)
+			props.Size = Vector3.new(rng:NextNumber(4, 9), 0.5, rng:NextNumber(4, 9))
+			props.CFrame = CFrame.new(p + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 90)), 0)
 			Build.part(deco, props)
 		end
-		for _ = 1, 4 do
-			iceberg(deco, rng, Vector3.new(rng:NextNumber(x0 + 10, x1 - 10), -4, s * rng:NextNumber(half + 30, side - 20)))
+		for _ = 1, 3 do
+			iceberg(deco, rng, Vector3.new(rng:NextNumber(x0 + 8, x1 - 8), -4, s * rng:NextNumber(half + 18, half + 50)))
 		end
 	end
 
 	-- snowy mounds along the shore
-	for x = x0, x1, 16 do
+	for x = x0, x1, 10 do
 		for _, s in ipairs({ -1, 1 }) do
-			terrain:FillBall(Vector3.new(x + rng:NextNumber(-5, 5), -3, s * (half + rng:NextNumber(0, 6))), rng:NextNumber(5, 8), Enum.Material.Snow)
+			terrain:FillBall(Vector3.new(x + rng:NextNumber(-3, 3), -3, s * (half + rng:NextNumber(0, 4))), rng:NextNumber(4, 6), Enum.Material.Snow)
 		end
 	end
 
-	-- the igloo
-	local iglooCenter = Vector3.new(x0 + 120, 0, half - 22)
-	igloo(deco, iglooCenter)
-	space:add(iglooCenter, 13)
-	space:add(iglooCenter + Vector3.new(0, 0, -15), 6)
+	-- the igloo, scaled down to fit
+	local iglooCenter = Vector3.new(x0 + 64, 0, half - 12)
+	Build.scale(igloo(deco, iglooCenter), iglooCenter, 0.65)
+	space:add(iglooCenter, 8)
+	space:add(iglooCenter + Vector3.new(0, 0, -10), 4)
 
-	-- ice walls, crystal clusters and pines scattered around
-	for _ = 1, 8 do
-		local base = space:find(rng, x0 + 16, x1 - 16, -half + 10, half - 10, 10)
+	-- ice walls, crystal clusters, pines and snow piles
+	for _ = 1, 4 do
+		local base = space:find(rng, x0 + 12, x1 - 12, -half + 8, half - 8, 7)
 		if base then
-			iceWall(deco, rng, base)
+			Build.scale(iceWall(deco, rng, base), base, 0.8)
 		end
 	end
-	for _ = 1, 10 do
-		local base = space:find(rng, x0 + 10, x1 - 10, -half + 6, half - 6, 4)
+	for _ = 1, 6 do
+		local base = space:find(rng, x0 + 6, x1 - 6, -half + 4, half - 4, 3)
 		if base then
-			crystals(deco, rng, base)
+			Build.scale(crystals(deco, rng, base), base, 0.75)
 		end
 	end
-	for x = x0 + 10, x1 - 10, 20 do
+	for x = x0 + 6, x1 - 6, 11 do
 		for _, s in ipairs({ -1, 1 }) do
-			local base = Vector3.new(x + rng:NextNumber(-5, 5), 0, s * rng:NextNumber(half - 6, half - 3))
-			if space:free(base, 5) then
-				pine(deco, rng, base, rng:NextNumber(0.9, 1.3))
-				space:add(base, 5)
+			local base = Vector3.new(x + rng:NextNumber(-3, 3), 0, s * rng:NextNumber(half - 4, half - 2))
+			if space:free(base, 3.5) then
+				pine(deco, rng, base, rng:NextNumber(0.7, 0.95))
+				space:add(base, 3.5)
 			end
 		end
 	end
-	for _ = 1, 8 do
-		local base = space:find(rng, x0 + 10, x1 - 10, -half + 8, half - 8, 4)
+	for _ = 1, 4 do
+		local base = space:find(rng, x0 + 6, x1 - 6, -half + 6, half - 6, 3)
 		if base then
-			terrain:FillBall(base, rng:NextNumber(3, 5), Enum.Material.Snow)
+			terrain:FillBall(base, rng:NextNumber(2.5, 3.5), Enum.Material.Snow)
 		end
 	end
 
 	-- falling snow over the whole area
 	local sky = Build.ghost(Build.part(deco, {
 		Name = "Snowfall",
-		Size = Vector3.new(length, 1, half * 2 + 60),
-		CFrame = CFrame.new(x0 + length / 2, 60, 0),
+		Size = Vector3.new(length, 1, half * 2 + 30),
+		CFrame = CFrame.new(x0 + length / 2, 45, 0),
 		Transparency = 1,
 	}))
 	local snow = Instance.new("ParticleEmitter")
 	snow.Color = ColorSequence.new(Color3.new(1, 1, 1))
-	snow.Size = NumberSequence.new(0.35)
+	snow.Size = NumberSequence.new(0.3)
 	snow.Transparency = NumberSequence.new(0.1)
-	snow.Rate = 160
-	snow.Lifetime = NumberRange.new(9, 12)
-	snow.Speed = NumberRange.new(4, 7)
+	snow.Rate = 90
+	snow.Lifetime = NumberRange.new(7, 9)
+	snow.Speed = NumberRange.new(4, 6)
 	snow.SpreadAngle = Vector2.new(20, 20)
 	snow.EmissionDirection = Enum.NormalId.Bottom
 	snow.Parent = sky
@@ -206,12 +206,12 @@ function Frozen.breakable(parent, position, rng)
 	local props = iceProps(rng, 0.25)
 	props.Material = Enum.Material.Glass
 	props.Name = "Cube"
-	props.Size = Vector3.new(5, 5, 5)
-	props.CFrame = CFrame.new(position + Vector3.new(0, 2.5, 0)) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 90)), 0)
+	props.Size = Vector3.new(4, 4, 4)
+	props.CFrame = CFrame.new(position + Vector3.new(0, 2, 0)) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 90)), 0)
 	local cube = Build.part(model, props)
 	-- frosty core and a bright highlight
 	Build.part(model, {
-		Size = Vector3.new(3, 3, 3),
+		Size = Vector3.new(2.4, 2.4, 2.4),
 		CFrame = cube.CFrame,
 		Color = SNOW,
 		Material = Enum.Material.Snow,
@@ -219,8 +219,8 @@ function Frozen.breakable(parent, position, rng)
 		CanCollide = false,
 	})
 	Build.part(model, {
-		Size = Vector3.new(0.3, 3.2, 0.3),
-		CFrame = cube.CFrame * CFrame.new(1.8, 0.4, -2.45),
+		Size = Vector3.new(0.25, 2.6, 0.25),
+		CFrame = cube.CFrame * CFrame.new(1.4, 0.3, -1.95),
 		Color = Color3.new(1, 1, 1),
 		Material = Enum.Material.Neon,
 		CanCollide = false,

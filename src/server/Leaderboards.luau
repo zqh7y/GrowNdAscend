@@ -40,20 +40,20 @@ local BOARDS = {
 	},
 	{
 		Id = "Strongest",
-		Title = "STRONGEST PET",
-		Color = Color3.fromRGB(255, 120, 90),
+		Title = "STRONGEST PETS",
+		Color = Color3.fromRGB(255, 110, 90),
 		Top = WORLD_ROWS,
 		Value = function(data)
 			return data.Strongest
 		end,
 		Text = function(value)
-			return Config.formatNumber(value) .. " power"
+			return Config.formatNumber(value)
 		end,
 	},
 	{
 		Id = "Playtime",
-		Title = "MOST PLAYTIME",
-		Color = Color3.fromRGB(80, 220, 255),
+		Title = "PLAYTIME",
+		Color = Color3.fromRGB(60, 185, 255),
 		Top = WORLD_ROWS,
 		Value = function(data)
 			return math.floor(data.Playtime)
@@ -62,8 +62,8 @@ local BOARDS = {
 	},
 	{
 		Id = "Rebirths",
-		Title = "MOST REBIRTHS",
-		Color = Color3.fromRGB(190, 120, 255),
+		Title = "REBIRTHS",
+		Color = Color3.fromRGB(170, 110, 255),
 		Top = WORLD_ROWS,
 		Value = function(data)
 			return data.Rebirths
@@ -158,86 +158,106 @@ end
 
 -- World boards ------------------------------------------------------------------
 
-local MEDALS = { Color3.fromRGB(255, 205, 80), Color3.fromRGB(200, 210, 225), Color3.fromRGB(225, 150, 95) }
+local MEDALS = { Color3.fromRGB(255, 200, 40), Color3.fromRGB(185, 195, 215), Color3.fromRGB(230, 145, 85) }
+local INK = Color3.fromRGB(45, 50, 80) -- dark blue-grey text, easy to read on white
 
+-- All three boards share this look: a coloured title bar, then 10 rows on a
+-- white screen with big, bold text. The screen part is 10 x 13.4 studs.
 local function makeWorldBoard(board, screen)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 40 -- 600 x 760
+	gui.PixelsPerStud = 40 -- 400 x 536
 	gui.LightInfluence = 0
-	gui.Brightness = 1.4
 	gui.Parent = screen
 
+	local header = Instance.new("Frame")
+	header.Size = UDim2.new(1, 0, 0, 64)
+	header.BackgroundColor3 = board.Color
+	header.BorderSizePixel = 0
+	header.Parent = gui
 	local title = Instance.new("TextLabel")
 	title.BackgroundTransparency = 1
-	title.Position = UDim2.fromOffset(20, 22)
-	title.Size = UDim2.new(1, -40, 0, 54)
+	title.Position = UDim2.fromOffset(14, 12)
+	title.Size = UDim2.new(1, -28, 0, 40)
 	title.Font = Enum.Font.GothamBlack
 	title.TextScaled = true
-	title.TextColor3 = board.Color
+	title.TextColor3 = Color3.new(1, 1, 1)
 	title.Text = board.Title
-	title.Parent = gui
+	title.Parent = header
 
 	local rows = {}
 	for i = 1, WORLD_ROWS do
 		local row = Instance.new("Frame")
-		row.Position = UDim2.fromOffset(20, 96 + (i - 1) * 64)
-		row.Size = UDim2.new(1, -40, 0, 56)
-		row.BackgroundColor3 = Color3.fromRGB(36, 40, 72)
-		row.BackgroundTransparency = if i % 2 == 1 then 0.2 else 0.6
+		row.Position = UDim2.fromOffset(10, 72 + (i - 1) * 46)
+		row.Size = UDim2.new(1, -20, 0, 42)
+		row.BackgroundColor3 = if i % 2 == 1 then Color3.fromRGB(242, 244, 252) else Color3.new(1, 1, 1)
 		row.BorderSizePixel = 0
 		row.Visible = false
 		row.Parent = gui
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 14)
+		corner.CornerRadius = UDim.new(0, 12)
 		corner.Parent = row
 
 		local rank = Instance.new("TextLabel")
-		rank.Position = UDim2.fromOffset(10, 10)
-		rank.Size = UDim2.fromOffset(36, 36)
-		rank.BackgroundColor3 = MEDALS[i] or Color3.new(0, 0, 0)
+		rank.Position = UDim2.fromOffset(6, 6)
+		rank.Size = UDim2.fromOffset(30, 30)
+		rank.BackgroundColor3 = MEDALS[i] or Color3.new(1, 1, 1)
 		rank.BackgroundTransparency = if MEDALS[i] then 0 else 1
-		rank.Font = Enum.Font.GothamBold
+		rank.Font = Enum.Font.GothamBlack
 		rank.TextScaled = true
-		rank.TextColor3 = if MEDALS[i] then Color3.fromRGB(20, 20, 35) else Color3.fromRGB(150, 156, 195)
+		rank.TextColor3 = if MEDALS[i] then Color3.new(1, 1, 1) else Color3.fromRGB(150, 155, 180)
 		rank.Text = tostring(i)
 		rank.Parent = row
 		local round = corner:Clone()
 		round.CornerRadius = UDim.new(0.5, 0)
 		round.Parent = rank
 		local pad = Instance.new("UIPadding")
-		pad.PaddingTop = UDim.new(0, 7)
-		pad.PaddingBottom = UDim.new(0, 7)
+		pad.PaddingTop = UDim.new(0, 6)
+		pad.PaddingBottom = UDim.new(0, 6)
 		pad.Parent = rank
 
 		local name = Instance.new("TextLabel")
 		name.BackgroundTransparency = 1
-		name.Position = UDim2.fromOffset(60, 12)
-		name.Size = UDim2.new(1, -250, 0, 32)
-		name.Font = Enum.Font.GothamMedium
+		name.Position = UDim2.fromOffset(44, 9)
+		name.Size = UDim2.new(1, -170, 0, 24)
+		name.Font = Enum.Font.GothamBold
 		name.TextScaled = true
 		name.TextXAlignment = Enum.TextXAlignment.Left
-		name.TextColor3 = Color3.fromRGB(240, 242, 255)
+		name.TextColor3 = INK
 		name.Parent = row
 
 		local value = Instance.new("TextLabel")
 		value.BackgroundTransparency = 1
 		value.AnchorPoint = Vector2.new(1, 0)
-		value.Position = UDim2.new(1, -14, 0, 12)
-		value.Size = UDim2.fromOffset(180, 32)
-		value.Font = Enum.Font.GothamBold
+		value.Position = UDim2.new(1, -10, 0, 9)
+		value.Size = UDim2.fromOffset(118, 24)
+		value.Font = Enum.Font.GothamBlack
 		value.TextScaled = true
 		value.TextXAlignment = Enum.TextXAlignment.Right
-		value.TextColor3 = board.Color
+		value.TextColor3 = board.Color:Lerp(Color3.new(0, 0, 0), 0.15)
 		value.Parent = row
 
 		rows[i] = { Frame = row, Name = name, Value = value }
 	end
+
+	-- shown until someone is on the board
+	local empty = Instance.new("TextLabel")
+	empty.BackgroundTransparency = 1
+	empty.Position = UDim2.fromOffset(20, 240)
+	empty.Size = UDim2.new(1, -40, 0, 30)
+	empty.Font = Enum.Font.GothamBold
+	empty.TextScaled = true
+	empty.TextColor3 = Color3.fromRGB(160, 165, 190)
+	empty.Text = "Be the first!"
+	empty.Parent = gui
+	board.Empty = empty
+
 	board.Rows = rows
 end
 
 local function drawWorldBoard(board, list)
+	board.Empty.Visible = #list == 0
 	for i, row in ipairs(board.Rows) do
 		local entry = list[i]
 		row.Frame.Visible = entry ~= nil

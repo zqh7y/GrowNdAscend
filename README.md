@@ -23,19 +23,18 @@ rare ones and climb the global **Most Rolls** leaderboard.
 
 ## The map
 
-Four areas in a straight line along +X (200 studs each), with invisible walls
-on both sides (|Z| = 72) and at both ends. The whole map is built by
-`src/server/World` when the server starts.
+Four compact areas in a straight line along +X (100 x 70 studs each), with
+invisible walls on both sides (|Z| = 37), at both ends and on top. The whole
+map is built by `src/server/World` when the server starts, in a bright,
+toy-like style: smooth plastic in cheerful colours, with glass and neon
+accents (realistic materials are swapped out automatically in `Build.part`).
 
 | Area | Theme | Breakable | Unlock |
 | --- | --- | --- | --- |
-| 1 Forest | Grass, trees, flowers, grass tufts, a fountain on each side, hills around the sides and back, the 3 leaderboards | Small trees (12 HP, 3 coins) | Free |
+| 1 Forest | Grass, round trees, flowers, flat 2D grass, a fountain on each side, hills around the sides and back, the 3 leaderboards side by side | Small trees (12 HP, 3 coins) | Free |
 | 2 Sahara | Sand, dunes, 3 pyramids, Cleopatra's temple and statue, the fusion machine, Western Wall-style limestone walls | Cactuses (150 HP, 25 coins) | 300 |
 | 3 Frozen Peaks | Snow, a frozen sea on both sides with ice floes and icebergs, an igloo, ice walls, crystals, pines, snowfall | Ice cubes (1.5K HP, 200 coins) | 6K |
 | 4 Sakura Jungle | Cherry blossoms with falling petals, bamboo, stone path, torii gates, stone lanterns, koi pond, pagoda, low Japanese walls | Sushi (15K HP, 1.8K coins) | 100K |
-
-Tip: for extra 2D grass on the terrain, select **Workspace → Terrain** in
-Studio and turn on **Decoration**.
 
 ## Solo servers
 

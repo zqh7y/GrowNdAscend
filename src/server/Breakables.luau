@@ -9,10 +9,10 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local PlayerData = require(script.Parent.PlayerData)
 local World = require(script.Parent.World)
 
-local PER_AREA = 14 -- breakables alive in each area at once
+local PER_AREA = 9 -- breakables alive in each area at once
 local RESPAWN_SECONDS = 4
 local MAX_HITS_PER_SECOND = 12
-local MAX_DISTANCE = 70
+local MAX_DISTANCE = 50
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local coinEvent = Instance.new("RemoteEvent")
@@ -27,7 +27,7 @@ local lastLockedNotice = {} -- [player] = os.clock(), so the "locked" message do
 local function healthBar(model, area, height)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "HealthBar"
-	gui.Size = UDim2.new(6, 0, 1.1, 0)
+	gui.Size = UDim2.new(5, 0, 1, 0)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, height + 1.2, 0)
 	gui.MaxDistance = 60
 	gui.Adornee = model.PrimaryPart

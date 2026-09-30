@@ -13,7 +13,7 @@ local World = {}
 local LENGTH = Config.AREA_LENGTH
 local HALF = Config.AREA_HALF_WIDTH
 local TOTAL = LENGTH * #Config.AREAS
-local SIDE = 190 -- how far the scenery reaches to each side
+local SIDE = 110 -- how far the scenery reaches to each side
 
 local AREA_MODULES = { script.Forest, script.Sahara, script.Frozen, script.Sakura }
 
@@ -24,30 +24,43 @@ World.Areas = {} -- [i] = { Folder, Spots = { Vector3 }, Module }
 World.Gates = {} -- [i] = { Barrier, Sign, Button } for the gate into area i (i >= 2)
 World.Boards = {} -- [board id] = screen part (set by the Forest)
 World.Fusion = nil -- the fusion machine (set by the Sahara)
-World.SPAWN = Vector3.new(24, 4, 0)
+World.SPAWN = Vector3.new(10, 4, 0)
 
 -- Lighting and terrain colours ------------------------------------------------------
 
+-- bright, sunny and a little extra colourful, like a toy world
 local Lighting = game:GetService("Lighting")
-Lighting.ClockTime = 14.5
-Lighting.Brightness = 2.4
-Lighting.EnvironmentDiffuseScale = 0.6
-Lighting.EnvironmentSpecularScale = 0.6
+Lighting.ClockTime = 13
+Lighting.Brightness = 3
+Lighting.Ambient = Color3.fromRGB(120, 120, 140)
+Lighting.OutdoorAmbient = Color3.fromRGB(170, 170, 190)
+Lighting.EnvironmentDiffuseScale = 0.8
+Lighting.EnvironmentSpecularScale = 0.3
+Lighting.ShadowSoftness = 0.6
 local atmosphere = Instance.new("Atmosphere")
-atmosphere.Density = 0.28
-atmosphere.Haze = 1.2
-atmosphere.Color = Color3.fromRGB(200, 225, 255)
-atmosphere.Decay = Color3.fromRGB(120, 150, 200)
+atmosphere.Density = 0.18
+atmosphere.Haze = 0.4
+atmosphere.Glare = 0
+atmosphere.Color = Color3.fromRGB(215, 235, 255)
+atmosphere.Decay = Color3.fromRGB(170, 210, 255)
 atmosphere.Parent = Lighting
+local colour = Instance.new("ColorCorrectionEffect")
+colour.Saturation = 0.18
+colour.Brightness = 0.03
+colour.Contrast = 0.05
+colour.Parent = Lighting
+local bloom = Instance.new("BloomEffect")
+bloom.Intensity = 0.4
+bloom.Size = 20
+bloom.Threshold = 1.4
+bloom.Parent = Lighting
 
-terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(95, 175, 70))
-terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(85, 150, 70))
-terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(235, 200, 130))
-terrain:SetMaterialColor(Enum.Material.Sandstone, Color3.fromRGB(215, 170, 110))
-terrain:SetMaterialColor(Enum.Material.Snow, Color3.fromRGB(240, 246, 255))
-terrain:SetMaterialColor(Enum.Material.Glacier, Color3.fromRGB(150, 205, 235))
-terrain:SetMaterialColor(Enum.Material.Ice, Color3.fromRGB(170, 220, 245))
-terrain.WaterColor = Color3.fromRGB(40, 140, 180)
+-- terrain in bright, cartoon colours
+terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(110, 210, 80))
+terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(125, 215, 105))
+terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(255, 220, 140))
+terrain:SetMaterialColor(Enum.Material.Snow, Color3.fromRGB(245, 250, 255))
+terrain:SetMaterialColor(Enum.Material.Glacier, Color3.fromRGB(150, 220, 255))
 
 -- Invisible walls ----------------------------------------------------------------------
 
@@ -67,13 +80,15 @@ for _, side in ipairs({ -1, 1 }) do
 end
 invisibleWall(Vector3.new(-2, 60, 0), Vector3.new(4, 140, HALF * 2 + 8))
 invisibleWall(Vector3.new(TOTAL + 2, 60, 0), Vector3.new(4, 140, HALF * 2 + 8))
+-- a lid, so nobody jumps over the walls from a hill or a tall prop
+invisibleWall(Vector3.new(TOTAL / 2, 132, 0), Vector3.new(TOTAL + 8, 4, HALF * 2 + 8))
 
 -- Spawn -----------------------------------------------------------------------------
 
 local spawn = Instance.new("SpawnLocation")
 spawn.Name = "Spawn"
 spawn.Anchored = true
-spawn.Size = Vector3.new(12, 1, 12)
+spawn.Size = Vector3.new(9, 1, 9)
 spawn.CFrame = CFrame.new(World.SPAWN.X, 0.5, 0) * CFrame.Angles(0, math.rad(-90), 0) -- facing +X
 spawn.Material = Enum.Material.SmoothPlastic
 spawn.Color = Color3.fromRGB(255, 120, 150)
@@ -91,18 +106,19 @@ local function buildGate(i)
 	local area = Config.AREAS[i]
 	local x = Config.areaStart(i)
 	local gate = Build.model(map, "Gate" .. i)
-	local stone = Color3.fromRGB(70, 74, 95)
+	local white = Color3.fromRGB(250, 250, 255)
 
 	for _, side in ipairs({ -1, 1 }) do
-		Build.block(gate, Vector3.new(x, 0, side * (HALF - 3)), Vector3.new(8, 34, 8), { Color = stone, Material = Enum.Material.Slate })
-		Build.block(gate, Vector3.new(x, 34, side * (HALF - 3)), Vector3.new(10, 3, 10), { Color = area.Color, Material = Enum.Material.Neon })
+		Build.block(gate, Vector3.new(x, 0, side * (HALF - 2.5)), Vector3.new(5, 20, 5), { Color = white })
+		Build.block(gate, Vector3.new(x, 20, side * (HALF - 2.5)), Vector3.new(6.5, 2, 6.5), { Color = area.Color })
+		Build.ball(gate, Vector3.new(x, 23, side * (HALF - 2.5)), 3.4, { Color = area.Color, Material = Enum.Material.Neon })
 	end
-	Build.block(gate, Vector3.new(x, 30, 0), Vector3.new(6, 6, HALF * 2), { Color = stone, Material = Enum.Material.Slate })
+	Build.block(gate, Vector3.new(x, 17, 0), Vector3.new(4, 3, HALF * 2 - 4), { Color = white })
 
 	local barrier = Build.part(gate, {
 		Name = "Barrier",
-		Size = Vector3.new(1, 30, HALF * 2 - 14),
-		CFrame = CFrame.new(x, 15, 0),
+		Size = Vector3.new(0.6, 17, HALF * 2 - 10),
+		CFrame = CFrame.new(x, 8.5, 0),
 		Color = area.Color,
 		Material = Enum.Material.ForceField,
 		Transparency = 0.2,
@@ -110,15 +126,15 @@ local function buildGate(i)
 	})
 	local sign = Build.sign(
 		gate,
-		CFrame.new(x, 40, 0) * CFrame.Angles(0, math.rad(90), 0),
-		Vector3.new(60, 10, 1),
+		CFrame.new(x, 23.5, 0) * CFrame.Angles(0, math.rad(90), 0),
+		Vector3.new(34, 6, 0.8),
 		area.Name:upper() .. "  ·  " .. Config.formatNumber(area.Cost) .. " COINS",
 		Color3.new(1, 1, 1),
-		Color3.fromRGB(30, 32, 55)
+		area.Color:Lerp(Color3.new(0, 0, 0), 0.15)
 	)
 
 	-- the button players walk up to (on the side they come from)
-	local button = Build.cylinder(gate, Vector3.new(x - 8, 0, 0), 1.2, 9, {
+	local button = Build.cylinder(gate, Vector3.new(x - 6, 0, 0), 1, 7, {
 		Name = "UnlockButton",
 		Color = area.Color,
 		Material = Enum.Material.Neon,
@@ -163,8 +179,8 @@ for i, area in ipairs(Config.AREAS) do
 	terrain:FillBlock(CFrame.new(x0 + LENGTH / 2, -6, 0), Vector3.new(LENGTH, 12, SIDE * 2), module.GROUND)
 
 	-- keep the gate paths clear
-	space:add(Vector3.new(x0, 0, 0), 14)
-	space:add(Vector3.new(x0 + LENGTH, 0, 0), 14)
+	space:add(Vector3.new(x0, 0, 0), 9)
+	space:add(Vector3.new(x0 + LENGTH, 0, 0), 9)
 
 	local ctx = {
 		Folder = folder,
@@ -181,8 +197,8 @@ for i, area in ipairs(Config.AREAS) do
 
 	-- spots for this area's breakables, away from the decorations
 	local spots = {}
-	for _ = 1, 30 do
-		local p = space:find(rng, x0 + 14, x0 + LENGTH - 14, -HALF + 12, HALF - 12, 6)
+	for _ = 1, 18 do
+		local p = space:find(rng, x0 + 8, x0 + LENGTH - 8, -HALF + 7, HALF - 7, 4)
 		if p then
 			table.insert(spots, p)
 		end
@@ -195,7 +211,7 @@ for i, area in ipairs(Config.AREAS) do
 end
 
 -- the far end: a wall of hills so the map doesn't just stop
-terrain:FillBlock(CFrame.new(TOTAL + 30, 10, 0), Vector3.new(60, 40, SIDE * 2), Enum.Material.LeafyGrass)
-terrain:FillBlock(CFrame.new(-40, 8, 0), Vector3.new(80, 40, SIDE * 2), Enum.Material.Grass)
+terrain:FillBlock(CFrame.new(TOTAL + 24, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.LeafyGrass)
+terrain:FillBlock(CFrame.new(-28, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.Grass)
 
 return World

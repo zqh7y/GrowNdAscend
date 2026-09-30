@@ -79,7 +79,7 @@ task.spawn(function()
 			local progress = 1 - left / total
 			machine.Orb.Color = pet.Color
 			machine.Light.Color = pet.Color
-			machine.Orb.Size = Vector3.one * (3 + progress * 8)
+			machine.Orb.Size = Vector3.one * (1.8 + progress * 4.5)
 			if left > 0 then
 				machine.Status.Text = "Fusing " .. fusion.Pet .. "  ·  " .. string.format("%d:%02d", left // 60, left % 60)
 			else
@@ -88,7 +88,7 @@ task.spawn(function()
 		else
 			machine.Orb.Color = IDLE_COLOR
 			machine.Light.Color = IDLE_COLOR
-			machine.Orb.Size = Vector3.one * 3
+			machine.Orb.Size = Vector3.one * 1.8
 			machine.Status.Text = Config.FUSE_COPIES .. " pets → 1 HUGE pet"
 		end
 		task.wait(0.5)

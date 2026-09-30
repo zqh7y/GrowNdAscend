@@ -136,8 +136,8 @@ end
 
 -- The map is 4 areas in a straight line along +X. Each is AREA_LENGTH long;
 -- players can walk anywhere with |Z| < AREA_HALF_WIDTH.
-Config.AREA_LENGTH = 200
-Config.AREA_HALF_WIDTH = 70
+Config.AREA_LENGTH = 100
+Config.AREA_HALF_WIDTH = 35
 
 Config.AREAS = {
 	{

@@ -7,12 +7,13 @@ local Sakura = {}
 
 Sakura.GROUND = Enum.Material.LeafyGrass
 
-local BLOSSOM = Color3.fromRGB(255, 175, 205)
-local TRUNK = Color3.fromRGB(85, 60, 55)
-local TORII = Color3.fromRGB(220, 50, 40)
-local ROOF = Color3.fromRGB(55, 58, 70)
-local STONE = Color3.fromRGB(150, 150, 145)
-local BAMBOO = Color3.fromRGB(125, 175, 70)
+local BLOSSOM = Color3.fromRGB(255, 170, 210)
+local TRUNK = Color3.fromRGB(150, 95, 80)
+local TORII = Color3.fromRGB(245, 70, 60)
+local TORII_DARK = Color3.fromRGB(70, 72, 95) -- soft charcoal, not black
+local ROOF = Color3.fromRGB(80, 150, 220) -- sky-blue tiles
+local STONE = Color3.fromRGB(215, 215, 225)
+local BAMBOO = Color3.fromRGB(120, 205, 80)
 
 local function petals(parent)
 	local emitter = Instance.new("ParticleEmitter")
@@ -82,8 +83,7 @@ local function bambooCluster(parent, rng, base, count)
 		local top = (CFrame.new(p) * lean * CFrame.new(0, height, 0)).Position
 		for k = 1, 3 do
 			Build.ghost(Build.wedge(model, CFrame.new(top) * CFrame.Angles(0, math.rad(k * 120 + rng:NextNumber(0, 40)), 0) * CFrame.Angles(math.rad(25), 0, 0) * CFrame.new(0, 0, -1.8), Vector3.new(0.9, 0.15, 3.6), {
-				Color = Color3.fromRGB(95, 160, 70),
-				Material = Enum.Material.Grass,
+				Color = Color3.fromRGB(100, 200, 80),
 			}))
 		end
 	end
@@ -94,19 +94,19 @@ local function torii(parent, x, width)
 	local model = Build.model(parent, "Torii")
 	for _, z in ipairs({ -width / 2, width / 2 }) do
 		Build.cylinder(model, Vector3.new(x, 0, z), 18, 1.8, { Color = TORII })
-		Build.cylinder(model, Vector3.new(x, 0, z), 1.2, 2.6, { Color = Color3.fromRGB(30, 30, 35) })
+		Build.cylinder(model, Vector3.new(x, 0, z), 1.2, 2.6, { Color = TORII_DARK })
 	end
 	Build.block(model, Vector3.new(x, 14, 0), Vector3.new(1.2, 1.2, width + 3), { Color = TORII })
 	-- top beam, tips curving up
 	Build.block(model, Vector3.new(x, 17.5, 0), Vector3.new(2, 1.4, width + 7), { Color = TORII })
-	Build.block(model, Vector3.new(x, 18.9, 0), Vector3.new(2.4, 1, width + 8), { Color = Color3.fromRGB(30, 30, 35) })
+	Build.block(model, Vector3.new(x, 18.9, 0), Vector3.new(2.4, 1, width + 8), { Color = TORII_DARK })
 	for _, s in ipairs({ -1, 1 }) do
 		Build.wedge(model, CFrame.new(x, 19.9, s * (width / 2 + 4.5)) * CFrame.Angles(0, if s > 0 then 0 else math.rad(180), 0), Vector3.new(2.4, 1, 2), {
-			Color = Color3.fromRGB(30, 30, 35),
+			Color = TORII_DARK,
 		})
 	end
 	-- plaque in the middle
-	Build.block(model, Vector3.new(x, 14.6, 0), Vector3.new(1.4, 3, 2.2), { Color = Color3.fromRGB(30, 30, 35) })
+	Build.block(model, Vector3.new(x, 14.6, 0), Vector3.new(1.4, 3, 2.2), { Color = TORII_DARK })
 	return model
 end
 
@@ -166,7 +166,8 @@ local function pagoda(parent, base)
 		end
 		y += 1.2
 	end
-	Build.cylinder(model, base + Vector3.new(0, y, 0), 7, 0.6, { Color = Color3.fromRGB(230, 180, 60), Material = Enum.Material.Foil })
+	Build.cylinder(model, base + Vector3.new(0, y, 0), 7, 0.6, { Color = Color3.fromRGB(255, 205, 50) })
+	return model
 end
 
 local function koiPond(parent, rng, center)
@@ -217,17 +218,19 @@ function Sakura.build(ctx)
 	local terrain = ctx.Terrain
 
 	-- green hills and a bamboo forest beyond the walls
-	for x = x0, x1 + 20, 22 do
+	for x = x0, x1 + 10, 14 do
 		for _, s in ipairs({ -1, 1 }) do
-			terrain:FillBall(Vector3.new(x + rng:NextNumber(-6, 6), rng:NextNumber(-14, -6), s * rng:NextNumber(half + 55, half + 100)), rng:NextNumber(24, 36), Enum.Material.LeafyGrass)
+			terrain:FillBall(Vector3.new(x + rng:NextNumber(-4, 4), rng:NextNumber(-10, -5), s * rng:NextNumber(half + 30, half + 55)), rng:NextNumber(16, 24), Enum.Material.LeafyGrass)
 		end
 	end
-	for x = x0 + 6, x1 - 6, 11 do
+	for x = x0 + 4, x1 - 4, 8 do
 		for _, s in ipairs({ -1, 1 }) do
-			bambooCluster(deco, rng, Vector3.new(x + rng:NextNumber(-3, 3), 0, s * rng:NextNumber(half + 9, half + 26)), rng:NextInteger(4, 7))
+			local base = Vector3.new(x + rng:NextNumber(-2, 2), 0, s * rng:NextNumber(half + 7, half + 18))
+			Build.scale(bambooCluster(deco, rng, base, rng:NextInteger(3, 5)), base, 0.8)
 		end
 	end
-	pagoda(deco, Vector3.new(x0 + 120, 0, half + 45))
+	local pagodaBase = Vector3.new(x0 + 58, 0, half + 26)
+	Build.scale(pagoda(deco, pagodaBase), pagodaBase, 0.85)
 
 	-- Japanese walls on both sides
 	for _, s in ipairs({ -1, 1 }) do
@@ -236,57 +239,58 @@ function Sakura.build(ctx)
 
 	-- stone path down the middle, with torii gates over it
 	local path = Build.folder(deco, "Path")
-	for x = x0 + 2, x1 - 2, 4.5 do
-		Build.block(path, Vector3.new(x, -0.1, rng:NextNumber(-0.4, 0.4)), Vector3.new(4, 0.35, 9), {
-			Color = Build.vary(rng, STONE, 0.04),
-			Material = Enum.Material.Slate,
+	for x = x0 + 1.5, x1 - 1.5, 3.5 do
+		Build.block(path, Vector3.new(x, -0.1, rng:NextNumber(-0.3, 0.3)), Vector3.new(3, 0.3, 6.5), {
+			Color = Build.vary(rng, STONE, 0.03),
 			CanCollide = false,
 		}, rng:NextNumber(-3, 3))
 	end
-	for _, x in ipairs({ x0 + 22, x0 + 110, x1 - 22 }) do
-		torii(deco, x, 16)
-		space:add(Vector3.new(x, 0, 9), 3)
-		space:add(Vector3.new(x, 0, -9), 3)
+	for _, x in ipairs({ x0 + 12, x0 + 55, x1 - 12 }) do
+		Build.scale(torii(deco, x, 16), Vector3.new(x, 0, 0), 0.75)
+		space:add(Vector3.new(x, 0, 6), 2.5)
+		space:add(Vector3.new(x, 0, -6), 2.5)
 	end
 	-- keep the path itself free
-	for x = x0, x1, 8 do
-		space:add(Vector3.new(x, 0, 0), 6)
+	for x = x0, x1, 6 do
+		space:add(Vector3.new(x, 0, 0), 4.5)
 	end
 
 	-- lanterns lining the path
-	for x = x0 + 14, x1 - 14, 26 do
+	for x = x0 + 6, x1 - 6, 22 do
 		for _, s in ipairs({ -1, 1 }) do
-			local base = Vector3.new(x, 0, s * 8)
+			local base = Vector3.new(x, 0, s * 6)
 			lantern(deco, base)
-			space:add(base, 2.5)
+			space:add(base, 2)
 		end
 	end
 
-	-- koi pond
-	local pondCenter = Vector3.new(x0 + 70, 0, -(half - 20))
-	koiPond(deco, rng, pondCenter)
-	space:add(pondCenter, 12)
+	-- koi pond, scaled down to fit
+	local pondCenter = Vector3.new(x0 + 34, 0, -(half - 11))
+	local pond = Build.model(deco, "KoiPondArea")
+	koiPond(pond, rng, pondCenter)
+	Build.scale(pond, pondCenter, 0.7)
+	space:add(pondCenter, 8)
 
 	-- sakura trees and bamboo inside the area
-	for x = x0 + 10, x1 - 10, 18 do
+	for x = x0 + 6, x1 - 6, 12 do
 		for _, s in ipairs({ -1, 1 }) do
-			local base = Vector3.new(x + rng:NextNumber(-5, 5), 0, s * rng:NextNumber(half - 8, half - 4))
-			if space:free(base, 6) then
-				sakuraTree(deco, rng, base, rng:NextNumber(1, 1.3))
-				space:add(base, 6)
+			local base = Vector3.new(x + rng:NextNumber(-3, 3), 0, s * rng:NextNumber(half - 5, half - 3))
+			if space:free(base, 4) then
+				Build.scale(sakuraTree(deco, rng, base, rng:NextNumber(1, 1.2)), base, 0.7)
+				space:add(base, 4)
 			end
 		end
 	end
-	for _ = 1, 6 do
-		local base = space:find(rng, x0 + 16, x1 - 16, -half + 16, half - 16, 8)
+	for _ = 1, 3 do
+		local base = space:find(rng, x0 + 10, x1 - 10, -half + 10, half - 10, 5)
 		if base then
-			sakuraTree(deco, rng, base, rng:NextNumber(1.1, 1.4))
+			Build.scale(sakuraTree(deco, rng, base, rng:NextNumber(1.1, 1.3)), base, 0.7)
 		end
 	end
-	for _ = 1, 6 do
-		local base = space:find(rng, x0 + 10, x1 - 10, -half + 8, half - 8, 5)
+	for _ = 1, 3 do
+		local base = space:find(rng, x0 + 6, x1 - 6, -half + 5, half - 5, 3)
 		if base then
-			bambooCluster(deco, rng, base, rng:NextInteger(3, 5))
+			Build.scale(bambooCluster(deco, rng, base, rng:NextInteger(3, 4)), base, 0.7)
 		end
 	end
 end

@@ -1,108 +1,112 @@
--- Area 1: Forest. Grass, trees, flowers, grass tufts, a fountain on each side,
--- hills around the sides and back, and the three leaderboards. Breakable:
--- small trees.
+-- Area 1: Forest. Grass, round cartoon trees, flowers, flat grass, a fountain
+-- on each side, hills around the sides and back, and the three leaderboards
+-- side by side on one stage. Breakable: small trees.
 local Build = require(script.Parent.Build)
 
 local Forest = {}
 
 Forest.GROUND = Enum.Material.Grass
 
-local TRUNK = Color3.fromRGB(120, 80, 50)
-local LEAVES = Color3.fromRGB(80, 170, 70)
+local TRUNK = Color3.fromRGB(165, 105, 65)
+local LEAVES = Color3.fromRGB(90, 200, 75)
+local GRASS = Color3.fromRGB(80, 175, 60)
 local FLOWER_COLORS = {
-	Color3.fromRGB(255, 120, 170),
-	Color3.fromRGB(255, 220, 70),
-	Color3.fromRGB(250, 250, 255),
-	Color3.fromRGB(180, 120, 255),
-	Color3.fromRGB(255, 140, 80),
+	Color3.fromRGB(255, 110, 170),
+	Color3.fromRGB(255, 215, 50),
+	Color3.fromRGB(255, 255, 255),
+	Color3.fromRGB(175, 120, 255),
+	Color3.fromRGB(255, 140, 70),
+	Color3.fromRGB(90, 190, 255),
+}
+
+-- the three leaderboard ids, left to right
+Forest.BOARDS = {
+	{ Id = "Strongest", Color = Color3.fromRGB(255, 110, 90) },
+	{ Id = "Playtime", Color = Color3.fromRGB(60, 185, 255) },
+	{ Id = "Rebirths", Color = Color3.fromRGB(170, 110, 255) },
 }
 
 local function tree(parent, rng, base, scale)
 	local model = Build.model(parent, "Tree")
-	local height = 10 * scale
-	Build.cylinder(model, base, height, 2.2 * scale, { Color = TRUNK, Material = Enum.Material.Wood })
-	local top = base + Vector3.new(0, height, 0)
-	Build.ball(model, top, 10 * scale, { Color = Build.vary(rng, LEAVES), Material = Enum.Material.Grass })
+	local height = 6 * scale
+	Build.cylinder(model, base, height, 1.6 * scale, { Color = TRUNK })
+	local top = base + Vector3.new(0, height + 1, 0)
+	Build.ball(model, top, 7 * scale, { Color = Build.vary(rng, LEAVES, 0.04) })
 	for _ = 1, 3 do
-		local offset = Vector3.new(rng:NextNumber(-3, 3), rng:NextNumber(-2, 1.5), rng:NextNumber(-3, 3)) * scale
-		Build.ball(model, top + offset, rng:NextNumber(6, 8) * scale, { Color = Build.vary(rng, LEAVES), Material = Enum.Material.Grass })
+		local offset = Vector3.new(rng:NextNumber(-2.2, 2.2), rng:NextNumber(-1.2, 1.2), rng:NextNumber(-2.2, 2.2)) * scale
+		Build.ball(model, top + offset, rng:NextNumber(4.5, 5.5) * scale, { Color = Build.vary(rng, LEAVES, 0.04) })
 	end
 	return model
 end
 
 local function flower(parent, rng, base)
 	local color = FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)]
-	local height = rng:NextNumber(0.8, 1.6)
-	Build.ghost(Build.block(parent, base, Vector3.new(0.18, height, 0.18), { Color = Color3.fromRGB(70, 150, 60) }))
+	local height = rng:NextNumber(0.7, 1.2)
+	Build.ghost(Build.block(parent, base, Vector3.new(0.16, height, 0.16), { Color = Color3.fromRGB(70, 170, 60) }))
 	local head = base + Vector3.new(0, height, 0)
 	for k = 0, 4 do
 		local a = k / 5 * math.pi * 2
-		Build.ghost(Build.ball(parent, head + Vector3.new(math.cos(a) * 0.3, 0, math.sin(a) * 0.3), 0.45, { Color = color }))
+		Build.ghost(Build.ball(parent, head + Vector3.new(math.cos(a) * 0.28, 0, math.sin(a) * 0.28), 0.42, { Color = color }))
 	end
-	Build.ghost(Build.ball(parent, head + Vector3.new(0, 0.05, 0), 0.35, { Color = Color3.fromRGB(255, 210, 60) }))
-end
-
--- a clump of flat grass blades
-local function tuft(parent, rng, base)
-	local color = Build.vary(rng, Color3.fromRGB(100, 185, 70), 0.08)
-	for k = 1, 3 do
-		local height = rng:NextNumber(0.9, 1.8)
-		Build.ghost(Build.wedge(
-			parent,
-			CFrame.new(base + Vector3.new(0, height / 2, 0)) * CFrame.Angles(math.rad(rng:NextNumber(-12, 12)), math.rad(k * 60 + rng:NextNumber(-20, 20)), 0),
-			Vector3.new(0.05, height, 0.5),
-			{ Color = color, Material = Enum.Material.Grass }
-		))
-	end
+	Build.ghost(Build.ball(parent, head + Vector3.new(0, 0.05, 0), 0.34, { Color = Color3.fromRGB(255, 205, 50) }))
 end
 
 local function fountain(parent, center)
 	local model = Build.model(parent, "Fountain")
-	local marble = Color3.fromRGB(235, 235, 240)
-	local water = { Color = Color3.fromRGB(80, 180, 255), Material = Enum.Material.Glass, Transparency = 0.35, CanCollide = false }
-	Build.cylinder(model, center, 2.2, 20, { Color = marble, Material = Enum.Material.Marble })
-	Build.cylinder(model, center + Vector3.new(0, 2.2, 0), 0.3, 18, water)
-	Build.cylinder(model, center + Vector3.new(0, 2.2, 0), 6, 2.5, { Color = marble, Material = Enum.Material.Marble })
-	Build.cylinder(model, center + Vector3.new(0, 8, 0), 1.2, 9, { Color = marble, Material = Enum.Material.Marble })
-	Build.cylinder(model, center + Vector3.new(0, 9.2, 0), 0.25, 8, water)
-	Build.cylinder(model, center + Vector3.new(0, 9.2, 0), 3, 1.2, { Color = marble, Material = Enum.Material.Marble })
-	local spout = Build.ball(model, center + Vector3.new(0, 12.6, 0), 1.6, { Color = marble, Material = Enum.Material.Marble })
+	local stone = Color3.fromRGB(245, 245, 255)
+	local trim = Color3.fromRGB(120, 200, 255)
+	local water = { Color = Color3.fromRGB(80, 190, 255), Material = Enum.Material.Glass, Transparency = 0.3, CanCollide = false }
+	Build.cylinder(model, center, 1.6, 13, { Color = stone })
+	Build.cylinder(model, center + Vector3.new(0, 1.6, 0), 0.25, 13.3, { Color = trim })
+	Build.cylinder(model, center + Vector3.new(0, 1.6, 0), 0.2, 11.5, water)
+	Build.cylinder(model, center + Vector3.new(0, 1.6, 0), 4, 1.8, { Color = stone })
+	Build.cylinder(model, center + Vector3.new(0, 5.6, 0), 0.9, 6, { Color = stone })
+	Build.cylinder(model, center + Vector3.new(0, 6.5, 0), 0.2, 5.2, water)
+	Build.cylinder(model, center + Vector3.new(0, 6.5, 0), 2, 0.9, { Color = stone })
+	local spout = Build.ball(model, center + Vector3.new(0, 8.8, 0), 1.2, { Color = trim })
 
 	local spray = Instance.new("ParticleEmitter")
-	spray.Color = ColorSequence.new(Color3.fromRGB(170, 225, 255))
-	spray.Transparency = NumberSequence.new(0.2, 1)
-	spray.Size = NumberSequence.new(0.35, 0.15)
-	spray.Rate = 60
-	spray.Lifetime = NumberRange.new(1, 1.4)
-	spray.Speed = NumberRange.new(9, 12)
-	spray.SpreadAngle = Vector2.new(22, 22)
+	spray.Color = ColorSequence.new(Color3.fromRGB(180, 230, 255))
+	spray.Transparency = NumberSequence.new(0.1, 1)
+	spray.Size = NumberSequence.new(0.3, 0.12)
+	spray.Rate = 50
+	spray.Lifetime = NumberRange.new(0.8, 1.1)
+	spray.Speed = NumberRange.new(7, 9)
+	spray.SpreadAngle = Vector2.new(20, 20)
 	spray.Acceleration = Vector3.new(0, -22, 0)
 	spray.EmissionDirection = Enum.NormalId.Top
 	spray.Parent = spout
 	return model
 end
 
--- a leaderboard stand facing the middle of the path; returns the screen part
-local function board(parent, base, id, color)
-	local model = Build.model(parent, "Leaderboard_" .. id)
-	local facing = CFrame.lookAt(base, Vector3.new(base.X, base.Y, 0))
-	local frame = Color3.fromRGB(40, 43, 68)
-	for _, x in ipairs({ -8, 8 }) do
-		Build.part(model, { Size = Vector3.new(1.2, 22, 1.2), CFrame = facing * CFrame.new(x, 11, 0), Color = frame })
+-- The three leaderboards next to each other on one stage, facing the path.
+-- Fills World.Boards with each board's screen part.
+local function leaderboardStage(parent, world, center)
+	local model = Build.model(parent, "Leaderboards")
+	local facing = CFrame.lookAt(center, Vector3.new(center.X, center.Y, 0)) -- screens face the middle
+	local WIDTH, GAP = 11, 1.2
+	local total = #Forest.BOARDS * WIDTH + (#Forest.BOARDS - 1) * GAP
+
+	-- stage with a colourful trim
+	Build.part(model, { Size = Vector3.new(total + 4, 1, 6), CFrame = facing * CFrame.new(0, 0.5, 0), Color = Color3.fromRGB(250, 250, 255) })
+	Build.part(model, { Size = Vector3.new(total + 4.2, 0.3, 6.2), CFrame = facing * CFrame.new(0, 1.05, 0), Color = Color3.fromRGB(255, 205, 60) })
+
+	for i, board in ipairs(Forest.BOARDS) do
+		local x = -total / 2 + WIDTH / 2 + (i - 1) * (WIDTH + GAP)
+		-- white frame, coloured cap, screen
+		Build.part(model, { Size = Vector3.new(WIDTH, 14.4, 0.8), CFrame = facing * CFrame.new(x, 8.4, 0.2), Color = Color3.fromRGB(250, 250, 255) })
+		Build.part(model, { Size = Vector3.new(WIDTH, 1.2, 1.2), CFrame = facing * CFrame.new(x, 16.2, 0.2), Color = board.Color })
+		world.Boards[board.Id] = Build.part(model, {
+			Name = "Screen_" .. board.Id,
+			Size = Vector3.new(WIDTH - 1, 13.4, 0.2),
+			CFrame = facing * CFrame.new(x, 8.4, -0.3),
+			Color = Color3.fromRGB(255, 255, 255),
+		})
 	end
-	local screen = Build.part(model, {
-		Name = "Screen",
-		Size = Vector3.new(15, 19, 0.6),
-		CFrame = facing * CFrame.new(0, 12.5, 0),
-		Color = Color3.fromRGB(18, 20, 38),
-	})
-	Build.part(model, {
-		Size = Vector3.new(17, 0.8, 1.6),
-		CFrame = facing * CFrame.new(0, 22.4, 0),
-		Color = color,
-		Material = Enum.Material.Neon,
-	})
-	return screen
+
+	-- one shared header above all three
+	Build.sign(model, facing * CFrame.new(0, 18.6, 0.2), Vector3.new(16, 2.6, 0.6), "LEADERBOARDS", Color3.new(1, 1, 1), Color3.fromRGB(255, 150, 60))
+	return total
 end
 
 function Forest.build(ctx)
@@ -111,78 +115,68 @@ function Forest.build(ctx)
 	local deco = Build.folder(folder, "Decor")
 	local terrain = ctx.Terrain
 
-	-- hills along both sides and behind the start
-	for x = x0 - 20, x1 + 10, 22 do
+	-- soft round hills along both sides and behind the start
+	for x = x0 - 10, x1 + 6, 14 do
 		for _, side in ipairs({ -1, 1 }) do
-			local r = rng:NextNumber(24, 40)
-			terrain:FillBall(Vector3.new(x + rng:NextNumber(-8, 8), rng:NextNumber(-12, -4), side * rng:NextNumber(half + 50, half + 95)), r, Enum.Material.Grass)
+			terrain:FillBall(Vector3.new(x + rng:NextNumber(-5, 5), rng:NextNumber(-9, -3), side * rng:NextNumber(half + 26, half + 50)), rng:NextNumber(16, 24), Enum.Material.Grass)
 		end
 	end
-	for z = -ctx.Side, ctx.Side, 24 do
-		terrain:FillBall(Vector3.new(x0 - rng:NextNumber(18, 34), rng:NextNumber(-8, 2), z), rng:NextNumber(24, 36), Enum.Material.Grass)
+	for z = -ctx.Side, ctx.Side, 16 do
+		terrain:FillBall(Vector3.new(x0 - rng:NextNumber(12, 20), rng:NextNumber(-6, 0), z), rng:NextNumber(16, 22), Enum.Material.Grass)
 	end
 
-	-- fountains on the sides
-	for _, side in ipairs({ -1, 1 }) do
-		local center = Vector3.new(x0 + 100, 0, side * (half - 14))
+	-- leaderboards: one group on the left side, near the spawn
+	local stageCenter = Vector3.new(x0 + 30, 0, -(half - 5))
+	local stageWidth = leaderboardStage(deco, ctx.World, stageCenter)
+	for dx = -stageWidth / 2, stageWidth / 2, 6 do
+		space:add(stageCenter + Vector3.new(dx, 0, 0), 5)
+	end
+
+	-- a fountain on each side
+	for _, f in ipairs({ { X = 72, Side = -1 }, { X = 42, Side = 1 } }) do
+		local center = Vector3.new(x0 + f.X, 0, f.Side * (half - 9))
 		fountain(deco, center)
-		space:add(center, 13)
+		space:add(center, 8)
 	end
 
-	-- leaderboards along the sides
-	local boards = {
-		{ Id = "Strongest", X = 45, Side = -1, Color = Color3.fromRGB(255, 120, 90) },
-		{ Id = "Playtime", X = 45, Side = 1, Color = Color3.fromRGB(80, 220, 255) },
-		{ Id = "Rebirths", X = 155, Side = -1, Color = Color3.fromRGB(190, 120, 255) },
-	}
-	for _, b in ipairs(boards) do
-		local base = Vector3.new(x0 + b.X, 0, b.Side * (half - 6))
-		ctx.World.Boards[b.Id] = board(deco, base, b.Id, b.Color)
-		space:add(base, 11)
-	end
-
-	-- big trees: a row just inside each side, and a forest outside the walls
-	for x = x0 + 8, x1 - 8, 14 do
+	-- trees: a row along each side, and a forest outside the walls
+	for x = x0 + 5, x1 - 5, 9 do
 		for _, side in ipairs({ -1, 1 }) do
-			local base = Vector3.new(x + rng:NextNumber(-4, 4), 0, side * rng:NextNumber(half - 7, half - 3))
-			if space:free(base, 5) then
-				tree(deco, rng, base, rng:NextNumber(1, 1.4))
-				space:add(base, 5)
+			local base = Vector3.new(x + rng:NextNumber(-2, 2), 0, side * rng:NextNumber(half - 4, half - 2))
+			if space:free(base, 3.5) then
+				tree(deco, rng, base, rng:NextNumber(0.9, 1.2))
+				space:add(base, 3.5)
 			end
-			tree(deco, rng, Vector3.new(x + rng:NextNumber(-6, 6), 0, side * rng:NextNumber(half + 6, half + 40)), rng:NextNumber(1.1, 1.8))
+			tree(deco, rng, Vector3.new(x + rng:NextNumber(-3, 3), 0, side * rng:NextNumber(half + 5, half + 22)), rng:NextNumber(1, 1.5))
 		end
 	end
-	-- a few trees in the middle too
-	for _ = 1, 6 do
-		local base = space:find(rng, x0 + 20, x1 - 20, -half + 20, half - 20, 7)
+	for _ = 1, 3 do
+		local base = space:find(rng, x0 + 14, x1 - 14, -half + 14, half - 14, 5)
 		if base then
-			tree(deco, rng, base, rng:NextNumber(1, 1.3))
+			tree(deco, rng, base, rng:NextNumber(0.9, 1.1))
 		end
 	end
 
-	-- flowers and grass tufts everywhere (players walk through them)
+	-- flowers and flat grass (players walk over them)
 	local small = Build.folder(deco, "FlowersAndGrass")
-	for _ = 1, 140 do
+	for _ = 1, 70 do
 		local base = Vector3.new(rng:NextNumber(x0 + 2, x1 - 2), 0, rng:NextNumber(-half + 2, half - 2))
-		if space:free(base, 1) then
+		if space:free(base, 0.8) then
 			flower(small, rng, base)
 		end
 	end
-	for _ = 1, 320 do
-		local base = Vector3.new(rng:NextNumber(x0 + 2, x1 - 2), 0, rng:NextNumber(-half - 30, half + 30))
-		if space:free(base, 1) then
-			tuft(small, rng, base)
+	for _ = 1, 220 do
+		local base = Vector3.new(rng:NextNumber(x0 + 1, x1 - 1), 0, rng:NextNumber(-half + 1, half - 1))
+		if space:free(base, 0.8) then
+			Build.flatGrass(small, rng, base, GRASS)
 		end
 	end
 
-	-- rocks
-	for _ = 1, 10 do
-		local base = space:find(rng, x0 + 10, x1 - 10, -half + 8, half - 8, 3)
+	-- a few round pebbles
+	for _ = 1, 6 do
+		local base = space:find(rng, x0 + 8, x1 - 8, -half + 6, half - 6, 2)
 		if base then
-			Build.block(deco, base, Vector3.new(rng:NextNumber(3, 5), rng:NextNumber(1.6, 2.6), rng:NextNumber(3, 5)), {
-				Color = Build.vary(rng, Color3.fromRGB(140, 140, 150)),
-				Material = Enum.Material.Slate,
-			}, rng:NextNumber(0, 90))
+			Build.ball(deco, base, rng:NextNumber(1.6, 2.4), { Color = Build.vary(rng, Color3.fromRGB(190, 195, 210), 0.04) })
 		end
 	end
 end
@@ -190,13 +184,13 @@ end
 -- Small tree: the Forest's breakable
 function Forest.breakable(parent, position, rng)
 	local model = Build.model(parent, "Small Tree")
-	local trunk = Build.cylinder(model, position, 3.2, 1, { Color = TRUNK, Material = Enum.Material.Wood })
-	local top = position + Vector3.new(0, 4.6, 0)
-	Build.ball(model, top, 4.6, { Color = Build.vary(rng, LEAVES), Material = Enum.Material.Grass })
-	Build.ball(model, top + Vector3.new(0.9, 0.9, 0.3), 3, { Color = Build.vary(rng, LEAVES), Material = Enum.Material.Grass })
-	-- a couple of red apples, so they read as "worth something"
-	for _, offset in ipairs({ Vector3.new(1.6, -0.6, 1.4), Vector3.new(-1.5, 0.2, 1.3) }) do
-		Build.ball(model, top + offset, 0.8, { Color = Color3.fromRGB(230, 50, 50) })
+	local trunk = Build.cylinder(model, position, 2.4, 0.8, { Color = TRUNK })
+	local top = position + Vector3.new(0, 3.6, 0)
+	Build.ball(model, top, 3.6, { Color = Build.vary(rng, LEAVES, 0.04) })
+	Build.ball(model, top + Vector3.new(0.7, 0.7, 0.2), 2.4, { Color = Build.vary(rng, LEAVES, 0.04) })
+	-- shiny red apples, so they read as "worth something"
+	for _, offset in ipairs({ Vector3.new(1.3, -0.5, 1.1), Vector3.new(-1.2, 0.2, 1) }) do
+		Build.ball(model, top + offset, 0.7, { Color = Color3.fromRGB(240, 50, 60) })
 	end
 	model.PrimaryPart = trunk
 	return model

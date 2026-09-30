@@ -7,36 +7,36 @@ local Sahara = {}
 
 Sahara.GROUND = Enum.Material.Sand
 
-local LIMESTONE = Color3.fromRGB(222, 205, 170)
-local SANDSTONE = Color3.fromRGB(215, 175, 115)
-local GOLD = Color3.fromRGB(245, 195, 60)
-local LAPIS = Color3.fromRGB(35, 70, 170)
-local CACTUS = Color3.fromRGB(80, 160, 80)
+local LIMESTONE = Color3.fromRGB(250, 228, 180)
+local SANDSTONE = Color3.fromRGB(245, 195, 120)
+local GOLD = Color3.fromRGB(255, 205, 50)
+local LAPIS = Color3.fromRGB(50, 120, 230)
+local CACTUS = Color3.fromRGB(80, 200, 95)
 
 -- High wall of big, slightly uneven limestone blocks, with little plants
 -- growing from the joints
 local function limestoneWall(parent, rng, x0, x1, z)
 	local wall = Build.model(parent, "LimestoneWall")
-	local course = 4.2
-	for row = 0, 5 do
+	local course = 3.2
+	for row = 0, 3 do
 		local inset = row * 0.25 -- each course sits a little further back
 		local x = x0 + rng:NextNumber(0, 5)
 		if row == 0 then
 			x = x0
 		end
 		while x < x1 do
-			local length = math.min(rng:NextNumber(6, 13), x1 - x)
+			local length = math.min(rng:NextNumber(4, 8), x1 - x)
 			local block = Build.block(
 				wall,
 				Vector3.new(x + length / 2, row * course, z + math.sign(z) * inset),
-				Vector3.new(length - 0.25, course - 0.25, 5),
+				Vector3.new(length - 0.3, course - 0.3, 3.5),
 				{ Color = Build.vary(rng, LIMESTONE, 0.05), Material = Enum.Material.Limestone }
 			)
 			block.Name = "Stone"
 			if rng:NextNumber() < 0.08 then
 				-- a tuft of green in the joint, facing the path
-				Build.ghost(Build.ball(wall, Vector3.new(x + length, row * course + course, z - math.sign(z) * 2.4), rng:NextNumber(1, 1.8), {
-					Color = Build.vary(rng, Color3.fromRGB(95, 140, 70)),
+				Build.ghost(Build.ball(wall, Vector3.new(x + length, row * course + course, z - math.sign(z) * 1.7), rng:NextNumber(0.9, 1.4), {
+					Color = Build.vary(rng, Color3.fromRGB(90, 200, 80)),
 					Material = Enum.Material.Grass,
 				}))
 			end
@@ -44,17 +44,17 @@ local function limestoneWall(parent, rng, x0, x1, z)
 		end
 	end
 	-- fill the corners before the first stones' offsets
-	Build.block(wall, Vector3.new(x0 + 3, 0, z), Vector3.new(6, course * 6, 4.8), { Color = LIMESTONE, Material = Enum.Material.Limestone })
+	Build.block(wall, Vector3.new(x0 + 2, 0, z), Vector3.new(4, course * 4, 3.3), { Color = LIMESTONE })
 end
 
 local function pyramid(parent, center, base, layers)
 	local model = Build.model(parent, "Pyramid")
 	local step = base / (layers + 1)
-	local height = 5
+	local height = 4
 	for layer = 0, layers - 1 do
 		local size = base - layer * step
 		Build.block(model, center + Vector3.new(0, layer * height, 0), Vector3.new(size, height, size), {
-			Color = SANDSTONE:Lerp(Color3.fromRGB(240, 210, 150), layer / layers),
+			Color = if layer % 2 == 0 then SANDSTONE else SANDSTONE:Lerp(Color3.fromRGB(255, 235, 180), 0.35),
 			Material = Enum.Material.Sandstone,
 		})
 	end
@@ -67,24 +67,28 @@ end
 
 local function palm(parent, rng, base)
 	local model = Build.model(parent, "Palm")
-	local height = rng:NextNumber(12, 17)
+	local height = rng:NextNumber(8, 11)
 	local lean = CFrame.Angles(math.rad(rng:NextNumber(-8, 8)), 0, math.rad(rng:NextNumber(-8, 8)))
 	local trunk = Build.part(model, {
 		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(height, 1.6, 1.6),
+		Size = Vector3.new(height, 1.2, 1.2),
 		CFrame = CFrame.new(base) * lean * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(150, 110, 70),
-		Material = Enum.Material.Wood,
+		Color = Color3.fromRGB(190, 135, 85),
 	})
 	local top = (CFrame.new(base) * lean * CFrame.new(0, height, 0)).Position
 	for k = 1, 7 do
 		local yaw = k / 7 * 360
-		Build.wedge(model, CFrame.new(top) * CFrame.Angles(0, math.rad(yaw), 0) * CFrame.Angles(math.rad(-20), 0, 0) * CFrame.new(0, 0, -4), Vector3.new(1.8, 0.4, 8), {
-			Color = Build.vary(rng, Color3.fromRGB(70, 150, 60)),
+		Build.part(model, {
+			Size = Vector3.new(1.4, 0.35, 5.5),
+			CFrame = CFrame.new(top) * CFrame.Angles(0, math.rad(yaw), 0) * CFrame.Angles(math.rad(-18), 0, 0) * CFrame.new(0, 0, -2.6),
+			Color = Build.vary(rng, Color3.fromRGB(80, 200, 80), 0.04),
 			Material = Enum.Material.Grass,
 		})
 	end
-	Build.ball(model, top, 1.8, { Color = Color3.fromRGB(110, 80, 40) })
+	for k = 1, 3 do
+		local a = k / 3 * math.pi * 2
+		Build.ball(model, top + Vector3.new(math.cos(a) * 0.6, -0.5, math.sin(a) * 0.6), 0.9, { Color = Color3.fromRGB(150, 95, 50) }) -- coconuts
+	end
 	return trunk
 end
 
@@ -130,7 +134,12 @@ local function cleopatraTemple(parent, center)
 	Build.block(model, statueBase, Vector3.new(3.4, 7, 2.4), { Color = Color3.fromRGB(245, 245, 240), Material = Enum.Material.Marble }) -- dress
 	Build.block(model, statueBase + Vector3.new(0, 5, 0), Vector3.new(4.4, 1, 2.6), { Color = GOLD, Material = Enum.Material.Foil }) -- collar
 	local head = statueBase + Vector3.new(0, 8, 0)
-	Build.ball(model, head, 2.4, { Color = Color3.fromRGB(200, 150, 105) })
+	Build.ball(model, head, 2.4, { Color = Color3.fromRGB(225, 175, 130) })
+	-- friendly face: eyes with eyeliner and a smile
+	for _, x in ipairs({ -0.45, 0.45 }) do
+		Build.ball(model, head + Vector3.new(x, 0.15, 1.05), 0.36, { Color = Color3.fromRGB(40, 40, 60) })
+	end
+	Build.block(model, head + Vector3.new(0, -0.55, 1.1), Vector3.new(0.7, 0.14, 0.1), { Color = Color3.fromRGB(220, 90, 110) })
 	-- headdress: gold and blue stripes falling to the shoulders
 	for k = 0, 4 do
 		Build.block(model, head + Vector3.new(-1.3 + k * 0.65, -2.4, -0.4), Vector3.new(0.6, 3.6, 1.2), {
@@ -150,7 +159,7 @@ end
 -- shows the fusion's progress, neon rings and a console with the prompt
 local function fusionMachine(parent, center)
 	local model = Build.model(parent, "FusionMachine")
-	local metal = Color3.fromRGB(60, 64, 88)
+	local metal = Color3.fromRGB(245, 245, 255)
 	local glow = Color3.fromRGB(255, 90, 170)
 	Build.cylinder(model, center, 3, 26, { Color = metal, Material = Enum.Material.DiamondPlate })
 	Build.cylinder(model, center + Vector3.new(0, 3, 0), 0.6, 24, { Color = glow, Material = Enum.Material.Neon })
@@ -230,52 +239,53 @@ function Sahara.build(ctx)
 	local deco = Build.folder(folder, "Decor")
 	local terrain = ctx.Terrain
 
-	-- dunes behind the walls
-	for x = x0, x1, 18 do
+	-- rolling dunes behind the walls
+	for x = x0, x1, 12 do
 		for _, side in ipairs({ -1, 1 }) do
 			terrain:FillBall(
-				Vector3.new(x + rng:NextNumber(-6, 6), rng:NextNumber(-14, -6), side * rng:NextNumber(half + 60, half + 110)),
-				rng:NextNumber(22, 34),
+				Vector3.new(x + rng:NextNumber(-4, 4), rng:NextNumber(-10, -5), side * rng:NextNumber(half + 30, half + 60)),
+				rng:NextNumber(14, 22),
 				Enum.Material.Sand
 			)
 		end
 	end
 
-	-- walls on both sides
+	-- limestone walls on both sides
 	for _, side in ipairs({ -1, 1 }) do
-		limestoneWall(deco, rng, x0, x1, side * (half + 4))
+		limestoneWall(deco, rng, x0, x1, side * (half + 3))
 	end
 
-	-- pyramids beyond the right wall (tall enough to see over it)
-	pyramid(deco, Vector3.new(x0 + 110, 0, half + 70), 100, 13)
-	pyramid(deco, Vector3.new(x0 + 40, 0, half + 95), 60, 8)
-	pyramid(deco, Vector3.new(x0 + 170, 0, -(half + 85)), 70, 9)
+	-- pyramids beyond the walls, tall enough to see over them
+	pyramid(deco, Vector3.new(x0 + 55, 0, half + 40), 56, 9)
+	pyramid(deco, Vector3.new(x0 + 20, 0, half + 52), 34, 6)
+	pyramid(deco, Vector3.new(x0 + 80, 0, -(half + 44)), 44, 7)
 
-	-- Cleopatra's temple (left) and the fusion machine (right)
-	local templeCenter = Vector3.new(x0 + 140, 0, -(half - 22))
-	cleopatraTemple(deco, templeCenter)
-	space:add(templeCenter, 24)
-	space:add(templeCenter + Vector3.new(0, 0, 14), 8)
+	-- Cleopatra's temple on the left, scaled down to fit
+	local templeCenter = Vector3.new(x0 + 66, 0, -(half - 13))
+	Build.scale(cleopatraTemple(deco, templeCenter), templeCenter, 0.55)
+	space:add(templeCenter, 13)
+	space:add(templeCenter + Vector3.new(0, 0, 8), 5)
 
-	local machineCenter = Vector3.new(x0 + 75, 0, half - 30)
-	ctx.World.Fusion = fusionMachine(deco, machineCenter)
-	space:add(machineCenter, 17)
-	space:add(machineCenter + Vector3.new(0, 0, -16), 6)
+	-- the fusion machine on the right
+	local machineCenter = Vector3.new(x0 + 32, 0, half - 15)
+	local machine = fusionMachine(deco, machineCenter)
+	Build.scale(machine.Model, machineCenter, 0.6)
+	machine.Status.Parent.StudsOffsetWorldSpace = Vector3.new(0, 10, 0)
+	ctx.World.Fusion = machine
+	space:add(machineCenter, 10)
+	space:add(machineCenter + Vector3.new(0, 0, -10), 4)
 
-	-- palms and rocks
-	for _ = 1, 12 do
-		local base = space:find(rng, x0 + 8, x1 - 8, -half + 5, half - 5, 4)
+	-- palms and pebbles
+	for _ = 1, 6 do
+		local base = space:find(rng, x0 + 6, x1 - 6, -half + 4, half - 4, 3)
 		if base then
 			palm(deco, rng, base)
 		end
 	end
-	for _ = 1, 14 do
-		local base = space:find(rng, x0 + 8, x1 - 8, -half + 5, half - 5, 3)
+	for _ = 1, 6 do
+		local base = space:find(rng, x0 + 6, x1 - 6, -half + 4, half - 4, 2)
 		if base then
-			Build.ball(deco, base + Vector3.new(0, 0.3, 0), rng:NextNumber(2, 3.5), {
-				Color = Build.vary(rng, Color3.fromRGB(195, 150, 100)),
-				Material = Enum.Material.Sandstone,
-			})
+			Build.ball(deco, base, rng:NextNumber(1.4, 2.2), { Color = Build.vary(rng, Color3.fromRGB(235, 185, 120), 0.04) })
 		end
 	end
 end
@@ -287,8 +297,8 @@ function Sahara.breakable(parent, position, rng)
 	local props = function()
 		return { Color = color, Material = Enum.Material.Grass }
 	end
-	local body = Build.cylinder(model, position, 7, 2.2, props())
-	Build.ball(model, position + Vector3.new(0, 7, 0), 2.2, props())
+	local body = Build.cylinder(model, position, 5.5, 2, props())
+	Build.ball(model, position + Vector3.new(0, 5.5, 0), 2, props())
 	-- arms: out, then up
 	for _, side in ipairs({ -1, 1 }) do
 		local y = if side < 0 then 2.8 else 3.8
@@ -304,7 +314,7 @@ function Sahara.breakable(parent, position, rng)
 		Build.ball(model, armBase + Vector3.new(0, 2.6, 0), 1.4, props())
 	end
 	-- a pink flower on top
-	Build.ball(model, position + Vector3.new(0, 8.1, 0), 0.9, { Color = Color3.fromRGB(255, 110, 170) })
+	Build.ball(model, position + Vector3.new(0, 6.5, 0), 0.9, { Color = Color3.fromRGB(255, 110, 170) })
 	model.PrimaryPart = body
 	return model
 end
