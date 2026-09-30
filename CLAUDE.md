@@ -9,6 +9,12 @@ for how it plays and where the code lives.
   the normal rebirth requirements before releasing the final version of the
   game.** Set `Config.REBIRTH_FREE_FOR_TESTING = false` in
   `src/shared/Config.luau` (the normal cost is 1M coins x (rebirths + 1)).
+- **BEFORE THE FINAL VERSION: All areas are currently free and their gates
+  are open for testing. Restore the normal area costs (300 / 6K / 100K
+  coins) before releasing the final version of the game.** Set
+  `Config.AREAS_FREE_FOR_TESTING = false` in `src/shared/Config.luau`.
+  Saves made while testing keep every area unlocked, so also reset player
+  data (change the DataStore name in `PlayerData.luau`) before release.
 
 ## Notes for working on this project
 

@@ -166,6 +166,23 @@ Config.AREAS = {
 	},
 }
 
+-- TESTING ONLY: every area costs 0 coins and every gate is open, so all
+-- four areas can be walked into right away.
+-- BEFORE THE FINAL VERSION set this to false (see CLAUDE.md).
+Config.AREAS_FREE_FOR_TESTING = true
+
+function Config.areaCost(i)
+	if Config.AREAS_FREE_FOR_TESTING then
+		return 0
+	end
+	return Config.AREAS[i].Cost
+end
+
+-- The highest area a player has on join and after a rebirth
+function Config.startingArea()
+	return if Config.AREAS_FREE_FOR_TESTING then #Config.AREAS else 1
+end
+
 -- X where area i starts
 function Config.areaStart(i)
 	return (i - 1) * Config.AREA_LENGTH

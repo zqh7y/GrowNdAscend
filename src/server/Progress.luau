@@ -31,11 +31,12 @@ for i, gate in pairs(World.Gates) do
 			notifyEvent:FireClient(player, "Unlock " .. Config.AREAS[i - 1].Name .. " first!", "danger")
 			return
 		end
-		if data.Coins < area.Cost then
-			notifyEvent:FireClient(player, "You need " .. Config.formatNumber(area.Cost - data.Coins) .. " more coins", "danger")
+		local cost = Config.areaCost(i)
+		if data.Coins < cost then
+			notifyEvent:FireClient(player, "You need " .. Config.formatNumber(cost - data.Coins) .. " more coins", "danger")
 			return
 		end
-		data.Coins -= area.Cost
+		data.Coins -= cost
 		data.Unlocked = i
 		refreshGates(data.Unlocked)
 		PlayerData.sync(player)
@@ -54,9 +55,9 @@ rebirthFunction.OnServerInvoke = function(player)
 		return false
 	end
 	data.Coins = 0
-	data.Unlocked = 1
+	data.Unlocked = Config.startingArea()
 	data.Rebirths += 1
-	refreshGates(1)
+	refreshGates(data.Unlocked)
 	PlayerData.sync(player)
 	-- back to the start
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -70,7 +71,9 @@ end
 local function onLoaded(player)
 	local data = PlayerData.get(player)
 	if data then
+		data.Unlocked = math.max(data.Unlocked, Config.startingArea())
 		refreshGates(data.Unlocked)
+		PlayerData.sync(player)
 	end
 end
 
@@ -78,6 +81,6 @@ PlayerData.Loaded.Event:Connect(onLoaded)
 for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(onLoaded, player)
 end
-refreshGates(1)
+refreshGates(Config.startingArea())
 
 return {}
