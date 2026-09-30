@@ -292,6 +292,25 @@ function Ui.icons.star(parent, color)
 	dot(parent, 0.5, 0.55, 0.42, color)
 end
 
+-- an open book (the animal index)
+function Ui.icons.book(parent, color)
+	for _, side in ipairs({ -1, 1 }) do
+		local page = outline(parent, 0.5 + side * 0.22, 0.52, 0.44, 0.15, color)
+		page.Size = UDim2.fromScale(0.42, 0.7)
+		page.Rotation = side * 6
+		for k = 0, 1 do
+			bar(page, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.36 + k * 0.26), Size = UDim2.fromScale(0.5, 0.09), BackgroundColor3 = color })
+		end
+	end
+end
+
+-- three lines, shortest last (sorting)
+function Ui.icons.sort(parent, color)
+	for k = 0, 2 do
+		bar(parent, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.fromScale(0.08, 0.25 + k * 0.25), Size = UDim2.fromScale(0.84 - k * 0.24, 0.12), BackgroundColor3 = color })
+	end
+end
+
 -- A standalone icon of the given pixel size
 function Ui.icon(name, size, color, props)
 	props = props or {}

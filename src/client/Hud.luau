@@ -12,7 +12,8 @@ local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
 local Effects = require(script.Parent.Effects)
 local Roll = require(script.Parent.Roll)
-local PetsPanel = require(script.Parent.PetsPanel)
+local Index = require(script.Parent.Index)
+local Inventory = require(script.Parent.Inventory)
 local UpgradeTree = require(script.Parent.UpgradeTree)
 local Panels = require(script.Parent.Panels)
 
@@ -177,11 +178,12 @@ local function button(parent, order, icon, label, onClick, size, style)
 	return holder, b
 end
 
-button(nav, 1, "paw", "Pets", PetsPanel.open)
-local _, upgradesButton = button(nav, 2, "tree", "Upgrades", UpgradeTree.open)
-button(nav, 3, "star", "Rebirth", Panels.openRebirth)
-local topHolder = button(nav, 4, "podium", "Top", Panels.openTop)
-button(nav, 5, "gear", "Settings", Panels.openSettings)
+button(nav, 1, "paw", "Inventory", Inventory.open)
+button(nav, 2, "book", "Index", Index.open)
+local _, upgradesButton = button(nav, 3, "tree", "Upgrades", UpgradeTree.open)
+button(nav, 4, "star", "Rebirth", Panels.openRebirth)
+local topHolder = button(nav, 5, "podium", "Top", Panels.openTop)
+button(nav, 6, "gear", "Settings", Panels.openSettings)
 
 -- a gold dot on Upgrades when something can be bought
 local upgradeDot = Ui.new("Frame", {

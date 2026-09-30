@@ -437,11 +437,49 @@ end
 function methods:PivotTo(cf)
 	assert(isCF(cf), "PivotTo needs a CFrame")
 	rawget(self, "_props").DrawnAt = cf
+	-- like Roblox: every part moves with the pivot
+	if self.ClassName == "Model" then
+		local delta = cf * self:GetPivot():Inverse()
+		for _, d in ipairs(self:GetDescendants()) do
+			if BASEPART[d.ClassName] then
+				d.CFrame = delta * d.CFrame
+			end
+		end
+		rawget(self, "_props").WorldPivot = cf
+	else
+		self.CFrame = cf
+	end
 end
 function methods:ScaleTo(n)
 	assert(self.ClassName == "Model", "ScaleTo on non-model")
 	assert(type(n) == "number" and n > 0, "ScaleTo needs a positive number")
 	assert(#self:GetDescendants() > 0, "ScaleTo on an empty model errors in Roblox")
+	-- parts scale about the pivot
+	local pivot = self:GetPivot()
+	local ratio = n / (rawget(self, "_props").Scale or 1)
+	rawget(self, "_props").Scale = n
+	for _, d in ipairs(self:GetDescendants()) do
+		if BASEPART[d.ClassName] then
+			local rel = pivot:ToObjectSpace(d.CFrame)
+			d.CFrame = pivot * CFrame.new(rel.Position * ratio) * rel.Rotation
+			d.Size = d.Size * ratio
+		end
+	end
+end
+function methods:GetBoundingBox()
+	local lo, hi
+	for _, d in ipairs(self:GetDescendants()) do
+		if BASEPART[d.ClassName] then
+			local half = d.Size / 2
+			local r = math.max(half.X, half.Y, half.Z)
+			local p = d.CFrame.Position
+			local a, b = p - Vector3.new(r, r, r), p + Vector3.new(r, r, r)
+			lo = if lo then Vector3.new(math.min(lo.X, a.X), math.min(lo.Y, a.Y), math.min(lo.Z, a.Z)) else a
+			hi = if hi then Vector3.new(math.max(hi.X, b.X), math.max(hi.Y, b.Y), math.max(hi.Z, b.Z)) else b
+		end
+	end
+	assert(lo, "GetBoundingBox on an empty model")
+	return CFrame.new((lo + hi) / 2), hi - lo
 end
 function methods:GetExtentsSize()
 	return Vector3.new(4, 5, 4)

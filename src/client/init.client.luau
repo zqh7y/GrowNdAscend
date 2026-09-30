@@ -12,7 +12,7 @@ local Effects = require(script.Effects)
 local Living = require(script.Living)
 local Pets = require(script.Pets)
 require(script.Motion)
-require(script.Hud) -- also loads Roll, PetsPanel, UpgradeTree and Panels
+require(script.Hud) -- also loads Roll, Inventory, Index, UpgradeTree and Panels
 
 local player = Players.LocalPlayer
 

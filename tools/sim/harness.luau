@@ -332,7 +332,27 @@ if ok then
 			print("  MOVE: " .. moveProblems[i])
 		end
 		STATS.MoveProblems = #moveProblems
-		try("PetsPanel.open", C("PetsPanel").open)
+		try("Inventory.open", C("Inventory").open)
+		for f = 1, 5 do
+			try("Inventory filter " .. f, function()
+				C("Inventory").Filter = f
+				C("Inventory").open()
+			end)
+		end
+		for _ = 1, 4 do
+			try("Inventory sort", function()
+				C("Inventory").Sort = C("Inventory").Sort % 4 + 1
+				C("Inventory").open()
+			end)
+		end
+		C("Inventory").Filter, C("Inventory").Sort = 1, 1
+		try("Index.open", C("Index").open)
+		for world = 0, 4 do
+			try("Index world " .. world, function()
+				C("Index").Tab = world
+				C("Index").open()
+			end)
+		end
 		try("UpgradeTree.open", C("UpgradeTree").open)
 		try("UpgradeTree.select", C("UpgradeTree").select, "SizeLuck")
 		try("UpgradeTree.buy", C("UpgradeTree").buy)

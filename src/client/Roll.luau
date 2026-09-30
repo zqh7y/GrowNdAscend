@@ -308,9 +308,18 @@ function Roll.roll()
 	if ok and type(results) == "table" and #results > 0 then
 		local quick = not State.Settings.Reveals or Config.upgradeLevel(data, "AutoHatch") >= 2
 		showCards(results, not quick)
+		local discovered = {}
+		for name in pairs(data.Discovered or {}) do
+			discovered[name] = true
+		end
 		for _, result in ipairs(results) do
-			if result.First then
-				Screen.toast("New pet: " .. result.Name .. "!", "success")
+			if result.First and not discovered[result.Pet] then
+				discovered[result.Pet] = true
+				local n = 0
+				for _ in pairs(discovered) do
+					n += 1
+				end
+				Screen.toast(string.format("New animal discovered: %s!  (%d / %d)", result.Pet, n, #Config.PETS), "success")
 			end
 		end
 		-- the most exciting result gets the big reveal
