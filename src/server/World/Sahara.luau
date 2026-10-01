@@ -1,6 +1,6 @@
 -- Area 2: Sahara. Golden sand with an oasis, pyramids and a sphinx beyond the
 -- walls, Cleopatra's temple (a pylon gate with a winged sun disk, lotus
--- columns, painted friezes, obelisks and her statue), the pet fusion
+-- columns, painted friezes, obelisks and her statue), the Pet Aura
 -- machine, palms, pottery, a camel, sandstone rocks, and high walls of big
 -- limestone blocks with raised faces, like the Western Wall. (Its living
 -- coins, cactuses, are in shared/Coins.luau.)
@@ -316,7 +316,7 @@ local function cleopatraTemple(parent, rng, center)
 	return model
 end
 
--- The fusion machine ---------------------------------------------------------------------------------
+-- The Pet Aura Machine (was the fusion machine) ---------------------------------------------------------------------------------
 
 -- a ring of small segments that the client spins as one piece
 local function ring(parent, center, radius, tilt, color, glow)
@@ -490,8 +490,8 @@ local function fusionMachine(parent, center)
 	pad2.Parent = screenText
 
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Fuse Pets"
-	prompt.ObjectText = "Fusion Machine"
+	prompt.ActionText = "Open"
+	prompt.ObjectText = "Pet Aura Machine"
 	prompt.HoldDuration = 0.2
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
@@ -514,7 +514,7 @@ local function fusionMachine(parent, center)
 		label.TextScaled = true
 		label.TextColor3 = if k == 1 then Color3.new(1, 1, 1) else Color3.fromRGB(255, 200, 230)
 		label.TextStrokeTransparency = 0.4
-		label.Text = if k == 1 then "PET FUSION" else "5 pets → 1 BIGGER pet"
+		label.Text = if k == 1 then "PET AURA MACHINE" else "3 same pets → 1 with an AURA"
 		label.Parent = gui
 	end
 

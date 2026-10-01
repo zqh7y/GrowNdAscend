@@ -173,7 +173,22 @@ chase Huge and Titanic pets.**
   or stops at the fountain. Each world has its own light. Quiet stretches
   alternate with lively ones, everything is capped, and only the world you're
   in is alive (`Ambient.luau`).
-- **Fusion machine** (Sahara): 5 of the same pet → 1 of the next size up.
+- **Pet Aura Machine** (Sahara, where the fusion machine was): put in 3 of
+  the same pet (any size, no aura yet) and get 1 of it back holding a random
+  **aura weapon** (a chunky blaster at its mouth, glowing in the aura's
+  colour). Each aura multiplies that pet's stats:
+
+  | Aura | Chance | Boosts |
+  | --- | --- | --- |
+  | Blaster | 45% | Damage x1.3 |
+  | Coin Cannon | 25% | Coins x1.4 |
+  | Clover Launcher | 15% | Luck x1.4 |
+  | Plasma Rifle | 9% | Damage x1.8, Coins x1.2 |
+  | Rainbow Railgun | 5% | Damage, Coins, Luck x1.6 |
+  | Cosmic Annihilator | 1% | Damage x3, Coins x2.5, Luck x2.5 |
+
+  Aura pets show the aura's name on their tile and over their head, and are
+  saved as "Huge Tiger|plasma" (`Config.AURAS`, `Config.petAura`).
 - **Levels:** every enemy you defeat gives EXP (1 / 4 / 15 / 50 per enemy in
   worlds 1-4). Levels get steeper (8 x level^1.5 EXP each) and never reset.
   The level and an EXP bar sit under your team; levelling up shows a big
@@ -260,13 +275,12 @@ accents (realistic materials are swapped out automatically in `Build.part`).
 | Area | What's there | Breakable | Unlock |
 | --- | --- | --- | --- |
 | 1 Forest | Dirt path through the grass, oaks, birches, fruit trees and poplars (root flares, bent trunks, branches, toon-shaded leaves), flower patches (daisies, tulips, bluebells, sunflowers), berry bushes, mushrooms, fallen logs, mossy rocks, two tiered fountains with water streams, hills with a cottage and a windmill, the 3 leaderboards side by side | Hopping fruit trees (5K HP, 20 coins) | Free |
-| 2 Sahara | Oasis with palms and reeds, pyramids with gold capstones and a sphinx, Cleopatra's temple (pylon gate with a winged sun disk, lotus columns, painted friezes, obelisks, fire braziers, guardian sphinxes, her statue), the fusion machine (spinning rings, glowing pipes, hopper, output pad, console with a screen), a camel, pottery, Western Wall-style walls with raised stone faces | Saguaro, barrel and prickly pear cactuses (120M HP, 600 coins) | 25K |
+| 2 Sahara | Oasis with palms and reeds, pyramids with gold capstones and a sphinx, Cleopatra's temple (pylon gate with a winged sun disk, lotus columns, painted friezes, obelisks, fire braziers, guardian sphinxes, her statue), the Pet Aura Machine (spinning rings, glowing pipes, hopper, output pad, console with a screen), a camel, pottery, Western Wall-style walls with raised stone faces | Saguaro, barrel and prickly pear cactuses (120M HP, 600 coins) | 25K |
 | 3 Frozen Peaks | Snow with ice patches, a frozen sea (cracks, fishing holes, pressure ridges, floes, icebergs, penguins), a snow-brick igloo, a snowman and a sled, an ice arch with icicles, ice walls, crystal clusters, snow-laden pines, snowy rocks, snowfall | Ice cubes: clear, with a fish, with a gem, stacked (30B HP, 40K coins) | 12M |
 | 4 Sakura Jungle | Twisted and weeping cherry trees with falling petals, red maples, bamboo, ferns, hydrangeas and azaleas, stepping-stone path, torii gates, stone lanterns, koi pond with a red arched bridge and a bamboo spout, a five-tier pagoda, Japanese walls with tile roofs and round windows | Sushi with happy faces: salmon, tuna, egg, maki (12T HP, 3M coins) | 130B |
 
-The fusion machine shows its state: slow rings when idle, fast rings and
-lots of sparkles while fusing (the orb takes the pet's colour and grows), and
-a golden beam of light when a huge pet is ready.
+The Pet Aura Machine turns its rings slowly with sparkles and an orb in
+the colour of the rarest aura; walk up and press the prompt to open it.
 
 **Testing (temporary):** rebirths cost no coins (the level is still needed), area unlocks cost 0 coins (the gates still start locked and are unlocked at the gate as normal), and every join re-locks the areas so the gates can be seen (see CLAUDE.md, restore before release).
 
@@ -297,14 +311,15 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/server/Rolling.luau` | Rolls (pet + size), equipping, Equip Best |
 | `src/server/Upgrades.luau` | Buying upgrade tree levels |
 | `src/server/Progress.luau` | Area gates and rebirths |
-| `src/server/Fusion.luau` | The fusion machine |
+| `src/server/Aura.luau` | The Pet Aura Machine (3 pets → 1 with a random aura) |
 | `src/server/Leaderboards.luau` | The 4 global leaderboards (OrderedDataStores) |
 | `src/client/Hud.luau` | Coins, team bar, the icon dock |
 | `src/client/Roll.luau`, `Hatch.luau` | Rolling, the luck chip, auto roll; the hatch show |
 | `src/client/UpgradeTree.luau` | The upgrade tree screen |
 | `src/client/Rebirth.luau` | The rebirth screen |
 | `src/client/Inventory.luau`, `Index.luau`, `PetView.luau` | Inventory, Animal Index, 3D pet previews |
-| `src/client/Panels.luau` | Fusion, Settings (and the old Top panel) |
+| `src/client/Panels.luau` | Settings, Rebirth (and the old Top panel) |
+| `src/client/AuraMachine.luau` | The Pet Aura Machine screen and reveal |
 | `src/client/Living.luau`, `Pets.luau` | Living coins hopping, pets following and attacking |
 | `src/client/Creature.luau` | How every animal moves (walk, hop, waddle, fly, hover, swim, slither) |
 | `src/client/Ambient.luau` | Birds, critters, butterflies, visitors, falling leaves, weather, swaying plants, lighting per world |

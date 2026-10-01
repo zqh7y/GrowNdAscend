@@ -83,6 +83,22 @@ function PetTile.new(props)
 			Parent = frame,
 		})
 	end
+	-- an aura pet: the aura's name across the top, in its colour
+	local aura = Config.petAura(name)
+	if aura and not props.Silhouette then
+		Ui.chunky({
+			Name = "AuraTag",
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, math.floor(width * 0.02)),
+			Size = UDim2.new(1, 0, 0, math.floor(width * 0.14)),
+			TextSize = math.max(10, math.floor(width * 0.12)),
+			Text = string.upper(aura.Name),
+			Colors = { aura.Color:Lerp(Ui.WHITE, 0.4), aura.Color },
+			Outline = 1.5,
+			ZIndex = z + 4,
+			Parent = frame,
+		})
+	end
 	-- the odds, big along the bottom
 	local oddsTop, oddsBottom = oddsColors(name)
 	local odds = Ui.chunky({

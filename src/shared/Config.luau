@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 27 (hatch effect, faster scrolling)"
+Config.BUILD = "build 28 (Pet Aura Machine, 1s on the hatched pet)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -150,18 +150,88 @@ function Config.petName(petName, sizeIndex)
 	return Config.SIZES[sizeIndex or 1].Prefix .. petName
 end
 
--- "Titanic Tiger" -> Tiger's info, the Titanic size row
+-- Auras (the Pet Aura Machine in the Sahara) ---------------------------------------
+-- Put in 3 of the same pet (any size, no aura yet) and get 1 of it back
+-- holding a random aura weapon: a big blaster held in its mouth/paw. Each
+-- aura multiplies that pet's Damage, Coins and/or Luck stats. Weight is the
+-- chance out of 100. An aura pet's saved name is "<pet name>|<aura id>"
+-- ("Huge Tiger|plasma"); Config.petInfo ignores the aura part.
+Config.AURA_COPIES = 3
+Config.AURAS = {
+	{ Id = "blaster", Name = "Blaster", Weight = 45, Color = Color3.fromRGB(90, 170, 255), Boosts = { Damage = 1.3 } },
+	{ Id = "coin", Name = "Coin Cannon", Weight = 25, Color = Color3.fromRGB(255, 196, 40), Boosts = { Coins = 1.4 } },
+	{ Id = "clover", Name = "Clover Launcher", Weight = 15, Color = Color3.fromRGB(70, 210, 110), Boosts = { Luck = 1.4 } },
+	{ Id = "plasma", Name = "Plasma Rifle", Weight = 9, Color = Color3.fromRGB(170, 90, 255), Boosts = { Damage = 1.8, Coins = 1.2 } },
+	{ Id = "rainbow", Name = "Rainbow Railgun", Weight = 5, Color = Color3.fromRGB(255, 90, 170), Boosts = { Damage = 1.6, Coins = 1.6, Luck = 1.6 } },
+	{ Id = "cosmic", Name = "Cosmic Annihilator", Weight = 1, Color = Color3.fromRGB(40, 240, 230), Boosts = { Damage = 3, Coins = 2.5, Luck = 2.5 } },
+}
+Config.AURAS_BY_ID = {}
+for _, aura in ipairs(Config.AURAS) do
+	Config.AURAS_BY_ID[aura.Id] = aura
+end
+
+-- "Huge Tiger|plasma" -> "Huge Tiger", the Plasma Rifle row (nil if none)
+function Config.splitAura(name)
+	if type(name) ~= "string" then
+		return name, nil
+	end
+	local base, id = string.match(name, "^(.-)|(.+)$")
+	if not base then
+		return name, nil
+	end
+	return base, Config.AURAS_BY_ID[id]
+end
+
+function Config.petAura(name)
+	return (select(2, Config.splitAura(name)))
+end
+
+-- The saved name of a pet holding an aura
+function Config.auraName(name, auraId)
+	return (Config.splitAura(name)) .. "|" .. auraId
+end
+
+-- What players read: "Huge Tiger" (the aura is shown as its own tag)
+function Config.displayName(name)
+	return (Config.splitAura(name))
+end
+
+-- "Huge Tiger (Plasma Rifle)"
+function Config.fullName(name)
+	local base, aura = Config.splitAura(name)
+	return if aura then base .. " (" .. aura.Name .. ")" else base
+end
+
+-- Picks an aura by weight; `roll` is a number in [0, 1)
+function Config.pickAura(roll)
+	local total = 0
+	for _, aura in ipairs(Config.AURAS) do
+		total += aura.Weight
+	end
+	local at = roll * total
+	for _, aura in ipairs(Config.AURAS) do
+		at -= aura.Weight
+		if at < 0 then
+			return aura
+		end
+	end
+	return Config.AURAS[1]
+end
+
+-- "Titanic Tiger" -> Tiger's info, the Titanic size row (an aura part,
+-- "|plasma", is ignored)
 function Config.petInfo(name)
 	if type(name) ~= "string" then
 		return nil, nil
 	end
+	local plain: string = (Config.splitAura(name)) :: string
 	for i = #Config.SIZES, 2, -1 do
 		local prefix = Config.SIZES[i].Prefix
-		if name:sub(1, #prefix) == prefix then
-			return Config.PETS_BY_NAME[name:sub(#prefix + 1)], Config.SIZES[i]
+		if plain:sub(1, #prefix) == prefix then
+			return Config.PETS_BY_NAME[plain:sub(#prefix + 1)], Config.SIZES[i]
 		end
 	end
-	return Config.PETS_BY_NAME[name], Config.SIZES[1]
+	return Config.PETS_BY_NAME[plain], Config.SIZES[1]
 end
 
 -- Rolls a size, rarest first; sizeLuck multiplies every non-normal chance
@@ -221,7 +291,13 @@ function Config.petStat(name, stat)
 	if stat == "Speed" then
 		return value
 	end
-	return 1 + (value - 1) * size.Luck
+	value = 1 + (value - 1) * size.Luck
+	-- an aura multiplies the stats it boosts
+	local aura = Config.petAura(name)
+	if aura and aura.Boosts[stat] then
+		value *= aura.Boosts[stat]
+	end
+	return value
 end
 
 -- The team's multiplier for a stat: 1 + the bonuses of the EQUIPPED pets added up
@@ -243,7 +319,6 @@ end
 Config.BONUS_EVERY = 10 -- every 10th roll has bonus luck
 Config.BONUS_LUCK = 2
 Config.BIG_ROLL = 1000 -- rolls this rare (1 in 1000+), or any big size, get the big reveal
-Config.FUSE_COPIES = 5 -- the fusion machine turns 5 of a pet into 1 of the next size
 
 -- Luck boosts: every roll can come out as a "x2 LUCK" instead of a pet
 -- (BOOST_CHANCE, not changed by luck). A boost applies to the NEXT roll
@@ -492,11 +567,6 @@ function Config.canClaimMilestone(data, id)
 	return true
 end
 
--- Seconds the fusion machine takes: rarer pets and bigger sizes take longer
-function Config.fuseTime(name)
-	local pet, size = Config.petInfo(name)
-	return (30 + (pet.Index - 1) * 6) * size.Index
-end
 
 -- Upgrades ---------------------------------------------------------------------------
 

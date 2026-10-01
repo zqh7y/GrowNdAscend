@@ -29,22 +29,22 @@ for how it plays and where the code lives.
   `luau-analyze` (only Roblox globals like `game`, `Enum`, `Vector3` should
   come up as unknown).
 - `tools/sim` runs the whole server startup (map build, breakables,
-  leaderboards, fusion machine) on a small fake Roblox environment, to catch
+  leaderboards, aura machine) on a small fake Roblox environment, to catch
   runtime errors outside Studio and print part counts per area:
   `python3 tools/sim/bundle.py . && luau tools/sim/run.luau`. It must print
   "server started OK". It checks types and sizes, not how things look.
-- The sim also plays as a fake player: rolls, buys upgrades, fuses, opens
+- The sim also plays as a fake player: rolls, buys upgrades, gives pets auras, opens
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 102-point player checklist (spawning, rolling, pets
+- The sim ends with a 104-point player checklist (spawning, rolling, pets
   fighting, levels and EXP, rebirth keeping worlds, the full and compact hatches, flex
   rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
   hatch show step by step, the ROLL + AUTO buttons, the dense inventory with side details
-  and Equip Best). It must say "checklist: 102/102 passed". It takes
+  and Equip Best). It must say "checklist: 104/104 passed". It takes
   a few minutes; run it in the background. The harness runs as one big
   function: wrap new test blocks in `do ... end` or Luau runs out of local
   registers (limit 200).
@@ -164,6 +164,14 @@ for how it plays and where the code lives.
   `CYCLE_END`; pets scroll fast (0.09s -> 0.3s each) but a roll still takes ~2.6s); the
   bottom reel is only for "Big hatch reveals". Upgrade tree: hexagon
   nodes, card pops up on tap (`UpgradeTree.Card`).
+- Auras: `Config.AURAS` (weights = % chances, Boosts multiply the pet's
+  Damage/Coins/Luck in `Config.petStat`). An aura pet's name is
+  "<pet name>|<aura id>"; `Config.petInfo` ignores the aura part, show names
+  with `Config.displayName`/`fullName`. Server: `Aura.luau` (AuraFuse);
+  client: `AuraMachine.luau`; the weapon model is `auraGun` in PetModels.
+  The economy sim doesn't model auras.
+- Rolls hold on the hatched pet for `Hatch.HOLD` (landing + ~1s) before the
+  next roll (the user asked for time to recognise the pet).
 - Animation: use `Ui.appear`, `Ui.pop`, `Effects.flash` and quick Quint
   easing; check `Ui.reduced()` (Settings → Reduced motion) before
   bounces, shakes or camera moves. The luck pill (Roll.LuckPill) lives in

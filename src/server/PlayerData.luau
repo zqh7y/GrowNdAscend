@@ -32,7 +32,6 @@ local DEFAULT = {
 	Playtime = 0, -- seconds played
 	Upgrades = {}, -- [upgrade id] = level bought in the upgrade tree
 	Discovered = {}, -- [animal name] = true once found (the Index)
-	Fusion = nil, -- { Pet = name going in, Ends = os.time() } while the machine is fusing
 	Strongest = 0, -- power of the strongest pet ever owned
 	LuckChain = 1, -- the luck boost waiting for the next roll (x2, x4 ... x1024)
 	Milestones = {}, -- [Index milestone id] = true once its reward is claimed
@@ -49,7 +48,7 @@ function PlayerData.discover(data, name)
 	local pet = Config.petInfo(name)
 	if pet then
 		data.Discovered[pet.Name] = true
-		data.Discovered[name] = true
+		data.Discovered[Config.displayName(name)] = true -- (an aura pet counts as its plain pet)
 	end
 end
 
@@ -97,8 +96,12 @@ local function load(player)
 	for name in pairs(data.Pets) do
 		PlayerData.discover(data, name)
 	end
-	-- older fusions stored the result's base name; that's also the input now
-	-- (a normal pet fuses into its huge), so they carry on as they were
+	-- the fusion machine is gone (it's the aura machine now): a fusion still
+	-- running gives its 5 pets back
+	if type(data.Fusion) == "table" and type(data.Fusion.Pet) == "string" and Config.petInfo(data.Fusion.Pet) then
+		data.Pets[data.Fusion.Pet] = (data.Pets[data.Fusion.Pet] or 0) + 5
+	end
+	data.Fusion = nil
 
 	-- shows Rolls on the player list
 	local stats = Instance.new("Folder")
@@ -159,7 +162,6 @@ function PlayerData.sync(player)
 		Exp = data.Exp,
 		Upgrades = data.Upgrades,
 		Discovered = data.Discovered,
-		Fusion = data.Fusion,
 		LuckChain = data.LuckChain or 1,
 		Milestones = data.Milestones or {},
 		Obtained = data.Obtained or {},

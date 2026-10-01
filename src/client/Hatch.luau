@@ -1522,6 +1522,7 @@ end
 -- below it (leaving)
 local ABOVE, MIDDLE, BELOW = UDim2.fromScale(0.5, -0.6), UDim2.fromScale(0.5, 0.5), UDim2.fromScale(0.5, 1.6)
 Hatch.ZOOM = 1.5 -- the pet you got ends up this big
+Hatch.HOLD = 1.8 -- seconds the roll stays on the pet you got (landing + ~1s) before the next roll
 
 -- Puts a pet (or the boost tile) in a slot with its odds and name. Pets
 -- scroll top to bottom: the new one slides in from above while the old one
@@ -1839,7 +1840,9 @@ local function show(results, fast, mode, auto)
 		record.Names = { spun.Result }
 		record.Cards = #results
 		skipRequested = false
-		pause(if fast then 0.45 elseif tier >= 4 then 0.6 else 0.8)
+		-- the landing animation (~0.8s), then about 1 more second on the pet
+		-- you got before anything else happens (so you can see what it is)
+		pause(Hatch.HOLD)
 	end
 	hideSpinner()
 

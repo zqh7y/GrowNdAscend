@@ -50,6 +50,7 @@ Screen.THEMES = {
 	Upgrades = { Color = Color3.fromRGB(46, 196, 120), Icon = "tree" },
 	Rebirth = { Color = Color3.fromRGB(255, 104, 150), Icon = "star" },
 	Fusion = { Color = Color3.fromRGB(255, 150, 70), Icon = "grow" },
+	Aura = { Color = Color3.fromRGB(170, 90, 255), Icon = "spark" },
 	Settings = { Color = Color3.fromRGB(128, 136, 160), Icon = "gear" },
 	Top = { Color = Color3.fromRGB(255, 186, 40), Icon = "podium" },
 }

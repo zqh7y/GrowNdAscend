@@ -61,7 +61,7 @@ if World then
 		end
 		print(string.format("%-28s %5d parts", f.Name, n))
 	end
-	print("fusion machine:", World.Fusion and "ok" or "MISSING", "boards:", World.Boards.Strongest and World.Boards.Playtime and World.Boards.Rebirths and "ok" or "MISSING")
+	print("aura machine:", World.Fusion and "ok" or "MISSING", "boards:", World.Boards.Strongest and World.Boards.Playtime and World.Boards.Rebirths and "ok" or "MISSING")
 end
 print("total parts created:", STATS.Parts)
 -- which props cost the most parts
@@ -177,10 +177,47 @@ if ok then
 	print("rolled " .. rolled .. " pets in 30 rolls (rolls at once: " .. __cache["Shared/Config"].rollsAtOnce(data) .. ")")
 	invoke("EquipBest")
 	print("equipped after EquipBest: " .. table.concat(data.Equipped, ", "))
-	data.Pets.Dog = 5
-	print("fuse start:", invoke("FuseStart", "Dog"), "fusion:", data.Fusion and data.Fusion.Pet)
-	STEP(100)
-	print("fuse collect:", invoke("FuseCollect"))
+	-- the Pet Aura Machine: 3 of a pet -> 1 with a random aura
+	do
+		local Aura = __cache["Aura"]
+		local before = table.clone(data.Pets)
+		data.Pets.Dog = 3
+		data.Pets.Cat = 2
+		local refused = Aura.fuse(player, "Cat") -- not enough Cats
+		local got = Aura.fuse(player, "Dog")
+		local aura = got and Config.AURAS_BY_ID[got.Aura]
+		local again = got and Aura.fuse(player, got.Pet) -- an aura pet can't go in again
+		data.Pets["Huge Dog"] = 3
+		local huge = Aura.fuse(player, "Huge Dog")
+		-- the chances are the weights; every aura can come out
+		local total, seen = 0, {}
+		for _, a in ipairs(Config.AURAS) do total += a.Weight end
+		local r = Random.new(5)
+		for _ = 1, 20000 do seen[Config.pickAura(r:NextNumber()).Id] = (seen[Config.pickAura(r:NextNumber()).Id] or 0) + 1 end
+		local allSeen = true
+		for _, a in ipairs(Config.AURAS) do
+			if not seen[a.Id] then allSeen = false end
+		end
+		local boosted = got and Config.petStat(got.Pet, "Damage") / Config.petStat("Dog", "Damage")
+		STATS.Aura = {
+			Refused = refused == nil,
+			Got = got and got.Pet,
+			Format = got ~= nil and got.Pet == "Dog|" .. got.Aura,
+			DogsLeft = data.Pets.Dog,
+			AuraCount = got and data.Pets[got.Pet],
+			Again = again == nil,
+			Huge = huge and huge.Pet,
+			HugeInfo = huge ~= nil and (select(2, Config.petInfo(huge.Pet))).Index == 2,
+			Total = total,
+			AllSeen = allSeen,
+			Boost = boosted,
+			WantBoost = aura and (aura.Boosts.Damage or 1),
+			Odds = got and Config.oddsOf(got.Pet) == Config.oddsOf("Dog"),
+		}
+		print(string.format("aura machine: 2 cats refused %s; 3 dogs -> %s (dogs left %s); again refused %s; 3 huge dogs -> %s; chances add up to %d",
+			tostring(STATS.Aura.Refused), tostring(got and got.Pet), tostring(data.Pets.Dog), tostring(STATS.Aura.Again), tostring(huge and huge.Pet), total))
+		data.Pets = before
+	end
 
 	-- fight for 60 seconds
 	data.Equipped = { "Dog", "Cat", "Huge Tiger" }
@@ -254,7 +291,6 @@ if ok then
 		data.Coins = 5e6
 		data.Pets = { Dog = 7, Cat = 2, ["Huge Tiger"] = 1, ["Titanic Dragon"] = 1 }
 		data.Equipped = { "Dog", "Huge Tiger", "Titanic Dragon" }
-		data.Fusion = nil
 		PlayerData.sync(player)
 		frames(30)
 		local function try(name, fn, ...)
@@ -405,11 +441,44 @@ if ok then
 		try("Roll.bigReveal titanic", C("Roll").bigReveal, "Glitch", 3)
 		try("Rebirth.open", C("Rebirth").open)
 		try("Roll.toggleAuto", C("Roll").toggleAuto)
-		try("fusion open", function()
-			remotes.FusionOpen:FireClient(player)
+		try("aura machine open", function()
+			remotes.AuraOpen:FireClient(player)
 		end)
-		try("fuse", function()
-			remotes.FuseStart.OnServerInvoke(player, "Dog")
+		try("aura machine fuse", function()
+			local AuraMachine = C("AuraMachine")
+			data.Pets.Cat = 3
+			PlayerData.sync(player)
+			AuraMachine.open()
+			AuraMachine.select("Cat")
+			AuraMachine.fuse()
+			local res = AuraMachine.LastResult
+			STATS.AuraClient = {
+				Result = res and res.Pet,
+				Reveal = AuraMachine.Reveal.Visible,
+				RevealName = AuraMachine.Reveal.AuraName.Text,
+				WantName = res and Config.AURAS_BY_ID[res.Aura].Name,
+			}
+			-- the aura pet's model holds the weapon
+			local hasGun = false
+			if res then
+				local model = C("PetModels").build(res.Pet)
+				for _, d in ipairs(model:GetDescendants()) do
+					if d.Name == "AuraGun" or d.Name == "AuraCore" then hasGun = true end
+				end
+				-- and its inventory tile says which aura
+				data.Equipped = {}
+				PlayerData.sync(player)
+				C("Inventory").select(nil)
+				C("Inventory").open()
+				frames(1)
+				local tile = C("Inventory").Grid:FindFirstChild(res.Pet)
+				STATS.AuraClient.Tag = tile and tile:FindFirstChild("AuraTag") and tile.AuraTag.Text
+				C("Screen").close(C("Inventory").Detail.Parent.Parent.Parent)
+				data.Pets[res.Pet] = nil
+			end
+			STATS.AuraClient.Gun = hasGun
+			data.Pets.Cat = 2
+			C("Screen").close(AuraMachine.Modal)
 			PlayerData.sync(player)
 		end)
 		try("equip best", function()
@@ -2048,6 +2117,14 @@ if ok then
 		end
 		item(102, "leaderboards show player avatars", shownRows >= 1 and avatars == shownRows,
 			string.format("%d/%d board rows show the player's headshot", avatars, shownRows))
+		local au = STATS.Aura or {}
+		item(103, "aura machine: 3 pets -> 1 with a random aura", au.Refused == true and au.Format == true and au.DogsLeft == nil and au.AuraCount == 1 and au.Again == true
+			and au.HugeInfo == true and au.Total == 100 and au.AllSeen == true and au.Odds == true,
+			string.format("2 Cats refused; 3 Dogs -> %s (no Dogs left); an aura pet can't go in again; 3 Huge Dogs -> %s; chances add up to 100%%, all %d auras come out", tostring(au.Got), tostring(au.Huge), #Config.AURAS))
+		local ac = STATS.AuraClient or {}
+		item(104, "aura boosts its pet; weapon, reveal and tag shown", au.Boost ~= nil and math.abs(au.Boost - (au.WantBoost or 0)) < 1e-9 and ac.Gun == true and ac.Reveal == true and ac.RevealName == ac.WantName
+			and ac.Tag == (ac.WantName and string.upper(ac.WantName)),
+			string.format("damage x%s from the aura; %s holds its weapon, the reveal says '%s', its tile says '%s'", tostring(au.WantBoost), tostring(ac.Result), tostring(ac.RevealName), tostring(ac.Tag)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))

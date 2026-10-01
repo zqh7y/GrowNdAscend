@@ -63,9 +63,16 @@ local function build(name)
 		Font = Enum.Font.GothamBold,
 		TextSize = 15,
 		RichText = true,
-		Text = if size.Index > 1
-			then string.format('<font color="#%s">%s</font> %s', size.Color:ToHex(), string.upper(size.Name), pet.Name)
-			else pet.Name,
+		Text = (function()
+			local text = if size.Index > 1
+				then string.format('<font color="#%s">%s</font> %s', size.Color:ToHex(), string.upper(size.Name), pet.Name)
+				else pet.Name
+			local aura = Config.petAura(name)
+			if aura then
+				text = string.format('<font color="#%s">%s</font> ', aura.Color:ToHex(), aura.Name) .. text
+			end
+			return text
+		end)(),
 		Outline = 1.5,
 		Parent = tag,
 	})

@@ -117,7 +117,7 @@ function Inventory.equipBest()
 	end
 	local parts = {}
 	for _, name in ipairs(order) do
-		table.insert(parts, name .. (if counts[name] > 1 then " x" .. counts[name] else ""))
+		table.insert(parts, Config.fullName(name) .. (if counts[name] > 1 then " x" .. counts[name] else ""))
 	end
 	Screen.toast("Equipped: " .. table.concat(parts, ", "), "success")
 	Effects.jingle(2)
@@ -566,8 +566,10 @@ local function fillDetails(name)
 	end
 	local pet, size = Config.petInfo(name)
 	local rarity = Config.rarity(pet.Odds)
-	detailName.Text = name
+	detailName.Text = Config.displayName(name)
+	local aura = Config.petAura(name)
 	detailTag.Text = string.upper(rarity.Name) .. (if size.Index > 1 then "  ·  " .. string.upper(size.Name) else "")
+		.. (if aura then "  ·  " .. string.upper(aura.Name) else "")
 	detailTag.BackgroundColor3 = accentOf(name)
 	powerValue.Text = Config.formatNumber(Config.petPower(name))
 	dpsValue.Text = Config.formatNumber(Config.petDps(data, name))

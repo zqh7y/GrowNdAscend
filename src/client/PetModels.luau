@@ -1201,6 +1201,68 @@ end
 
 -- plain = true builds a wild animal (no accessories, no sparkles) for the
 -- ambient life and the hatch silhouettes
+-- The aura weapon (Pet Aura Machine): a chunky blaster held at the mouth,
+-- pointing forward (-Z), in the aura's colour with a glowing core. Rarer
+-- auras get a second barrel, rainbow stripes or a bigger, brighter build.
+local function auraGun(model, head, aura)
+	local rank = table.find(Config.AURAS, aura) or 1
+	local scale = if rank >= 6 then 1.3 elseif rank >= 4 then 1.12 else 1
+	local c = head + V(0.3, -0.42, -1.05) * scale
+	local dark = aura.Color:Lerp(INK, 0.5)
+	local function at(x, y, z)
+		return c + V(x, y, z) * scale
+	end
+	local function cylinder(center, length, diameter, color, material)
+		return part(model, {
+			Name = "AuraGun",
+			Shape = Enum.PartType.Cylinder,
+			Size = V(length, diameter, diameter) * scale,
+			CFrame = CFrame.new(center) * CFrame.Angles(0, math.rad(90), 0),
+			Color = color,
+			Material = material or SMOOTH,
+		})
+	end
+	chunk(model, c, V(0.5, 0.42, 1.0) * scale, dark, 0.08, { Name = "AuraGun" })
+	box(model, at(0, 0.27, 0.05), V(0.2, 0.12, 0.78) * scale, aura.Color, { Name = "AuraGun", Material = NEON })
+	box(model, at(0, -0.34, 0.22), V(0.18, 0.4, 0.24) * scale, dark, { Name = "AuraGun" })
+	local barrels = if rank >= 4 then { -0.13, 0.13 } else { 0 }
+	for _, x in ipairs(barrels) do
+		cylinder(at(x, 0.04, -0.82), 0.9, if #barrels > 1 then 0.18 else 0.26, Color3.fromRGB(150, 156, 176))
+		cylinder(at(x, 0.04, -1.3), 0.12, if #barrels > 1 then 0.26 else 0.36, aura.Color, NEON)
+	end
+	if aura.Id == "rainbow" then
+		local colours = { Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 210, 70), Color3.fromRGB(90, 220, 120), Color3.fromRGB(90, 160, 255) }
+		for k, colour in ipairs(colours) do
+			box(model, at(0.26, 0, 0.4 - k * 0.2), V(0.04, 0.3, 0.12) * scale, colour, { Name = "AuraGun", Material = NEON })
+		end
+	end
+	local core = part(model, {
+		Name = "AuraCore",
+		Shape = Enum.PartType.Ball,
+		Size = V(0.34, 0.34, 0.34) * scale,
+		CFrame = CFrame.new(at(0, 0.05, 0.42)),
+		Color = aura.Color,
+		Material = NEON,
+	})
+	local light = Instance.new("PointLight")
+	light.Color = aura.Color
+	light.Range = 6 + rank
+	light.Brightness = 1.2
+	light.Parent = core
+	if rank >= 4 then
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		sparks.Color = ColorSequence.new(aura.Color, WHITE)
+		sparks.Rate = 4 + rank * 2
+		sparks.Lifetime = NumberRange.new(0.4, 0.8)
+		sparks.Speed = NumberRange.new(0.5, 1.5)
+		sparks.SpreadAngle = Vector2.new(180, 180)
+		sparks.Size = NumberSequence.new(0.2, 0)
+		sparks.LightEmission = 0.8
+		sparks.Parent = core
+	end
+end
+
 function PetModels.build(name, plain)
 	local pet, size = Config.petInfo(name)
 	local spec = SPECIES[pet.Name] or SPECIES.Dog
@@ -1225,6 +1287,10 @@ function PetModels.build(name, plain)
 	local head, where = BODIES[spec.Body](ctx)
 	if not plain then
 		dress(ctx, where, level, size.Index)
+		local aura = Config.petAura(name)
+		if aura then
+			auraGun(model, head, aura)
+		end
 	end
 
 	local body = model:FindFirstChildWhichIsA("BasePart")

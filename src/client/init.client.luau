@@ -14,6 +14,7 @@ local Pets = require(script.Pets)
 require(script.Motion)
 require(script.Ambient) -- birds, critters, butterflies, weather, swaying plants, visitors
 require(script.Hud) -- also loads Roll, Inventory, Index, UpgradeTree and Panels
+require(script.AuraMachine) -- the Pet Aura Machine screen (opened at the machine in the Sahara)
 
 local player = Players.LocalPlayer
 
