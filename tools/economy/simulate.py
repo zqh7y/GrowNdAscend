@@ -47,7 +47,7 @@ UP = {  # id: (value(level), cost(level), max)  -- mirrors Config.UPGRADES
     "Luck":      (lambda l: 1.25 ** l,            lambda l: 250 * 3.7 ** l, 25),
     "RollSpeed": (lambda l: max(0.35, 1 - 0.05 * l), lambda l: 120 * 3.6 ** l, 13),
     "Rolls":     (lambda l: 1 + l,                lambda l: 2e4 * 80 ** l, 4),
-    "AutoHatch": (lambda l: l,                    lambda l: [600, 1e6, 5e8][l], 3),
+    "AutoHatch": (lambda l: l,                    lambda l: [600, 1e6][l], 2),
     "SizeLuck":  (lambda l: 1.12 ** l,            lambda l: 1e6 * 4.5 ** l, 15),
     "Slots":     (lambda l: 3 + l,                lambda l: [1e4, 5e7, 2e11][l], 3),
 }
@@ -83,9 +83,9 @@ def run(hours=8, seed=1, verbose=False):
     while t < hours * 3600:
         world = unlocked  # farm and roll in the best world you have
         hp, reward, exp_per, _, world_luck = WORLDS[world - 1]
-        # rolling (clicking until auto hatch, then automatic)
-        cycle = val("RollSpeed") + (0.45 if lv["AutoHatch"] < 2 else 0)
-        roll_clock += 0.6 if lv["AutoHatch"] == 0 else 1.0
+        # rolling: auto roll is free; quick hatches (Auto Hatch 1) cut the show
+        cycle = val("RollSpeed") + (0.45 if lv["AutoHatch"] < 1 else 0)
+        roll_clock += 1.0
         while roll_clock >= cycle:
             roll_clock -= cycle
             for _ in range(int(val("Rolls"))):

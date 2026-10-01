@@ -9,6 +9,7 @@ State.ClockOffset = 0 -- server os.time() minus ours, for the fusion timer
 State.Changed = Instance.new("BindableEvent") -- fires with no arguments after new data
 State.Settings = {
 	DamageNumbers = true,
+	HideHatch = false, -- no hatch animation: results slide in at the side
 	Reveals = true, -- the spin before a roll's result shows
 	Sounds = true,
 }

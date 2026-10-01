@@ -32,13 +32,13 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 60-point player checklist (spawning, rolling, pets
+- The sim ends with a 63-point player checklist (spawning, rolling, pets
   fighting, levels and EXP, rebirth keeping worlds, the vertical hatch, flex
   rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
-  hatch show step by step). It must say "checklist: 60/60 passed". It takes
+  hatch show step by step). It must say "checklist: 63/63 passed". It takes
   a few minutes; run it in the background.
 - Economy: `python3 tools/economy/simulate.py 3 --hours 10` simulates an
   active player (it reads worlds, rebirths, levels and animals from
@@ -63,9 +63,12 @@ for how it plays and where the code lives.
   and the PetHits / CoinPop events.
 - The map is built in code at server start (`src/server/World`). Every area
   is 100 x 70 studs; keep new props inside that footprint.
-- Art direction: kid-friendly, bright and highly detailed. `Build.part`
-  turns every material except Glass, Neon and ForceField into
-  SmoothPlastic, so the whole map stays clean and toy-like.
+- Art direction: the world is bright, toy-like and highly detailed
+  (`Build.part` turns every material except Glass, Neon and ForceField into
+  SmoothPlastic). The UI is sleek and futuristic: dark glass, thin neon
+  edges, the Michroma tech font for titles (`Ui.FONT_TITLE`), corner
+  brackets and accent lines (`Ui.card`, `Ui.brackets`, `Ui.accentLine`).
+  No cartoon outlines, bubbly fonts or big rounded pills.
 - No grass pieces on the ground in World 1 (flat or otherwise): the green
   terrain is the grass.
 - Areas call `ctx.reserveSpots()` after their big props and before small

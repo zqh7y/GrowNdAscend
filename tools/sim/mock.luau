@@ -778,6 +778,7 @@ function Instance.new(class, parent)
 		props.Size = UDim2.new(0, 100, 0, 100)
 		props.TextTransparency = 0
 		props.Text = ""
+		props.ZIndex = 1
 	end
 	if class == "UIScale" then
 		rawget(inst, "_props").Scale = 1

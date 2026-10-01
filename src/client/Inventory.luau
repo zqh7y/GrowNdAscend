@@ -29,7 +29,7 @@ Ui.button({
 	Parent = box,
 }, function()
 	equipBestFunction:InvokeServer()
-end, "gold")
+end, "primary")
 
 -- Filters and sorting ----------------------------------------------------------------------
 
@@ -139,25 +139,27 @@ end
 local function card(order, name, owned, equipped, data)
 	local pet, size = Config.petInfo(name)
 	local rarity = Config.rarity(pet.Odds)
-	local frame = Ui.new("Frame", {
+	local accent = if size.Index > 1 then size.Color else rarity.Color
+	local frame = Ui.card({
 		LayoutOrder = order,
-		BackgroundColor3 = if equipped > 0 then Color3.fromRGB(60, 120, 110) else Color3.fromRGB(70, 60, 140),
-		BackgroundTransparency = 0.15,
+		BackgroundColor3 = if equipped > 0 then Color3.fromRGB(14, 40, 40) else Ui.GLASS_LIGHT,
 		ZIndex = 32,
 		Parent = grid,
-	}, { Ui.corner(20), Ui.padding(10) })
-	Ui.stroke(if size.Index > 1 then size.Color else rarity.Color, if size.Index > 1 then 3.5 else 2.5, 0).Parent = frame
+	}, if equipped > 0 then Ui.SUCCESS else accent, { Ui.padding(10) })
+	if size.Index > 1 then
+		Ui.brackets(frame, accent, 10, 34)
+	end
 
-	-- the pet itself, on a soft glow in its rarity colour
+	-- the pet itself, standing on a holo pad in its rarity colour
 	Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 4),
-		Size = UDim2.fromOffset(76, 76),
-		BackgroundColor3 = rarity.Color,
-		BackgroundTransparency = 0.8,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 72),
+		Size = UDim2.fromOffset(82, 16),
+		BackgroundColor3 = accent,
+		BackgroundTransparency = 0.75,
 		ZIndex = 32,
 		Parent = frame,
-	}, { Ui.corner(0.5) })
+	}, { Ui.corner(0.5), Ui.stroke(accent, 1, 0.3) })
 	local view = PetView.take(name)
 	view.AnchorPoint = Vector2.new(0.5, 0)
 	view.Position = UDim2.new(0.5, 0, 0, -4)
@@ -167,28 +169,30 @@ local function card(order, name, owned, equipped, data)
 
 	if equipped > 0 then
 		Ui.new("TextLabel", {
-			Size = UDim2.fromOffset(62, 18),
+			Size = UDim2.fromOffset(70, 16),
 			BackgroundTransparency = 0,
 			BackgroundColor3 = Ui.SUCCESS,
+			Font = Ui.FONT_TITLE,
 			TextScaled = false,
-			TextSize = 11,
-			Text = "EQUIPPED" .. (if equipped > 1 then " " .. equipped else ""),
+			TextSize = 7,
+			TextColor3 = Ui.INK,
+			Text = "EQUIPPED" .. (if equipped > 1 then " x" .. equipped else ""),
 			ZIndex = 34,
 			Parent = frame,
-		}, { Ui.corner(9) })
+		}, { Ui.corner(3) })
 	end
 	Ui.new("TextLabel", {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(44, 18),
-		BackgroundTransparency = 0.3,
+		BackgroundTransparency = 0.2,
 		BackgroundColor3 = Ui.GLASS,
 		TextScaled = false,
 		TextSize = 12,
 		Text = "x" .. Config.formatNumber(owned),
 		ZIndex = 34,
 		Parent = frame,
-	}, { Ui.corner(9) })
+	}, { Ui.corner(3), Ui.stroke(Ui.LINE, 1, 0.4) })
 
 	local function line(y, textSize, font, text, color)
 		return Ui.new("TextLabel", {
@@ -205,8 +209,8 @@ local function card(order, name, owned, equipped, data)
 		})
 	end
 	line(88, 15, Ui.FONT, name, if size.Index > 1 then size.Color else Ui.TEXT)
-	line(106, 11, Ui.FONT, string.upper(rarity.Name) .. "  ·  " .. string.upper(size.Name), rarity.Color)
-	line(121, 12, Ui.FONT, Config.formatNumber(Config.petPower(name)) .. " power", Ui.SUCCESS)
+	line(106, 8, Ui.FONT_TITLE, string.upper(rarity.Name) .. " · " .. string.upper(size.Name), rarity.Color)
+	line(121, 12, Ui.FONT, Config.formatNumber(Config.petPower(name)) .. " PWR", Ui.CYAN)
 	line(137, 11, Ui.FONT_MEDIUM, Config.formatOdds(pet.Odds) .. "  ·  " .. Config.AREAS[pet.World].Name, Ui.MUTED)
 
 	-- equip one more / take one off
@@ -260,7 +264,7 @@ function refresh(force)
 	lastSignature = signature
 
 	for i, chip in ipairs(chips) do
-		Ui.setStyle(chip, if i == Inventory.Filter then "orange" else "glass")
+		Ui.setStyle(chip, if i == Inventory.Filter then "blue" else "glass")
 	end
 	Ui.setText(sortButton, "Sort: " .. SORTS[Inventory.Sort].Name)
 

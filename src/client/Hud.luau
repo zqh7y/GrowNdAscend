@@ -162,36 +162,35 @@ local levelBadge = Ui.new("TextLabel", {
 	Position = UDim2.fromScale(0, 0.5),
 	Size = UDim2.fromOffset(104, 34),
 	BackgroundTransparency = 0,
-	BackgroundColor3 = Color3.fromRGB(130, 90, 255),
+	BackgroundColor3 = Ui.VIOLET:Lerp(Ui.GLASS, 0.75),
+	Font = Ui.FONT_TITLE,
 	TextScaled = false,
-	TextSize = 18,
+	TextSize = 11,
 	Text = "LEVEL 1",
-	TextStrokeTransparency = 0.3,
-	TextStrokeColor3 = Ui.INK,
 	ZIndex = 3,
 	Parent = levelBar,
-}, { Ui.corner(17), Ui.stroke(Color3.new(1, 1, 1), 2.5) })
+}, { Ui.corner(4), Ui.stroke(Ui.VIOLET, 1.2, 0) })
 local levelScale = Ui.new("UIScale", { Parent = levelBadge })
 local expTrack = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 96, 0.5, 0),
 	Size = UDim2.new(1, -96, 0, 22),
-	BackgroundColor3 = Color3.fromRGB(30, 22, 70),
-	BackgroundTransparency = 0.15,
+	BackgroundColor3 = Ui.GLASS,
+	BackgroundTransparency = 0.2,
 	Parent = levelBar,
-}, { Ui.corner(11), Ui.stroke(Color3.new(1, 1, 1), 2, 0.3) })
+}, { Ui.corner(3), Ui.stroke(Ui.LINE, 1, 0.3) })
 local expFill = Ui.new("Frame", {
 	Size = UDim2.fromScale(0, 1),
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	ZIndex = 2,
 	Parent = expTrack,
-}, { Ui.corner(11), Ui.new("UIGradient", { Color = ColorSequence.new(Color3.fromRGB(120, 230, 255), Color3.fromRGB(150, 110, 255)) }) })
+}, { Ui.corner(3), Ui.new("UIGradient", { Color = ColorSequence.new(Ui.CYAN, Ui.VIOLET) }) })
 local expText = Ui.new("TextLabel", {
 	Size = UDim2.fromScale(1, 1),
 	TextScaled = false,
-	TextSize = 14,
+	TextSize = 13,
 	Text = "",
-	TextStrokeTransparency = 0.2,
+	TextStrokeTransparency = 0.3,
 	TextStrokeColor3 = Ui.INK,
 	ZIndex = 3,
 	Parent = expTrack,
@@ -219,10 +218,11 @@ local levelUpScale = Ui.new("UIScale", { Parent = levelUp })
 Ui.new("TextLabel", {
 	Size = UDim2.new(1, 0, 0, 62),
 	TextScaled = false,
-	TextSize = 60,
-	Text = "LEVEL UP!",
-	TextColor3 = Color3.fromRGB(255, 225, 90),
-	TextStrokeTransparency = 0,
+	Font = Ui.FONT_TITLE,
+	TextSize = 38,
+	Text = "LEVEL UP",
+	TextColor3 = Ui.CYAN,
+	TextStrokeTransparency = 0.4,
 	TextStrokeColor3 = Ui.INK,
 	ZIndex = 46,
 	Parent = levelUp,
@@ -231,9 +231,10 @@ local levelUpNumber = Ui.new("TextLabel", {
 	Position = UDim2.fromOffset(0, 66),
 	Size = UDim2.new(1, 0, 0, 44),
 	TextScaled = false,
-	TextSize = 40,
+	Font = Ui.FONT_TITLE,
+	TextSize = 22,
 	Text = "",
-	TextStrokeTransparency = 0,
+	TextStrokeTransparency = 0.4,
 	TextStrokeColor3 = Ui.INK,
 	ZIndex = 46,
 	Parent = levelUp,
@@ -257,7 +258,7 @@ local function celebrateLevel(level)
 			Position = UDim2.fromScale(0.5, 0.45),
 			Size = UDim2.fromOffset(14, 14),
 			Rotation = 45,
-			BackgroundColor3 = if k % 2 == 0 then Color3.fromRGB(255, 225, 90) else Color3.fromRGB(160, 120, 255),
+			BackgroundColor3 = if k % 2 == 0 then Ui.CYAN else Ui.VIOLET,
 			ZIndex = 45,
 			Parent = levelUp,
 		}, { Ui.corner(3) })
@@ -314,10 +315,10 @@ local function button(parent, order, icon, label, onClick, size, style)
 	return holder, b
 end
 
-button(nav, 1, "paw", "Inventory", Inventory.open, nil, "orange")
-button(nav, 2, "book", "Index", Index.open, nil, "blue")
+button(nav, 1, "paw", "Inventory", Inventory.open, nil, "blue")
+button(nav, 2, "book", "Index", Index.open, nil, "purple")
 local _, upgradesButton = button(nav, 3, "tree", "Upgrades", UpgradeTree.open, nil, "green")
-button(nav, 4, "star", "Rebirth", Panels.openRebirth, nil, "purple")
+button(nav, 4, "star", "Rebirth", Panels.openRebirth, nil, "magenta")
 button(nav, 5, "gear", "Settings", Panels.openSettings, nil, "gray")
 
 -- a gold dot on Upgrades when something can be bought
@@ -329,7 +330,7 @@ local upgradeDot = Ui.new("Frame", {
 	Visible = false,
 	ZIndex = 5,
 	Parent = upgradesButton,
-}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 2) })
+}, { Ui.corner(0.5), Ui.stroke(Ui.INK, 1.5) })
 
 
 -- Gameplay controls (right side) -----------------------------------------------------------------
@@ -350,11 +351,12 @@ local controls = Ui.new("Frame", {
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
+local _, hideButton = button(controls, 0, "eye", "Show", Roll.toggleHide, 44)
 local _, autoButton = button(controls, 1, "loop", "Auto", Roll.toggleAuto, 56)
 local _, rollButton = button(controls, 2, "dice", "Roll", function()
 	task.spawn(Roll.roll)
 end, 88, "primary")
-Roll.bindButtons(rollButton, autoButton)
+Roll.bindButtons(rollButton, autoButton, hideButton)
 
 -- Updates ------------------------------------------------------------------------------------------
 

@@ -96,8 +96,8 @@ rollFunction.OnServerInvoke = function(player)
 		table.insert(results, { Pet = pet.Name, Size = sizeIndex, Name = name, Bonus = isBonus, First = isFirst, FirstOfSize = isFirstOfSize, World = world })
 	end
 
-	-- Auto Hatch level 3 keeps the strongest team equipped
-	if Config.upgradeLevel(data, "AutoHatch") >= 3 then
+	-- Auto Hatch level 2 keeps the strongest team equipped
+	if Config.upgradeLevel(data, "AutoHatch") >= 2 then
 		equipBest(data)
 	end
 	PlayerData.updateStrongest(player)

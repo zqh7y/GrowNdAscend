@@ -52,7 +52,7 @@ State.remote("Leaderboard").OnClientEvent:Connect(function(entries)
 			BackgroundTransparency = if mine then 0.05 else 0.4,
 			ZIndex = 32,
 			Parent = topList,
-		}, { Ui.corner(14) })
+		}, { Ui.corner(6) })
 		if mine then
 			Ui.stroke(Ui.PRIMARY_B, 1.5, 0.2).Parent = row
 		end
@@ -122,7 +122,7 @@ local fusingCard = Ui.new("Frame", {
 	Visible = false,
 	ZIndex = 32,
 	Parent = fusionBox,
-}, { Ui.corner(18), Ui.padding(18) })
+}, { Ui.corner(8), Ui.padding(18) })
 local fusingName = Ui.new("TextLabel", {
 	Size = UDim2.new(1, 0, 0, 30),
 	TextScaled = false,
@@ -231,7 +231,7 @@ local function refreshFusion()
 			BackgroundTransparency = 0.35,
 			ZIndex = 32,
 			Parent = fuseList,
-		}, { Ui.corner(14), Ui.stroke(Config.SIZES[size.Index + 1].Color, 1.5, 0.4) })
+		}, { Ui.corner(6), Ui.stroke(Config.SIZES[size.Index + 1].Color, 1.5, 0.4) })
 		Ui.new("TextLabel", {
 			Position = UDim2.fromOffset(16, 8),
 			Size = UDim2.new(1, -170, 0, 22),

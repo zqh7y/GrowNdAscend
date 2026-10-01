@@ -503,6 +503,9 @@ if ok then
 		-- there (5, on the ground, with a health bar), get attacked and
 		-- destroyed by the pets, pay out, and come back
 		local worldsReport = {}
+		if C("Roll").autoOn() then
+			C("Roll").toggleAuto() -- (auto roll would re-equip pets while we count)
+		end
 		data.Pets = { Tiger = 3, ["Titanic Glitch"] = 3 }
 		data.Equipped = { "Titanic Glitch", "Titanic Glitch", "Titanic Glitch" }
 		PlayerData.sync(player)
@@ -643,6 +646,38 @@ if ok then
 		hatchReport.RealTitanic = table.clone(Hatch.Last or {})
 		STATS.Hatch = hatchReport
 
+		-- AUTO ROLL is free: it rolls with no upgrades at all
+		data.Upgrades = {}
+		PlayerData.sync(player)
+		frames(2)
+		local autoBefore = data.Rolls
+		if not C("Roll").autoOn() then
+			C("Roll").toggleAuto()
+		end
+		for _ = 1, 900 do
+			frames(1)
+		end
+		local autoRolls = data.Rolls - autoBefore
+		C("Roll").toggleAuto()
+		for _ = 1, 900 do
+			if not Hatch.busy() then break end
+			frames(1)
+		end
+		-- HIDDEN hatches: no animation, results slide in at the side
+		C("Roll").toggleHide()
+		local hiddenBefore, everBusy = data.Rolls, false
+		Hatch.LastFeed = nil
+		task.spawn(C("Roll").roll)
+		for _ = 1, 120 do
+			frames(1)
+			if Hatch.busy() then everBusy = true end
+		end
+		local feed = Hatch.LastFeed
+		C("Roll").toggleHide()
+		STATS.AutoHide = { AutoRolls = autoRolls, HiddenRolls = data.Rolls - hiddenBefore, EverBusy = everBusy, Feed = feed and #feed.Names or 0 }
+		print(string.format("auto roll with no upgrades: %d rolls in 15s | hidden hatch: %d roll, animation shown %s, %d cards in the feed",
+			autoRolls, STATS.AutoHide.HiddenRolls, tostring(everBusy), STATS.AutoHide.Feed))
+
 		-- LEVEL: the HUD shows level and EXP; a level-up shows the celebration
 		local Hud = C("Hud")
 		data.Level, data.Exp = 1, 0
@@ -715,7 +750,7 @@ if ok then
 	local ground = TERRAIN_HEIGHT(pad.Position.X, pad.Position.Z)
 	item(1, "new player spawns on the ground", math.abs(pad.Position.Y - 0.5 - ground) < 0.01 and math.abs(pad.Position.Z) < Config.AREA_HALF_WIDTH and pad.CFrame.LookVector.X > 0.99, string.format("pad y %.2f, ground %.2f", pad.Position.Y, ground))
 
-	-- 2. rolling (auto roll switches itself off once Auto Hatch isn't owned)
+	-- 2. rolling
 	data.Upgrades = {}
 	data.Pets = {}
 	data.Equipped = {}
@@ -1062,6 +1097,12 @@ if ok then
 	item(59, "hatch: flex rolls flash showstoppers", flexH.Flex == true and (flexH.FlexShown or 0) >= 1, (flexH.FlexShown or 0) .. " showstoppers: " .. table.concat(flexH.FlexNames or {}, ", "))
 	item(60, "hatch: never fakes the result", flexH.LandedName == "Dog" and flexH.Revealed == "Dog" and realT.Revealed == "Titanic Tiger" and realT.LandedName == "Titanic Tiger",
 		"flex landed and revealed " .. tostring(flexH.Revealed) .. "; a real Titanic revealed " .. tostring(realT.Revealed))
+
+	local ah = STATS.AutoHide or {}
+	item(61, "auto roll is free", (ah.AutoRolls or 0) >= 5, (ah.AutoRolls or 0) .. " auto rolls with no upgrades")
+	item(62, "hatches can be hidden", ah.HiddenRolls == 1 and ah.EverBusy == false and (ah.Feed or 0) >= 1, "rolled without the animation; " .. tostring(ah.Feed) .. " result card(s) at the side")
+	local h2 = STATS.Hatch or {}
+	item(63, "hatch reveal counts up power", (h2.common and h2.common.Tier == 0) == true, "power counter, holo pad, scan line")
 
 	local passed = 0
 	for _, r in ipairs(results) do

@@ -1,6 +1,7 @@
--- The upgrade tree: a real tree growing out of a grassy hill. Upgrades
--- without a requirement grow straight from the trunk; the others grow out
--- of the upgrade they need (Config.UPGRADES[].Requires), so the picture
+-- The upgrade tree: a circuit board. Power runs up from a glowing core at
+-- the bottom along neon traces to every upgrade. Upgrades without a
+-- requirement are wired straight to the core; the others branch off the
+-- upgrade they need (Config.UPGRADES[].Requires), so the picture
 -- shows what unlocks what. It's all built from Config.UPGRADES, so new
 -- branches appear on their own.
 --
@@ -33,7 +34,7 @@ local modal, box = Screen.modal(WIDTH, HEIGHT, "Upgrades")
 Screen.title(box, "Upgrade Tree")
 local coinsLine = Screen.subtitle(box, "")
 
--- The canvas: sky, clouds, a grassy hill --------------------------------------------------------
+-- The canvas: a dark board with a faint grid --------------------------------------------------------
 
 local canvas = Ui.new("Frame", {
 	Position = UDim2.fromOffset(0, 50),
@@ -43,35 +44,20 @@ local canvas = Ui.new("Frame", {
 	ZIndex = 32,
 	Parent = box,
 }, {
-	Ui.corner(24),
+	Ui.corner(8),
 	Ui.new("UIGradient", {
 		Rotation = 90,
-		Color = ColorSequence.new(Color3.fromRGB(120, 200, 255), Color3.fromRGB(190, 235, 255)),
+		Color = ColorSequence.new(Color3.fromRGB(8, 12, 26), Color3.fromRGB(4, 7, 16)),
 	}),
 })
-Ui.stroke(Color3.new(1, 1, 1), 3, 0.2).Parent = canvas
-for _, c in ipairs({ { 0.14, 0.12, 110 }, { 0.62, 0.08, 150 }, { 0.9, 0.3, 90 }, { 0.36, 0.34, 70 } }) do
-	for k = 0, 2 do
-		Ui.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(c[1], (k - 1) * c[3] * 0.32, c[2], if k == 1 then -c[3] * 0.12 else 0),
-			Size = UDim2.fromOffset(c[3] * (if k == 1 then 0.62 else 0.46), c[3] * (if k == 1 then 0.42 else 0.3)),
-			BackgroundColor3 = Color3.new(1, 1, 1),
-			BackgroundTransparency = 0.25,
-			ZIndex = 32,
-			Parent = canvas,
-		}, { Ui.corner(0.5) })
-	end
+Ui.stroke(Ui.LINE, 1, 0.4).Parent = canvas
+for k = 1, math.floor(CANVAS_W / 32) do
+	Ui.new("Frame", { Position = UDim2.fromOffset(k * 32, 0), Size = UDim2.new(0, 1, 1, 0), BackgroundColor3 = Ui.CYAN, BackgroundTransparency = 0.94, ZIndex = 32, Parent = canvas })
 end
-local hill = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 1, -70),
-	Size = UDim2.new(1.4, 0, 0, 260),
-	BackgroundColor3 = Color3.new(1, 1, 1),
-	ZIndex = 32,
-	Parent = canvas,
-}, { Ui.corner(0.5), Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(130, 220, 90), Color3.fromRGB(70, 170, 70)) }) })
-Ui.stroke(Color3.fromRGB(60, 140, 60), 3, 0.3).Parent = hill
+for k = 1, math.floor(CANVAS_H / 32) do
+	Ui.new("Frame", { Position = UDim2.fromOffset(0, k * 32), Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = Ui.CYAN, BackgroundTransparency = 0.94, ZIndex = 32, Parent = canvas })
+end
+Ui.brackets(canvas, Ui.CYAN, 14, 33)
 
 local function path(from, to, thickness, color, z)
 	local d = to - from
@@ -83,7 +69,7 @@ local function path(from, to, thickness, color, z)
 		BackgroundColor3 = color,
 		ZIndex = z or 33,
 		Parent = canvas,
-	}, { Ui.corner(0.5) })
+	}, { Ui.corner(2) })
 end
 
 -- Laying out the tree ---------------------------------------------------------------------------
@@ -136,13 +122,37 @@ local function positionOf(id)
 	return Vector2.new(x, ROW_BOTTOM - depth[id] * ROW_GAP)
 end
 
--- the trunk, growing out of the hill and splitting to the first upgrades
-local TRUNK = Color3.fromRGB(165, 105, 60)
-local trunkTop = Vector2.new(CANVAS_W / 2, CANVAS_H - 105)
-path(Vector2.new(CANVAS_W / 2, CANVAS_H + 20), trunkTop, 44, TRUNK, 33)
-for _, side in ipairs({ -1, 1 }) do
-	path(Vector2.new(CANVAS_W / 2, CANVAS_H - 50), Vector2.new(CANVAS_W / 2 + side * 60, CANVAS_H - 20), 18, TRUNK, 33)
-end
+-- the core at the bottom that powers everything
+local TRACE = Color3.fromRGB(28, 36, 64)
+local trunkTop = Vector2.new(CANVAS_W / 2, CANVAS_H - 70)
+local core = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromOffset(trunkTop.X, trunkTop.Y + 26),
+	Size = UDim2.fromOffset(44, 44),
+	BackgroundColor3 = Ui.GLASS,
+	ZIndex = 35,
+	Parent = canvas,
+}, { Ui.corner(0.5), Ui.stroke(Ui.CYAN, 2, 0) })
+local coreDot = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.5),
+	Size = UDim2.fromOffset(18, 18),
+	BackgroundColor3 = Ui.CYAN,
+	ZIndex = 36,
+	Parent = core,
+}, { Ui.corner(0.5) })
+Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 1, 4),
+	Size = UDim2.fromOffset(80, 12),
+	Font = Ui.FONT_TITLE,
+	TextScaled = false,
+	TextSize = 7,
+	Text = "CORE",
+	TextColor3 = Ui.CYAN,
+	ZIndex = 36,
+	Parent = core,
+})
 
 local nodes = {} -- [id] = { Button, Path, Halo, Scale, ... }
 
@@ -159,9 +169,9 @@ for _, upgrade in ipairs(Config.UPGRADES) do
 	local p = positionOf(id)
 	local from = if upgrade.Requires then positionOf(upgrade.Requires[1]) else trunkTop
 	local n = { Upgrade = upgrade, Position = p }
-	-- the branch into this node: a dark outline and the coloured path on top
-	path(from, p, 20, Color3.fromRGB(120, 75, 45), 33)
-	n.Path = path(from, p, 12, Color3.fromRGB(150, 150, 170), 34)
+	-- the trace into this node: a dark channel with a neon line in it
+	path(from, p, 10, TRACE, 33)
+	n.Path = path(from, p, 3, Color3.fromRGB(60, 70, 100), 34)
 
 	-- glow behind affordable nodes
 	n.Halo = Ui.new("Frame", {
@@ -169,11 +179,11 @@ for _, upgrade in ipairs(Config.UPGRADES) do
 		Position = UDim2.fromOffset(p.X, p.Y),
 		Size = UDim2.fromOffset(NODE + 30, NODE + 30),
 		BackgroundColor3 = upgrade.Color,
-		BackgroundTransparency = 0.55,
+		BackgroundTransparency = 0.8,
 		Visible = false,
 		ZIndex = 34,
 		Parent = canvas,
-	}, { Ui.corner(0.5) })
+	}, { Ui.corner(0.5), Ui.stroke(upgrade.Color, 1.5, 0.3) })
 
 	local button = Ui.new("TextButton", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -186,18 +196,18 @@ for _, upgrade in ipairs(Config.UPGRADES) do
 		Parent = canvas,
 	}, { Ui.corner(0.5) })
 	n.Gradient = Ui.new("UIGradient", { Rotation = 90, Parent = button })
-	n.Ring = Ui.stroke(Color3.new(1, 1, 1), 4, 0)
+	n.Ring = Ui.stroke(upgrade.Color, 2.5, 0)
 	n.Ring.Parent = button
-	Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 6),
-		Size = UDim2.new(0.62, 0, 0.32, 0),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.72,
+	-- an inner ring, like a lens
+	n.Inner = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -14, 1, -14),
+		BackgroundTransparency = 1,
 		ZIndex = 36,
 		Parent = button,
-	}, { Ui.corner(0.5) })
-	n.Icon = Ui.icon(upgrade.Icon, 40, Color3.new(1, 1, 1), {
+	}, { Ui.corner(0.5), Ui.stroke(upgrade.Color, 1, 0.6) })
+	n.Icon = Ui.icon(upgrade.Icon, 36, upgrade.Color, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.52),
 		ZIndex = 37,
@@ -207,25 +217,25 @@ for _, upgrade in ipairs(Config.UPGRADES) do
 	n.Lock = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(1, -8, 0, 8),
-		Size = UDim2.fromOffset(30, 30),
-		BackgroundColor3 = Color3.fromRGB(70, 70, 100),
+		Size = UDim2.fromOffset(24, 24),
+		BackgroundColor3 = Ui.GLASS,
 		ZIndex = 38,
 		Parent = button,
-	}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 2.5) })
-	Ui.icon("lock", 16, Color3.new(1, 1, 1), { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 39, Parent = n.Lock })
+	}, { Ui.corner(4), Ui.stroke(Ui.LINE, 1, 0) })
+	Ui.icon("lock", 13, Ui.MUTED, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 39, Parent = n.Lock })
 	n.Crown = label(button, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0, -6),
-		Size = UDim2.fromOffset(56, 22),
+		Size = UDim2.fromOffset(46, 16),
 		BackgroundTransparency = 0,
 		BackgroundColor3 = Ui.GOLD,
-		TextSize = 15,
+		Font = Ui.FONT_TITLE,
+		TextSize = 8,
 		Text = "MAX",
 		TextColor3 = Ui.INK,
 		ZIndex = 39,
 	})
-	Ui.corner(11).Parent = n.Crown
-	Ui.stroke(Color3.new(1, 1, 1), 2).Parent = n.Crown
+	Ui.corner(3).Parent = n.Crown
 
 	-- under the node: name, level bar, cost
 	local info = Ui.new("Frame", {
@@ -237,43 +247,42 @@ for _, upgrade in ipairs(Config.UPGRADES) do
 		Parent = canvas,
 	})
 	n.Name = label(info, {
-		Size = UDim2.new(1, 0, 0, 20),
-		TextSize = 18,
-		Text = upgrade.Name,
-		TextStrokeTransparency = 0,
-		TextStrokeColor3 = Ui.INK,
+		Size = UDim2.new(1, 0, 0, 16),
+		Font = Ui.FONT_TITLE,
+		TextSize = 9,
+		Text = string.upper(upgrade.Name),
 	})
 	local bar = Ui.new("Frame", {
-		Position = UDim2.fromOffset(10, 22),
-		Size = UDim2.new(1, -20, 0, 18),
-		BackgroundColor3 = Color3.fromRGB(30, 24, 66),
+		Position = UDim2.fromOffset(16, 34),
+		Size = UDim2.new(1, -32, 0, 5),
+		BackgroundColor3 = TRACE,
 		ZIndex = 36,
 		Parent = info,
-	}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 2, 0.1) })
+	}, { Ui.corner(2) })
 	n.BarFill = Ui.new("Frame", {
 		Size = UDim2.fromScale(0, 1),
 		BackgroundColor3 = upgrade.Color,
 		ZIndex = 37,
 		Parent = bar,
-	}, { Ui.corner(0.5) })
-	n.Level = label(bar, {
-		Size = UDim2.fromScale(1, 1),
-		TextSize = 13,
-		TextStrokeTransparency = 0.2,
-		TextStrokeColor3 = Ui.INK,
+	}, { Ui.corner(2) })
+	n.Level = label(info, {
+		Position = UDim2.fromOffset(0, 17),
+		Size = UDim2.new(1, 0, 0, 14),
+		TextSize = 12,
+		TextColor3 = Ui.MUTED,
 		ZIndex = 38,
 	})
 	n.Cost = label(info, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 44),
-		Size = UDim2.fromOffset(0, 24),
+		Position = UDim2.new(0.5, 0, 0, 45),
+		Size = UDim2.fromOffset(0, 20),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundTransparency = 0,
-		BackgroundColor3 = Color3.fromRGB(40, 30, 80),
-		TextSize = 16,
+		BackgroundColor3 = Ui.GLASS,
+		TextSize = 13,
 	})
-	Ui.corner(12).Parent = n.Cost
-	n.CostStroke = Ui.stroke(Color3.new(1, 1, 1), 2, 0.2)
+	Ui.corner(3).Parent = n.Cost
+	n.CostStroke = Ui.stroke(Ui.LINE, 1, 0.3)
 	n.CostStroke.Parent = n.Cost
 	Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = n.Cost })
 
@@ -292,12 +301,13 @@ local detail = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, 0, 0, 50),
 	Size = UDim2.fromOffset(DETAIL_W, CANVAS_H),
-	BackgroundColor3 = Color3.fromRGB(24, 18, 58),
-	BackgroundTransparency = 0.3,
+	BackgroundColor3 = Ui.GLASS_LIGHT,
+	BackgroundTransparency = 0.15,
 	ZIndex = 32,
 	Parent = box,
-}, { Ui.corner(24), Ui.padding(16) })
-Ui.stroke(Color3.new(1, 1, 1), 2.5, 0.5).Parent = detail
+}, { Ui.corner(8), Ui.padding(16) })
+Ui.stroke(Ui.LINE, 1, 0.4).Parent = detail
+Ui.accentLine(detail, Ui.SUCCESS, 33)
 local detailBadge = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 4),
@@ -307,7 +317,8 @@ local detailBadge = Ui.new("Frame", {
 	Parent = detail,
 }, { Ui.corner(0.5) })
 local detailGradient = Ui.new("UIGradient", { Rotation = 90, Parent = detailBadge })
-Ui.stroke(Color3.new(1, 1, 1), 4).Parent = detailBadge
+local detailBadgeStroke = Ui.stroke(Ui.CYAN, 3, 0)
+detailBadgeStroke.Parent = detailBadge
 local detailIconHolder = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
@@ -319,9 +330,8 @@ local detailIconHolder = Ui.new("Frame", {
 local detailName = label(detail, {
 	Position = UDim2.fromOffset(0, 108),
 	Size = UDim2.new(1, 0, 0, 30),
-	TextSize = 28,
-	TextStrokeTransparency = 0,
-	TextStrokeColor3 = Ui.INK,
+	Font = Ui.FONT_TITLE,
+	TextSize = 17,
 	ZIndex = 33,
 })
 local detailLevel = label(detail, {
@@ -344,16 +354,16 @@ local detailText = label(detail, {
 local change = Ui.new("Frame", {
 	Position = UDim2.fromOffset(0, 218),
 	Size = UDim2.new(1, 0, 0, 78),
-	BackgroundColor3 = Color3.fromRGB(50, 40, 105),
-	BackgroundTransparency = 0.2,
+	BackgroundColor3 = Ui.GLASS,
+	BackgroundTransparency = 0.1,
 	ZIndex = 33,
 	Parent = detail,
-}, { Ui.corner(18) })
-label(change, { Position = UDim2.fromOffset(0, 6), Size = UDim2.new(0.5, 0, 0, 16), TextSize = 13, Text = "NOW", TextColor3 = Ui.MUTED, ZIndex = 34 })
-label(change, { Position = UDim2.new(0.5, 0, 0, 6), Size = UDim2.new(0.5, 0, 0, 16), TextSize = 13, Text = "NEXT", TextColor3 = Ui.MUTED, ZIndex = 34 })
+}, { Ui.corner(6), Ui.stroke(Ui.LINE, 1, 0.5) })
+label(change, { Position = UDim2.fromOffset(0, 6), Size = UDim2.new(0.5, 0, 0, 16), Font = Ui.FONT_TITLE, TextSize = 8, Text = "NOW", TextColor3 = Ui.MUTED, ZIndex = 34 })
+label(change, { Position = UDim2.new(0.5, 0, 0, 6), Size = UDim2.new(0.5, 0, 0, 16), Font = Ui.FONT_TITLE, TextSize = 8, Text = "NEXT", TextColor3 = Ui.MUTED, ZIndex = 34 })
 local nowText = label(change, { Position = UDim2.fromOffset(4, 26), Size = UDim2.new(0.5, -12, 0, 40), TextSize = 22, ZIndex = 34 })
 local nextText = label(change, { Position = UDim2.new(0.5, 8, 0, 26), Size = UDim2.new(0.5, -12, 0, 40), TextSize = 22, TextColor3 = Ui.SUCCESS, ZIndex = 34 })
-label(change, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 30), Size = UDim2.fromOffset(20, 30), TextSize = 22, Text = "→", TextColor3 = Ui.GOLD, ZIndex = 34 })
+label(change, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 30), Size = UDim2.fromOffset(20, 30), TextSize = 22, Text = "→", TextColor3 = Ui.CYAN, ZIndex = 34 })
 local lockNote = label(detail, {
 	Position = UDim2.fromOffset(0, 304),
 	Size = UDim2.new(1, 0, 0, 40),
@@ -381,7 +391,6 @@ local buyScale = Ui.new("UIScale", { Parent = buyButton })
 
 local selected = Config.UPGRADES[1].Id
 
-local LOCKED_TOP, LOCKED_BOTTOM = Color3.fromRGB(170, 170, 190), Color3.fromRGB(110, 110, 140)
 
 local function refresh()
 	local data = State.Data
@@ -398,31 +407,38 @@ local function refresh()
 		local locked = not ok and not maxed
 		local affordable = ok and data.Coins >= cost
 
-		local top = if locked then LOCKED_TOP else upgrade.Color:Lerp(Color3.new(1, 1, 1), 0.3)
-		local bottom = if locked then LOCKED_BOTTOM else upgrade.Color:Lerp(Color3.new(0, 0, 0), 0.2)
-		n.Gradient.Color = ColorSequence.new(top, bottom)
-		n.Ring.Color = if maxed then Ui.GOLD else Color3.new(1, 1, 1)
-		n.Ring.Thickness = if upgrade.Id == selected then 7 elseif maxed then 5 else 4
+		local color = if locked then Ui.LINE elseif maxed then Ui.GOLD else upgrade.Color
+		n.Gradient.Color = ColorSequence.new(Color3.fromRGB(26, 32, 58), Color3.fromRGB(10, 13, 26))
+		n.Ring.Color = color
+		n.Ring.Thickness = if upgrade.Id == selected then 4 else 2.5
+		n.Inner:FindFirstChildOfClass("UIStroke").Color = color
+		for _, d in ipairs(n.Icon:GetDescendants()) do
+			if d:IsA("Frame") and d.BackgroundTransparency < 1 then
+				d.BackgroundColor3 = if locked then Ui.MUTED else color
+			elseif d:IsA("UIStroke") then
+				d.Color = if locked then Ui.MUTED else color
+			end
+		end
 		n.Lock.Visible = locked
 		n.Crown.Visible = maxed
-		n.Path.BackgroundColor3 = if locked then Color3.fromRGB(150, 150, 170) else upgrade.Color
+		n.Path.BackgroundColor3 = if locked then Color3.fromRGB(60, 70, 100) else color
 		n.BarFill.Size = UDim2.fromScale(level / upgrade.Max, 1)
-		n.Level.Text = "Lv " .. level .. "/" .. upgrade.Max
+		n.BarFill.BackgroundColor3 = color
+		n.Level.Text = "LV " .. level .. " / " .. upgrade.Max
 		if maxed then
 			n.Cost.Text = "MAXED"
-			n.Cost.TextSize = 16
 			n.Cost.TextColor3 = Ui.GOLD
-			n.Cost.BackgroundColor3 = Color3.fromRGB(90, 70, 20)
+			n.Cost.BackgroundColor3 = Ui.GLASS
 		elseif locked then
 			n.Cost.Text = reason
-			n.Cost.TextSize = 13
-			n.Cost.TextColor3 = Color3.fromRGB(230, 230, 240)
-			n.Cost.BackgroundColor3 = Color3.fromRGB(70, 70, 100)
+			n.Cost.TextSize = 11
+			n.Cost.TextColor3 = Ui.MUTED
+			n.Cost.BackgroundColor3 = Ui.GLASS
 		else
-			n.Cost.Text = Config.formatNumber(cost) .. " coins"
-			n.Cost.TextSize = 16
-			n.Cost.TextColor3 = if affordable then Ui.INK else Color3.fromRGB(255, 190, 190)
-			n.Cost.BackgroundColor3 = if affordable then Ui.GOLD else Color3.fromRGB(80, 40, 70)
+			n.Cost.Text = Config.formatNumber(cost)
+			n.Cost.TextSize = 13
+			n.Cost.TextColor3 = if affordable then Ui.INK else Color3.fromRGB(255, 150, 170)
+			n.Cost.BackgroundColor3 = if affordable then Ui.GOLD else Ui.GLASS
 		end
 		n.Halo.Visible = affordable
 		n.Affordable = affordable
@@ -434,14 +450,15 @@ local function refresh()
 	local ok, reason = Config.canUpgrade(data, selected)
 	local cost = upgrade.Cost(level)
 	local maxed = level >= upgrade.Max
-	detailGradient.Color = ColorSequence.new(upgrade.Color:Lerp(Color3.new(1, 1, 1), 0.3), upgrade.Color:Lerp(Color3.new(0, 0, 0), 0.2))
+	detailGradient.Color = ColorSequence.new(Color3.fromRGB(26, 32, 58), Color3.fromRGB(10, 13, 26))
+	detailBadgeStroke.Color = upgrade.Color
 	if detailIconHolder:GetAttribute("Icon") ~= upgrade.Icon then
 		detailIconHolder:ClearAllChildren()
-		Ui.icons[upgrade.Icon](detailIconHolder, Color3.new(1, 1, 1))
+		Ui.icons[upgrade.Icon](detailIconHolder, upgrade.Color)
 		detailIconHolder:SetAttribute("Icon", upgrade.Icon)
 	end
-	detailName.Text = upgrade.Name
-	detailLevel.Text = "Level " .. level .. " of " .. upgrade.Max
+	detailName.Text = string.upper(upgrade.Name)
+	detailLevel.Text = "LEVEL " .. level .. " / " .. upgrade.Max
 	detailText.Text = upgrade.Describe
 	nowText.Text = upgrade.Format(upgrade.Value(level))
 	nextText.Text = if maxed then "MAX" else upgrade.Format(upgrade.Value(level + 1))
@@ -565,6 +582,7 @@ RunService.RenderStepped:Connect(function()
 		return
 	end
 	local t = os.clock()
+	coreDot.BackgroundTransparency = 0.1 + (math.sin(t * 3) * 0.5 + 0.5) * 0.5
 	for id, n in pairs(nodes) do
 		if n.Affordable then
 			local pulse = math.sin(t * 4 + n.Position.X * 0.02)

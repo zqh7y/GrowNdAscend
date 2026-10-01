@@ -62,12 +62,13 @@ local side = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, 0, 0, 56),
 	Size = UDim2.new(0, SIDE, 1, -56),
-	BackgroundColor3 = Color3.fromRGB(20, 14, 50),
-	BackgroundTransparency = 0.45,
+	BackgroundColor3 = Ui.GLASS_LIGHT,
+	BackgroundTransparency = 0.3,
 	ZIndex = 32,
 	Parent = box,
 }, {
-	Ui.corner(22),
+	Ui.corner(8),
+	Ui.stroke(Ui.LINE, 1, 0.5),
 	Ui.padding(12),
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical,
@@ -79,9 +80,10 @@ local side = Ui.new("Frame", {
 Ui.new("TextLabel", {
 	LayoutOrder = 0,
 	Size = UDim2.new(1, 0, 0, 22),
+	Font = Ui.FONT_TITLE,
 	TextScaled = false,
-	TextSize = 18,
-	Text = "CATEGORY",
+	TextSize = 11,
+	Text = "// CATEGORY",
 	TextColor3 = Ui.MUTED,
 	ZIndex = 33,
 	Parent = side,
@@ -92,7 +94,7 @@ for i, size in ipairs(Config.SIZES) do
 	local b = Ui.button({
 		LayoutOrder = i,
 		Size = UDim2.new(1, 0, 0, 86),
-		Radius = 20,
+		Radius = 6,
 		Text = "",
 		ZIndex = 33,
 		Parent = side,
@@ -103,11 +105,10 @@ for i, size in ipairs(Config.SIZES) do
 	local name = Ui.new("TextLabel", {
 		Position = UDim2.fromOffset(0, 12),
 		Size = UDim2.new(1, 0, 0, 30),
+		Font = Ui.FONT_TITLE,
 		TextScaled = false,
-		TextSize = 26,
+		TextSize = 15,
 		Text = string.upper(size.Name),
-		TextStrokeTransparency = 0,
-		TextStrokeColor3 = Ui.INK,
 		ZIndex = 35,
 		Parent = b,
 	})
@@ -117,8 +118,6 @@ for i, size in ipairs(Config.SIZES) do
 		TextScaled = false,
 		TextSize = 20,
 		Text = "0/70",
-		TextStrokeTransparency = 0.3,
-		TextStrokeColor3 = Ui.INK,
 		ZIndex = 35,
 		Parent = b,
 	})
@@ -144,16 +143,16 @@ local progressText = Ui.new("TextLabel", {
 local track = Ui.new("Frame", {
 	Position = UDim2.fromOffset(0, 66),
 	Size = UDim2.new(1, 0, 0, 16),
-	BackgroundColor3 = Color3.fromRGB(20, 14, 50),
+	BackgroundColor3 = Ui.INK,
 	ZIndex = 33,
 	Parent = progressHolder,
-}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 2, 0.4) })
+}, { Ui.corner(2), Ui.stroke(Ui.LINE, 1, 0.3) })
 local fill = Ui.new("Frame", {
 	Size = UDim2.fromScale(0, 1),
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	ZIndex = 34,
 	Parent = track,
-}, { Ui.corner(0.5), Ui.new("UIGradient", { Color = ColorSequence.new(Ui.PRIMARY_A, Ui.PRIMARY_B) }) })
+}, { Ui.corner(2), Ui.new("UIGradient", { Color = ColorSequence.new(Ui.PRIMARY_A, Ui.PRIMARY_B) }) })
 
 local grid = Screen.scrollList(box, 106, Ui.new("UIGridLayout", {
 	CellSize = UDim2.fromOffset(134, 178),
@@ -178,24 +177,22 @@ local function card(pet, sizeIndex, found, world)
 	local rarity = Config.rarity(pet.Odds)
 	local size = Config.SIZES[sizeIndex]
 	local accent = if sizeIndex > 1 then size.Color else rarity.Color
-	local frame = Ui.new("Frame", {
+	local frame = Ui.card({
 		LayoutOrder = pet.Index,
-		BackgroundColor3 = if found then Color3.fromRGB(70, 60, 140) else Color3.fromRGB(30, 24, 66),
-		BackgroundTransparency = 0.15,
+		BackgroundColor3 = if found then Ui.GLASS_LIGHT else Color3.fromRGB(10, 12, 24),
 		ZIndex = 32,
 		Parent = grid,
-	}, { Ui.corner(20), Ui.padding(8) })
-	Ui.stroke(accent, if found then 3 else 2, if found then 0 else 0.6).Parent = frame
-
+	}, if found then accent else Ui.LINE, { Ui.padding(8) })
+	-- a holo pad under the pet
 	Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 6),
-		Size = UDim2.fromOffset(72, 72),
-		BackgroundColor3 = if found then accent else Color3.fromRGB(90, 90, 150),
-		BackgroundTransparency = if found then 0.72 else 0.85,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 72),
+		Size = UDim2.fromOffset(80, 14),
+		BackgroundColor3 = if found then accent else Ui.LINE,
+		BackgroundTransparency = if found then 0.75 else 0.85,
 		ZIndex = 32,
 		Parent = frame,
-	}, { Ui.corner(0.5) })
+	}, { Ui.corner(0.5), Ui.stroke(if found then accent else Ui.LINE, 1, 0.4) })
 	local view = PetView.take(Config.petName(pet.Name, sizeIndex), not found)
 	view.AnchorPoint = Vector2.new(0.5, 0)
 	view.Position = UDim2.new(0.5, 0, 0, -2)
@@ -206,8 +203,9 @@ local function card(pet, sizeIndex, found, world)
 	Ui.new("TextLabel", {
 		Size = UDim2.fromOffset(34, 16),
 		TextScaled = false,
-		TextSize = 13,
-		Text = "#" .. pet.Index,
+		Font = Ui.FONT_TITLE,
+		TextSize = 8,
+		Text = string.format("#%02d", pet.Index),
 		TextColor3 = Ui.MUTED,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 34,
@@ -217,15 +215,16 @@ local function card(pet, sizeIndex, found, world)
 		Ui.new("TextLabel", {
 			AnchorPoint = Vector2.new(1, 0),
 			Position = UDim2.new(1, 0, 0, 0),
-			Size = UDim2.fromOffset(20, 20),
+			Size = UDim2.fromOffset(18, 18),
 			BackgroundTransparency = 0,
 			BackgroundColor3 = Ui.SUCCESS,
 			TextScaled = false,
-			TextSize = 14,
+			TextSize = 13,
 			Text = "✓",
+			TextColor3 = Ui.INK,
 			ZIndex = 34,
 			Parent = frame,
-		}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 2) })
+		}, { Ui.corner(3) })
 	end
 	if sizeIndex > 1 then
 		Ui.new("TextLabel", {
@@ -234,13 +233,14 @@ local function card(pet, sizeIndex, found, world)
 			Size = UDim2.fromOffset(70, 16),
 			BackgroundTransparency = 0,
 			BackgroundColor3 = size.Color,
+			Font = Ui.FONT_TITLE,
 			TextScaled = false,
-			TextSize = 12,
+			TextSize = 8,
 			Text = string.upper(size.Name),
 			TextColor3 = Ui.INK,
 			ZIndex = 35,
 			Parent = frame,
-		}, { Ui.corner(8) })
+		}, { Ui.corner(3) })
 	end
 
 	local function line(y, textSize, font, text, color)
@@ -257,8 +257,8 @@ local function card(pet, sizeIndex, found, world)
 			Parent = frame,
 		})
 	end
-	line(88, 17, Ui.FONT, if found then pet.Name else "???", if found then Ui.TEXT else Ui.MUTED)
-	line(107, 13, Ui.FONT, string.upper(rarity.Name), rarity.Color)
+	line(88, 16, Ui.FONT, if found then pet.Name else "???", if found then Ui.TEXT else Ui.MUTED)
+	line(108, 8, Ui.FONT_TITLE, string.upper(rarity.Name), rarity.Color)
 	-- odds where you stand (the size chance included for Huge/Titanic)
 	local odds = Config.worldOdds(pet, world) * size.Chance
 	line(123, 12, Ui.FONT_MEDIUM, Config.formatOdds(odds) .. " here", if pet.World > world then Color3.fromRGB(255, 170, 170) else Ui.MUTED)

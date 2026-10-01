@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 7 (levels, harder worlds, new hatch)"
+Config.BUILD = "build 8 (futuristic UI, free auto, hide hatches)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -361,17 +361,18 @@ Config.UPGRADES = {
 		Name = "Auto Hatch",
 		Icon = "loop",
 		Color = Color3.fromRGB(60, 210, 200),
-		Max = 3,
-		Describe = "Rolls for you: unlock, then quick reveals, then auto-equip best",
+		Max = 2,
+		-- (auto roll itself is free for everyone)
+		Describe = "Smarter hatching: quick hatches, then your best team equips itself",
 		Step = "next auto feature",
 		Value = function(level)
 			return level
 		end,
 		Format = function(value)
-			return ({ [0] = "Locked", "Auto roll", "+ quick reveals", "+ auto-equip best" })[value]
+			return ({ [0] = "Off", "Quick hatch", "+ auto-equip best" })[value] or "+ auto-equip best"
 		end,
 		Cost = function(level)
-			return ({ 600, 1e6, 5e8 })[level + 1] or math.huge
+			return ({ 600, 1e6 })[level + 1] or math.huge
 		end,
 		Requires = { "RollSpeed", 1 },
 	},

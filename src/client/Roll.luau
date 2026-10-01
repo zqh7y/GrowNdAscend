@@ -1,7 +1,9 @@
 -- Rolling: the Roll button's action (the server picks the pets, then the
--- hatch show plays: Hatch.luau), the luck chip, and auto roll (an upgrade).
--- Pressing Roll while a hatch is playing skips ahead instead of rolling
--- again, so rolling fast never breaks the show.
+-- hatch plays: Hatch.luau), the luck meter, auto roll (free for everyone)
+-- and hiding the hatches (results then slide in as small cards at the side,
+-- so you can grind without the animation). Pressing Roll while a hatch is
+-- playing skips ahead instead of rolling again, so rolling fast never
+-- breaks it.
 local Players = game:GetService("Players")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
@@ -17,38 +19,52 @@ local gui = Screen.Gui
 
 local rolling = false
 local autoRoll = false
-local rollButton, autoButton -- set by the HUD
+local rollButton, autoButton, hideButton -- set by the HUD
 
--- Luck chip ------------------------------------------------------------------------------
+-- Luck meter --------------------------------------------------------------------------------
+-- Above the Roll button: your luck and where you are, and 10 segments that
+-- fill with every roll; the 10th roll is a BONUS roll with double luck.
 
--- sits above the Roll and Auto buttons on the right
-local luckChip = Ui.glass({
+local meter = Ui.glass({
 	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -16, 1, -226),
-	Size = UDim2.fromOffset(0, 28),
-	AutomaticSize = Enum.AutomaticSize.X,
-	Radius = 14,
+	Position = UDim2.new(1, -16, 1, -282),
+	Size = UDim2.fromOffset(236, 50),
+	Radius = 6,
 	Parent = gui,
+}, { Ui.padding(8) })
+Ui.accentLine(meter, Ui.CYAN)
+local luckIcon = Ui.icon("clover", 14, Ui.SUCCESS, { Position = UDim2.fromOffset(0, 0), Parent = meter })
+local luckText = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(20, 0),
+	Size = UDim2.new(1, -20, 0, 14),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 12,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Parent = meter,
+})
+local bonusSegments = {}
+local segmentRow = Ui.new("Frame", {
+	Position = UDim2.fromOffset(0, 22),
+	Size = UDim2.new(1, 0, 0, 12),
+	BackgroundTransparency = 1,
+	Parent = meter,
 }, {
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
-		Padding = UDim.new(0, 6),
+		Padding = UDim.new(0, 3),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
-	Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }),
 })
-local luckIcon = Ui.icon("clover", 14, Ui.SUCCESS, { LayoutOrder = 0, Parent = luckChip })
-local luckText = Ui.new("TextLabel", {
-	LayoutOrder = 1,
-	AutomaticSize = Enum.AutomaticSize.X,
-	Size = UDim2.fromOffset(0, 16),
-	Font = Ui.FONT_MEDIUM,
-	TextScaled = false,
-	TextSize = 13,
-	Parent = luckChip,
-})
+for i = 1, Config.BONUS_EVERY do
+	bonusSegments[i] = Ui.new("Frame", {
+		LayoutOrder = i,
+		Size = UDim2.new(1 / Config.BONUS_EVERY, -3, 1, 0),
+		BackgroundColor3 = Ui.GLASS_LIGHT,
+		Parent = segmentRow,
+	}, { Ui.corner(2) })
+end
+local meterScale = Ui.new("UIScale", { Parent = meter })
 
 -- The world the player stands in (it changes the odds), never above unlocked
 local function currentWorld(data)
@@ -70,15 +86,22 @@ local function refreshLuck()
 	local world = currentWorld(data)
 	shownWorld = world
 	local luck = Config.luck(data, nextIsBonus, world)
-	luckText.Text = string.format("x%.2f LUCK  ·  %s", luck, Config.AREAS[world].Name) .. "  ·  " .. (if nextIsBonus then "BONUS ROLL NEXT!" else "bonus in " .. untilBonus)
+	luckText.Text = if nextIsBonus
+		then string.format("2x BONUS ROLL READY  ·  x%.2f LUCK", luck)
+		else string.format("x%.2f LUCK  ·  %s  ·  bonus in %d", luck, string.upper(Config.AREAS[world].Name), untilBonus)
 	luckText.TextColor3 = if nextIsBonus then Ui.GOLD else Ui.TEXT
 	for _, d in ipairs(luckIcon:GetDescendants()) do
 		if d:IsA("Frame") and d.BackgroundTransparency < 1 then
 			d.BackgroundColor3 = if nextIsBonus then Ui.GOLD else Ui.SUCCESS
 		end
 	end
-	luckChip.Edge.Color = if nextIsBonus then Ui.GOLD else Color3.new(1, 1, 1)
-	luckChip.Edge.Transparency = if nextIsBonus then 0.2 else 0.82
+	-- the segments fill up towards the bonus roll
+	local filled = Config.BONUS_EVERY - untilBonus + 1
+	for i, segment in ipairs(bonusSegments) do
+		segment.BackgroundColor3 = if nextIsBonus then Ui.GOLD elseif i < filled then Ui.CYAN:Lerp(Ui.VIOLET, i / Config.BONUS_EVERY) else Ui.GLASS_LIGHT
+	end
+	meter.Edge.Color = if nextIsBonus then Ui.GOLD else Ui.LINE
+	meter.Edge.Transparency = if nextIsBonus then 0 else 0.35
 end
 
 -- Rolling --------------------------------------------------------------------------------
@@ -107,11 +130,20 @@ function Roll.roll()
 	local discoveredBefore = table.clone(data.Discovered or {})
 	local ok, results = pcall(rollFunction.InvokeServer, rollFunction)
 	if ok and type(results) == "table" and #results > 0 then
-		-- the full show the first time and when rolling by hand; a quicker
-		-- one when grinding (auto roll, Auto Hatch 2, or the setting off)
-		local fast = hatchedOnce and (not State.Settings.Reveals or autoRoll or Config.upgradeLevel(data, "AutoHatch") >= 2)
+		-- the full hatch the first time and when rolling by hand; a quicker
+		-- one when grinding (auto roll, Auto Hatch 1, or the setting off);
+		-- hidden hatches just slide the results in at the side
+		local fast = hatchedOnce and (not State.Settings.Reveals or autoRoll or Config.upgradeLevel(data, "AutoHatch") >= 1)
 		hatchedOnce = true
-		Hatch.play(results, fast, results[1].World or world)
+		meterScale.Scale = 1.06
+		task.delay(0.12, function()
+			meterScale.Scale = 1
+		end)
+		if State.Settings.HideHatch then
+			Hatch.feed(results)
+		else
+			Hatch.play(results, fast, results[1].World or world)
+		end
 		local discovered = discoveredBefore
 		for _, result in ipairs(results) do
 			if result.First and not discovered[result.Pet] then
@@ -134,39 +166,39 @@ function Roll.roll()
 end
 
 local function refreshAuto()
-	local data = State.Data
-	if not autoButton or not data then
-		return
+	if autoButton then
+		Ui.setStyle(autoButton, if autoRoll then "success" else "glass")
+		autoButton.Parent.Caption.Text = if autoRoll then "AUTO ON" else "AUTO"
 	end
-	local unlocked = Config.upgradeLevel(data, "AutoHatch") >= 1
-	if not unlocked then
-		autoRoll = false
+	if hideButton then
+		local hidden = State.Settings.HideHatch
+		Ui.setStyle(hideButton, if hidden then "purple" else "glass")
+		hideButton.Parent.Caption.Text = if hidden then "HIDDEN" else "SHOW"
 	end
-	Ui.setStyle(autoButton, if not unlocked then "disabled" elseif autoRoll then "success" else "glass")
-	Ui.setIcon(autoButton, if unlocked then "loop" else "lock")
-	autoButton.Parent.Caption.Text = if not unlocked then "Auto" elseif autoRoll then "Auto ON" else "Auto"
 end
 
 function Roll.autoOn()
 	return autoRoll
 end
 
+-- Auto roll: free for everyone
 function Roll.toggleAuto()
-	local data = State.Data
-	if not data then
-		return
-	end
-	if Config.upgradeLevel(data, "AutoHatch") < 1 then
-		Screen.toast("Unlock Auto Hatch in the upgrade tree!", "danger")
-		return
-	end
 	autoRoll = not autoRoll
 	refreshAuto()
 end
 
+-- Hide the hatch animation (results slide in at the side instead)
+function Roll.toggleHide()
+	State.Settings.HideHatch = not State.Settings.HideHatch
+	if State.Settings.HideHatch and Hatch.busy() then
+		Hatch.skip()
+	end
+	refreshAuto()
+end
+
 -- the HUD gives us its dock buttons
-function Roll.bindButtons(roll, auto)
-	rollButton, autoButton = roll, auto
+function Roll.bindButtons(roll, auto, hide)
+	rollButton, autoButton, hideButton = roll, auto, hide
 	refreshAuto()
 end
 

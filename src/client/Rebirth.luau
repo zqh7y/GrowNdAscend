@@ -1,13 +1,12 @@
--- The Rebirth screen: friendly and clear about the deal.
---   top      "Rebirth 4 / 8" with a row of 8 stars (gold = done)
---   middle   two cards side by side: YOU LOSE (just your coins) and
---            YOU GAIN (Luck x1.5 and Money +200%, shown as now -> after)
---   bottom   the two requirements, each ticked (met) or locked: the coins
---            (with how many you have) and the level ("Current Level 48 / 50"
---            with a bar), then the big REBIRTH button, which only lights up
---            when both are met
--- Worlds, pets, upgrades, the Index and your level are kept (it says so).
--- At rebirth 8 it shows the max. Rebirthing plays confetti and a jingle.
+-- The Rebirth screen: a clear, sleek summary of the deal.
+--   top      "REBIRTH 3 / 8" and a bar of 8 segments (lit = done)
+--   middle   RESET (just your coins; everything else you keep, listed) and
+--            GAIN (Luck x1.5 and Money +200%, now -> after)
+--   bottom   the two requirements, each MET or LOCKED: the cash (with how
+--            much you have) and the level ("Current Level 48 / 50" and a
+--            bar), then the REBIRTH button, which only lights up when both
+--            are met
+-- At rebirth 8 it shows MAX. Rebirthing plays confetti and a jingle.
 local RunService = game:GetService("RunService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
@@ -20,7 +19,8 @@ local Rebirth = {}
 
 local rebirthFunction = State.remote("Rebirth")
 
-local modal, box = Screen.modal(760, 600, "Rebirth")
+local MAGENTA = Color3.fromRGB(255, 60, 200)
+local modal, box = Screen.modal(780, 560, "Rebirth")
 Screen.title(box, "Rebirth")
 
 local function label(parent, props)
@@ -31,237 +31,218 @@ local function label(parent, props)
 	return Ui.new("TextLabel", props)
 end
 
--- Level and stars -------------------------------------------------------------------------------
+-- Rebirth X / 8 and the segment bar -----------------------------------------------------------
 
 local levelText = label(box, {
-	Position = UDim2.fromOffset(0, 20),
-	Size = UDim2.new(1, 0, 0, 36),
-	TextSize = 34,
-	TextStrokeTransparency = 0,
-	TextStrokeColor3 = Ui.INK,
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -46, 0, 2),
+	Size = UDim2.fromOffset(260, 22),
+	Font = Ui.FONT_TITLE,
+	TextSize = 14,
+	TextColor3 = MAGENTA,
+	TextXAlignment = Enum.TextXAlignment.Right,
 })
-local starRow = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 60),
-	Size = UDim2.fromOffset(Config.MAX_REBIRTHS * 40, 34),
+local segments = {}
+local segmentRow = Ui.new("Frame", {
+	Position = UDim2.fromOffset(0, 54),
+	Size = UDim2.new(1, 0, 0, 10),
 	BackgroundTransparency = 1,
 	ZIndex = 33,
 	Parent = box,
 }, {
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Padding = UDim.new(0, 6),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
-local stars = {}
 for i = 1, Config.MAX_REBIRTHS do
-	local holder = Ui.new("Frame", {
+	segments[i] = Ui.new("Frame", {
 		LayoutOrder = i,
-		Size = UDim2.fromOffset(34, 34),
-		BackgroundColor3 = Color3.fromRGB(30, 22, 70),
+		Size = UDim2.new(1 / Config.MAX_REBIRTHS, -6, 1, 0),
+		BackgroundColor3 = Ui.GLASS_LIGHT,
 		ZIndex = 33,
-		Parent = starRow,
-	}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 2, 0.3) })
-	stars[i] = { Holder = holder, Icon = Ui.icon("star", 22, Color3.fromRGB(90, 85, 130), { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 34, Parent = holder }) }
+		Parent = segmentRow,
+	}, { Ui.corner(2), Ui.stroke(Ui.LINE, 1, 0.4) })
 end
 
--- Lose / gain cards ----------------------------------------------------------------------------------
+-- Reset / gain cards --------------------------------------------------------------------------------
 
 local function card(x, title, color)
-	local frame = Ui.new("Frame", {
-		Position = UDim2.new(x, if x == 0 then 0 else 8, 0, 108),
-		Size = UDim2.new(0.5, -8, 0, 200),
-		BackgroundColor3 = color:Lerp(Color3.fromRGB(30, 20, 70), 0.55),
-		BackgroundTransparency = 0.1,
+	local frame = Ui.card({
+		Position = UDim2.new(x, if x == 0 then 0 else 8, 0, 80),
+		Size = UDim2.new(0.5, -8, 0, 196),
 		ZIndex = 33,
 		Parent = box,
-	}, { Ui.corner(24), Ui.padding(14) })
-	Ui.stroke(color, 3.5, 0).Parent = frame
-	local head = label(frame, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, -14),
-		Size = UDim2.fromOffset(150, 30),
-		BackgroundTransparency = 0,
-		BackgroundColor3 = color,
-		TextSize = 20,
-		Text = title,
-		TextStrokeTransparency = 0.3,
-		TextStrokeColor3 = Ui.INK,
-		ZIndex = 35,
+	}, color, { Ui.padding(16) })
+	label(frame, {
+		Size = UDim2.new(1, 0, 0, 14),
+		Font = Ui.FONT_TITLE,
+		TextSize = 10,
+		Text = "// " .. title,
+		TextColor3 = color,
+		TextXAlignment = Enum.TextXAlignment.Left,
 	})
-	Ui.corner(15).Parent = head
-	Ui.stroke(Color3.new(1, 1, 1), 2.5).Parent = head
 	return frame
 end
 
--- one line in a card: an icon in a bubble, a big line and a small one
-local function row(parent, y, icon, iconColor)
-	local bubble = Ui.new("Frame", {
+-- a line in a card: an icon in a small square, a big value and a note
+local function row(parent, y, icon, color)
+	local chip = Ui.new("Frame", {
 		Position = UDim2.fromOffset(0, y),
-		Size = UDim2.fromOffset(54, 54),
-		BackgroundColor3 = iconColor,
+		Size = UDim2.fromOffset(44, 44),
+		BackgroundColor3 = color:Lerp(Ui.GLASS, 0.8),
 		ZIndex = 34,
 		Parent = parent,
-	}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 3) })
-	Ui.icon(icon, 30, Color3.new(1, 1, 1), { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 35, Parent = bubble })
+	}, { Ui.corner(6), Ui.stroke(color, 1.2, 0.2) })
+	Ui.icon(icon, 24, color, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 35, Parent = chip })
 	local big = label(parent, {
-		Position = UDim2.fromOffset(66, y + 2),
-		Size = UDim2.new(1, -66, 0, 28),
-		TextSize = 25,
+		Position = UDim2.fromOffset(56, y),
+		Size = UDim2.new(1, -56, 0, 24),
+		TextSize = 21,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextStrokeTransparency = 0.3,
-		TextStrokeColor3 = Ui.INK,
 	})
 	local small = label(parent, {
-		Position = UDim2.fromOffset(66, y + 30),
-		Size = UDim2.new(1, -66, 0, 20),
+		Position = UDim2.fromOffset(56, y + 26),
+		Size = UDim2.new(1, -56, 0, 16),
 		Font = Ui.FONT_MEDIUM,
-		TextSize = 14,
+		TextSize = 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = Color3.fromRGB(225, 220, 250),
+		TextColor3 = Ui.MUTED,
 	})
 	return big, small
 end
 
-local lose = card(0, "YOU LOSE", Color3.fromRGB(255, 110, 130))
-local loseCoins, loseCoinsNote = row(lose, 16, "coin", Color3.fromRGB(255, 190, 60))
-local keepWorlds, keepWorldsNote = row(lose, 86, "star", Color3.fromRGB(110, 200, 120))
+local lose = card(0, "RESETS", Ui.DANGER)
+local loseCoins, loseCoinsNote = row(lose, 24, "coin", Ui.DANGER)
+local keepText, keepNote = row(lose, 86, "star", Ui.SUCCESS)
 label(lose, {
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.new(0, 0, 1, 0),
-	Size = UDim2.new(1, 0, 0, 20),
+	Size = UDim2.new(1, 0, 0, 14),
 	Font = Ui.FONT_MEDIUM,
-	TextSize = 13,
-	Text = "You KEEP worlds, pets, upgrades, Index, level",
+	TextSize = 12,
+	Text = "Worlds · pets · upgrades · Index · level all stay",
 	TextColor3 = Ui.SUCCESS,
+	TextXAlignment = Enum.TextXAlignment.Left,
 })
 
-local gain = card(0.5, "YOU GAIN", Color3.fromRGB(110, 225, 120))
-local gainLuck, gainLuckNote = row(gain, 16, "clover", Color3.fromRGB(80, 200, 110))
-local gainCoins, gainCoinsNote = row(gain, 86, "coin", Color3.fromRGB(255, 190, 60))
+local gain = card(0.5, "GAIN", Ui.SUCCESS)
+local gainLuck, gainLuckNote = row(gain, 24, "clover", Ui.SUCCESS)
+local gainCoins, gainCoinsNote = row(gain, 86, "coin", Ui.GOLD)
 label(gain, {
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.new(0, 0, 1, 0),
-	Size = UDim2.new(1, 0, 0, 20),
+	Size = UDim2.new(1, 0, 0, 14),
 	Font = Ui.FONT_MEDIUM,
-	TextSize = 13,
-	Text = "Forever, and every rebirth stacks!",
+	TextSize = 12,
+	Text = "Permanent · every rebirth stacks",
 	TextColor3 = Ui.GOLD,
+	TextXAlignment = Enum.TextXAlignment.Left,
 })
 
--- Requirements ------------------------------------------------------------------------------------
+-- Requirements ----------------------------------------------------------------------------------------
 
 local reqTitle = label(box, {
-	Position = UDim2.fromOffset(0, 318),
-	Size = UDim2.new(1, 0, 0, 24),
-	TextSize = 20,
-	Text = "TO REBIRTH YOU NEED",
+	Position = UDim2.fromOffset(0, 288),
+	Size = UDim2.new(1, 0, 0, 14),
+	Font = Ui.FONT_TITLE,
+	TextSize = 10,
+	Text = "// REQUIREMENTS",
 	TextColor3 = Ui.MUTED,
+	TextXAlignment = Enum.TextXAlignment.Left,
 })
 
-local function requirement(x)
-	local frame = Ui.new("Frame", {
-		Position = UDim2.new(x, if x == 0 then 0 else 8, 0, 348),
-		Size = UDim2.new(0.5, -8, 0, 104),
-		BackgroundColor3 = Color3.fromRGB(35, 26, 80),
-		BackgroundTransparency = 0.1,
+-- a requirement card with a MET / LOCKED status chip
+local function requirement(x, title, icon, color)
+	local frame = Ui.card({
+		Position = UDim2.new(x, if x == 0 then 0 else 8, 0, 310),
+		Size = UDim2.new(0.5, -8, 0, 110),
 		ZIndex = 33,
 		Parent = box,
-	}, { Ui.corner(22), Ui.padding(10) })
-	local stroke = Ui.stroke(Color3.new(1, 1, 1), 3, 0.2)
-	stroke.Parent = frame
-	local tick = label(frame, {
+	}, color, { Ui.padding(14) })
+	local chip = Ui.new("Frame", {
+		Size = UDim2.fromOffset(52, 52),
+		BackgroundColor3 = color:Lerp(Ui.GLASS, 0.8),
+		ZIndex = 34,
+		Parent = frame,
+	}, { Ui.corner(6), Ui.stroke(color, 1.2, 0.2) })
+	Ui.icon(icon, 30, color, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 35, Parent = chip })
+	label(frame, { Position = UDim2.fromOffset(64, 0), Size = UDim2.new(1, -150, 0, 14), Font = Ui.FONT_TITLE, TextSize = 9, Text = title, TextColor3 = Ui.MUTED, TextXAlignment = Enum.TextXAlignment.Left })
+	local value = label(frame, { Position = UDim2.fromOffset(64, 16), Size = UDim2.new(1, -64, 0, 32), TextSize = 28, TextColor3 = color, TextXAlignment = Enum.TextXAlignment.Left })
+	local note = label(frame, { Position = UDim2.fromOffset(64, 52), Size = UDim2.new(1, -64, 0, 16), Font = Ui.FONT_MEDIUM, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left })
+	local status = label(frame, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
-		Size = UDim2.fromOffset(34, 34),
+		Size = UDim2.fromOffset(78, 20),
 		BackgroundTransparency = 0,
-		TextSize = 22,
-		ZIndex = 36,
+		Font = Ui.FONT_TITLE,
+		TextSize = 9,
+		ZIndex = 35,
 	})
-	Ui.corner(0.5).Parent = tick
-	Ui.stroke(Color3.new(1, 1, 1), 2.5).Parent = tick
-	return frame, stroke, tick
+	Ui.corner(3).Parent = status
+	local track = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 5),
+		BackgroundColor3 = Ui.INK,
+		ZIndex = 34,
+		Parent = frame,
+	}, { Ui.corner(2) })
+	local fill = Ui.new("Frame", {
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = color,
+		ZIndex = 35,
+		Parent = track,
+	}, { Ui.corner(2) })
+	return { Frame = frame, Value = value, Note = note, Status = status, Fill = fill, Color = color }
 end
 
-local cashCard, cashStroke, cashTick = requirement(0)
-local cashBubble = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 12),
-	Size = UDim2.fromOffset(60, 60),
-	BackgroundColor3 = Color3.fromRGB(255, 190, 60),
-	ZIndex = 34,
-	Parent = cashCard,
-}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 3) })
-Ui.icon("coin", 36, Color3.new(1, 1, 1), { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 35, Parent = cashBubble })
-label(cashCard, { Position = UDim2.fromOffset(72, 4), Size = UDim2.new(1, -110, 0, 18), TextSize = 15, Text = "REQUIRED CASH", TextColor3 = Ui.MUTED, TextXAlignment = Enum.TextXAlignment.Left })
-local cashAmount = label(cashCard, { Position = UDim2.fromOffset(72, 24), Size = UDim2.new(1, -110, 0, 34), TextSize = 32, TextColor3 = Ui.GOLD, TextXAlignment = Enum.TextXAlignment.Left, TextStrokeTransparency = 0.3, TextStrokeColor3 = Ui.INK })
-local cashHave = label(cashCard, { Position = UDim2.fromOffset(72, 62), Size = UDim2.new(1, -72, 0, 18), Font = Ui.FONT_MEDIUM, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left })
-
-local levelCard, levelStroke, levelTick = requirement(0.5)
-local levelBubble = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 12),
-	Size = UDim2.fromOffset(60, 60),
-	BackgroundColor3 = Color3.fromRGB(140, 100, 255),
-	ZIndex = 34,
-	Parent = levelCard,
-}, { Ui.corner(0.5), Ui.stroke(Color3.new(1, 1, 1), 3) })
-Ui.icon("star", 36, Color3.new(1, 1, 1), { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 35, Parent = levelBubble })
-label(levelCard, { Position = UDim2.fromOffset(72, 4), Size = UDim2.new(1, -110, 0, 18), TextSize = 15, Text = "REQUIRED LEVEL", TextColor3 = Ui.MUTED, TextXAlignment = Enum.TextXAlignment.Left })
-local levelNeed = label(levelCard, { Position = UDim2.fromOffset(72, 24), Size = UDim2.new(1, -110, 0, 34), TextSize = 32, TextColor3 = Color3.fromRGB(200, 170, 255), TextXAlignment = Enum.TextXAlignment.Left, TextStrokeTransparency = 0.3, TextStrokeColor3 = Ui.INK })
-local levelHave = label(levelCard, { Position = UDim2.fromOffset(72, 60), Size = UDim2.new(1, -72, 0, 16), Font = Ui.FONT_MEDIUM, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left })
-local levelTrack = Ui.new("Frame", {
-	Position = UDim2.fromOffset(72, 78),
-	Size = UDim2.new(1, -72, 0, 8),
-	BackgroundColor3 = Color3.fromRGB(20, 14, 50),
-	ZIndex = 34,
-	Parent = levelCard,
-}, { Ui.corner(0.5) })
-local levelFill = Ui.new("Frame", {
-	Size = UDim2.fromScale(0, 1),
-	BackgroundColor3 = Color3.fromRGB(160, 120, 255),
-	ZIndex = 35,
-	Parent = levelTrack,
-}, { Ui.corner(0.5) })
+local cash = requirement(0, "REQUIRED CASH", "coin", Ui.GOLD)
+local level = requirement(0.5, "REQUIRED LEVEL", "star", Ui.VIOLET)
 
 local testingNote = label(box, {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 456),
-	Size = UDim2.fromOffset(0, 22),
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, 0, 0, 288),
+	Size = UDim2.fromOffset(0, 16),
 	AutomaticSize = Enum.AutomaticSize.X,
 	BackgroundTransparency = 0,
-	BackgroundColor3 = Color3.fromRGB(255, 140, 60),
-	TextSize = 14,
-	Text = "  TESTING: rebirths cost no coins right now  ",
+	BackgroundColor3 = Color3.fromRGB(255, 150, 60),
+	Font = Ui.FONT_TITLE,
+	TextSize = 8,
+	Text = "  TEST MODE: NO CASH COST  ",
 	TextColor3 = Ui.INK,
 	Visible = Config.REBIRTH_FREE_FOR_TESTING,
 })
-Ui.corner(11).Parent = testingNote
+Ui.corner(3).Parent = testingNote
 
 local rebirthButton = Ui.button({
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, 0),
-	Size = UDim2.new(0.7, 0, 0, 70),
-	Radius = 26,
+	Size = UDim2.new(1, 0, 0, 58),
+	Radius = 8,
 	Text = "REBIRTH",
 	Icon = "star",
-	TextSize = 30,
+	TextSize = 20,
 	ZIndex = 34,
 	Parent = box,
 }, function()
 	Rebirth.rebirth()
-end, "purple")
+end, "disabled")
 local buttonScale = Ui.new("UIScale", { Parent = rebirthButton })
 
 -- Showing state -----------------------------------------------------------------------------------
 
 local ready = false
 
-local function setTick(tick, stroke, ok)
-	tick.Text = if ok then "✓" else "🔒"
-	tick.BackgroundColor3 = if ok then Ui.SUCCESS else Ui.DANGER
-	stroke.Color = if ok then Ui.SUCCESS else Color3.fromRGB(255, 140, 150)
-	stroke.Transparency = 0
+local function setStatus(req, met, progress)
+	req.Status.Text = if met then "✓ MET" else "LOCKED"
+	req.Status.BackgroundColor3 = if met then Ui.SUCCESS else Ui.GLASS
+	req.Status.TextColor3 = if met then Ui.INK else Ui.DANGER
+	req.Frame.Edge.Color = if met then Ui.SUCCESS else req.Color
+	req.Fill.Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1)
+	req.Fill.BackgroundColor3 = if met then Ui.SUCCESS else req.Color
+	req.Note.TextColor3 = if met then Ui.SUCCESS else Color3.fromRGB(255, 150, 170)
 end
 
 local function refresh()
@@ -270,61 +251,49 @@ local function refresh()
 		return
 	end
 	local r = data.Rebirths
-	local row = Config.nextRebirth(r)
-	levelText.Text = "Rebirth " .. r .. " / " .. Config.MAX_REBIRTHS
-	for i, s in ipairs(stars) do
-		local done = i <= r
-		s.Holder.BackgroundColor3 = if done then Color3.fromRGB(255, 190, 50) elseif i == r + 1 then Color3.fromRGB(120, 80, 200) else Color3.fromRGB(30, 22, 70)
-		for _, d in ipairs(s.Icon:GetDescendants()) do
-			if d:IsA("Frame") and d.BackgroundTransparency < 1 then
-				d.BackgroundColor3 = if done then Color3.new(1, 1, 1) else Color3.fromRGB(90, 85, 130)
-			end
-		end
+	local nextRow = Config.nextRebirth(r)
+	levelText.Text = "REBIRTH " .. r .. " / " .. Config.MAX_REBIRTHS
+	for i, segment in ipairs(segments) do
+		segment.BackgroundColor3 = if i <= r then MAGENTA elseif i == r + 1 then MAGENTA:Lerp(Ui.GLASS, 0.7) else Ui.GLASS_LIGHT
 	end
 
-	-- what you lose and gain
 	loseCoins.Text = Config.formatNumber(data.Coins) .. " coins"
 	loseCoinsNote.Text = "Your coins go back to 0"
-	keepWorlds.Text = "Worlds stay open"
-	keepWorldsNote.Text = "Only your coins reset"
-	local nextR = math.min(r + 1, Config.MAX_REBIRTHS)
+	keepText.Text = "Everything else"
+	keepNote.Text = "No worlds to unlock again"
+	local after = math.min(r + 1, Config.MAX_REBIRTHS)
 	gainLuck.Text = "Luck x" .. Config.REBIRTH_LUCK
-	gainLuckNote.Text = string.format("Total luck bonus x%.2f → x%.2f", Config.rebirthLuck(r), Config.rebirthLuck(nextR))
+	gainLuckNote.Text = string.format("Total x%.2f → x%.2f", Config.rebirthLuck(r), Config.rebirthLuck(after))
 	gainCoins.Text = "Money +" .. math.floor(Config.REBIRTH_COINS * 100) .. "%"
-	gainCoinsNote.Text = "Coins x" .. Config.coinMultiplier(r) .. " → x" .. Config.coinMultiplier(nextR)
+	gainCoinsNote.Text = "Coins x" .. Config.coinMultiplier(r) .. " → x" .. Config.coinMultiplier(after)
 
-	if not row then
-		-- all 8 done
-		reqTitle.Text = "MAX REBIRTH REACHED!"
+	if not nextRow then
+		reqTitle.Text = "// MAX REBIRTH REACHED"
 		reqTitle.TextColor3 = Ui.GOLD
-		cashCard.Visible, levelCard.Visible, testingNote.Visible = false, false, false
-		Ui.setText(rebirthButton, "MAX REBIRTH  " .. Config.MAX_REBIRTHS .. "/" .. Config.MAX_REBIRTHS)
+		cash.Frame.Visible, level.Frame.Visible, testingNote.Visible = false, false, false
+		Ui.setText(rebirthButton, "MAX REBIRTH " .. Config.MAX_REBIRTHS .. " / " .. Config.MAX_REBIRTHS)
 		Ui.setStyle(rebirthButton, "gold")
 		ready = false
 		return
 	end
-	cashCard.Visible, levelCard.Visible = true, true
+	cash.Frame.Visible, level.Frame.Visible = true, true
 	testingNote.Visible = Config.REBIRTH_FREE_FOR_TESTING
-	reqTitle.Text = "TO REBIRTH YOU NEED"
+	reqTitle.Text = "// REQUIREMENTS FOR REBIRTH " .. (r + 1)
 	reqTitle.TextColor3 = Ui.MUTED
 	local ok, hasCoins, hasLevel = Config.canRebirth(data)
 	local cost = Config.rebirthCost(r)
-	cashAmount.Text = if cost == 0 then "FREE" else Config.formatNumber(cost)
-	cashHave.Text = "You have " .. Config.formatNumber(data.Coins)
-	cashHave.TextColor3 = if hasCoins then Ui.SUCCESS else Color3.fromRGB(255, 170, 170)
-	setTick(cashTick, cashStroke, hasCoins)
+	cash.Value.Text = if cost == 0 then "FREE" else Config.formatNumber(cost)
+	cash.Note.Text = "You have " .. Config.formatNumber(data.Coins)
+	setStatus(cash, hasCoins, if cost == 0 then 1 else data.Coins / cost)
 
-	local level = data.Level or 1
-	levelNeed.Text = "Level " .. row.Level
-	levelHave.Text = "Current Level: " .. level .. " / " .. row.Level
-	levelHave.TextColor3 = if hasLevel then Ui.SUCCESS else Color3.fromRGB(255, 170, 170)
-	levelFill.Size = UDim2.fromScale(math.clamp(level / row.Level, 0, 1), 1)
-	levelFill.BackgroundColor3 = if hasLevel then Ui.SUCCESS else Color3.fromRGB(160, 120, 255)
-	setTick(levelTick, levelStroke, hasLevel)
+	local current = data.Level or 1
+	level.Value.Text = "Level " .. nextRow.Level
+	level.Note.Text = "Current Level: " .. current .. " / " .. nextRow.Level
+	setStatus(level, hasLevel, current / nextRow.Level)
 
 	ready = ok
-	Ui.setText(rebirthButton, if ok then "REBIRTH NOW!" else "REBIRTH")
-	Ui.setStyle(rebirthButton, if ok then "purple" else "disabled")
+	Ui.setText(rebirthButton, if ok then "REBIRTH NOW" else "REBIRTH")
+	Ui.setStyle(rebirthButton, if ok then "primary" else "disabled")
 end
 
 function Rebirth.rebirth()
@@ -334,16 +303,17 @@ function Rebirth.rebirth()
 	end
 	if not ready then
 		Effects.play("Click", 0.7)
-		-- wiggle whatever is missing
-		for _, target in ipairs({ cashCard, levelCard }) do
-			local home = target.Position
+		-- shake what's missing
+		for _, req in ipairs({ cash, level }) do
+			local frame = req.Frame
+			local home = frame.Position
 			for k = 1, 4 do
 				task.delay(k * 0.04, function()
-					target.Position = home + UDim2.fromOffset(if k % 2 == 0 then -6 else 6, 0)
+					frame.Position = home + UDim2.fromOffset(if k % 2 == 0 then -6 else 6, 0)
 				end)
 			end
 			task.delay(0.2, function()
-				target.Position = home
+				frame.Position = home
 			end)
 		end
 		return false
@@ -362,13 +332,18 @@ function Rebirth.open()
 	refresh()
 end
 
--- the button bounces when ready
+-- the button breathes when ready; the next segment blinks
 RunService.RenderStepped:Connect(function()
 	if not modal.Visible then
 		return
 	end
 	local t = os.clock()
-	buttonScale.Scale = if ready then 1 + (math.sin(t * 5) * 0.5 + 0.5) * 0.05 else 1
+	buttonScale.Scale = if ready then 1 + (math.sin(t * 5) * 0.5 + 0.5) * 0.03 else 1
+	local data = State.Data
+	local nextSegment = data and segments[data.Rebirths + 1]
+	if nextSegment then
+		nextSegment.BackgroundTransparency = (math.sin(t * 4) * 0.5 + 0.5) * 0.6
+	end
 end)
 
 State.watch(function()

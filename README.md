@@ -39,7 +39,10 @@ chase Huge and Titanic pets.**
   30 is a **flex roll**: a Huge, Titanic or Secret flies past on the way
   down with a big label, then the column carries on to your real result
   (it's only a show; you get exactly what you rolled). Click to skip; it's
-  quicker after the first few hatches and fastest when auto rolling. Every 10th roll
+  quicker after the first few hatches and fastest when auto rolling. The
+  reveal stands the pet on a holo pad, sweeps a scan line over it and
+  counts its power up; a "SO CLOSE" tag marks a much rarer pet that
+  stopped right above yours. Every 10th roll
   has 2x luck. Rare pets and big sizes get a full-screen reveal with rays,
   confetti and a jingle (Titanic: rainbow).
 - **Upgrade tree** (the tree button): Coins, Damage, Luck, Roll Speed, Rolls
@@ -107,15 +110,21 @@ Rebirth, Settings; the leaderboards live in the Forest), and the Roll and
 Auto buttons on the right, so the middle stays clear for the fights. The
 top-left corner is left for Roblox's own menu buttons.
 
-Every screen shares one friendly cartoon style: a round bubbly font, candy
-gradient buttons with a dark outline and a shine, panels with a thick white
-border, a soft shadow, a coloured title ribbon with an icon, a round close
-button, and the world blurred behind. The upgrade tree is a real tree on a
-grassy hill (what unlocks what), with big icon nodes, level bars, cost
-pills, padlocks and MAX crowns, a detail panel, and a pop, sparkles and
-"+1 level" text on every purchase. The rebirth screen shows Rebirth X / 8
-with stars, YOU LOSE vs YOU GAIN, and both requirements with ticks (the
-animal in 3D). Settings: damage numbers, full hatch animation, sounds. Sounds use built-in Roblox sounds; swap them in
+Every screen shares one sleek futuristic style: dark glass panels with a
+thin neon edge in the screen's colour, a neon line along the top, a faint
+tech grid, HUD corner brackets, titles in a wide tech font ("// DATABASE"
+over "ANIMAL INDEX"), crisp buttons (cyan -> violet on the main actions,
+dark glass with neon edges elsewhere), and pets standing on holo pads. The
+upgrade tree is a circuit board: neon traces run from a pulsing core to
+dark lens-like nodes with neon rings, level bars, costs, padlocks and MAX
+tags, with a detail panel and a pop, sparks and "+1 level" text on every
+purchase. The rebirth screen shows REBIRTH X / 8 as a segment bar, what
+resets vs what you gain, and both requirements as MET / LOCKED with
+progress bars. Above the Roll button a luck meter fills 10 segments
+towards the 2x bonus roll. **Auto roll is free.** The eye button hides
+the hatch animation: results slide in as small cards at the side (a Huge
+or Titanic still flashes). Settings: damage numbers, full hatch
+animation, sounds. Sounds use built-in Roblox sounds; swap them in
 `Effects.SOUNDS`.
 
 ## The map
@@ -181,5 +190,5 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/client/Ui.luau`, `Screen.luau`, `State.luau` | UI kit and icons, panels and toasts, the client's data |
 | `src/shared/Coins.luau`, `Build.luau` | Living coin looks and jump styles; model-building helpers |
 | `src/client/PetModels.luau` | All 70 species (body, features, movement) and the tech details by rarity |
-| `tools/sim/` | Runs the server and client on a fake Roblox and plays through a 60-point checklist |
+| `tools/sim/` | Runs the server and client on a fake Roblox and plays through a 63-point checklist |
 | `tools/economy/simulate.py` | Simulates players to check the progression targets |

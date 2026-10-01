@@ -123,7 +123,8 @@ local flexBanner = Ui.new("TextLabel", {
 	Position = UDim2.fromScale(0.5, 0.45),
 	Size = UDim2.fromOffset(700, 60),
 	TextScaled = false,
-	TextSize = 44,
+	Font = Ui.FONT_TITLE,
+	TextSize = 30,
 	Text = "",
 	TextStrokeTransparency = 0,
 	TextStrokeColor3 = Ui.INK,
@@ -203,17 +204,37 @@ local function text(props)
 	props.Parent = props.Parent or reveal
 	return Ui.new("TextLabel", props)
 end
-local banner = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.14), Size = UDim2.fromOffset(700, 60), TextSize = 56 })
+local banner = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.14), Size = UDim2.fromOffset(760, 60), Font = Ui.FONT_TITLE, TextSize = 40, TextStrokeTransparency = 0.3 })
 local bannerScale = Ui.new("UIScale", { Parent = banner })
-local newBadge = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 120, 0.26, 0), Size = UDim2.fromOffset(110, 34), TextSize = 22, Text = "NEW!", BackgroundTransparency = 0, BackgroundColor3 = Ui.SUCCESS, Rotation = 12 })
-Ui.corner(17).Parent = newBadge
-Ui.stroke(Color3.new(1, 1, 1), 3).Parent = newBadge
-local nameText = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.63), Size = UDim2.fromOffset(760, 64), TextSize = 58 })
-local rarityPill = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.7), Size = UDim2.fromOffset(0, 32), AutomaticSize = Enum.AutomaticSize.X, TextSize = 22, BackgroundTransparency = 0, TextStrokeTransparency = 0.4 })
-Ui.corner(16).Parent = rarityPill
-Ui.stroke(Color3.new(1, 1, 1), 3).Parent = rarityPill
-Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 16), Parent = rarityPill })
-local powerText = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.77), Size = UDim2.fromOffset(700, 34), TextSize = 30, TextColor3 = Ui.GOLD })
+local newBadge = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 130, 0.25, 0), Size = UDim2.fromOffset(120, 26), Font = Ui.FONT_TITLE, TextSize = 12, Text = "NEW", TextColor3 = Ui.INK, TextStrokeTransparency = 1, BackgroundTransparency = 0, BackgroundColor3 = Ui.SUCCESS })
+Ui.corner(3).Parent = newBadge
+local nameText = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.63), Size = UDim2.fromOffset(760, 56), Font = Enum.Font.GothamBlack, TextSize = 50, TextStrokeTransparency = 0.5 })
+local rarityPill = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.7), Size = UDim2.fromOffset(0, 26), AutomaticSize = Enum.AutomaticSize.X, Font = Ui.FONT_TITLE, TextSize = 12, TextColor3 = Ui.INK, BackgroundTransparency = 0, TextStrokeTransparency = 1 })
+Ui.corner(3).Parent = rarityPill
+Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 14), Parent = rarityPill })
+local powerText = text({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.77), Size = UDim2.fromOffset(700, 34), Font = Ui.FONT_TITLE, TextSize = 22, TextColor3 = Ui.CYAN, TextStrokeTransparency = 0.5 })
+-- a holo pad under the revealed pet, and a scan line that sweeps over it
+local pad = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0.4, 130),
+	Size = UDim2.fromOffset(240, 40),
+	BackgroundColor3 = Color3.new(1, 1, 1),
+	BackgroundTransparency = 0.8,
+	ZIndex = 53,
+	Parent = reveal,
+}, { Ui.corner(0.5) })
+local padStroke = Ui.stroke(Ui.CYAN, 2, 0.1)
+padStroke.Parent = pad
+local scan = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0),
+	Size = UDim2.new(1.1, 0, 0, 3),
+	BackgroundColor3 = Ui.CYAN,
+	BackgroundTransparency = 0.2,
+	Visible = false,
+	ZIndex = 56,
+	Parent = petHolder,
+}, { Ui.new("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0), NumberSequenceKeypoint.new(1, 1) }) }) })
 local extras = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.fromScale(0.5, 0.82),
@@ -320,12 +341,12 @@ local function columnPet(name, silhouette)
 	local itemGlow = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.8, 0.8),
+		Size = UDim2.fromScale(0.78, 0.78),
 		BackgroundColor3 = accent,
-		BackgroundTransparency = 0.72,
+		BackgroundTransparency = 0.82,
 		ZIndex = 53,
 		Parent = item,
-	}, { Ui.corner(0.5) })
+	}, { Ui.corner(0.5), Ui.stroke(accent, 2, 0.15) })
 	local shadow = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.9),
@@ -499,12 +520,35 @@ local function showReveal(result, fast, others)
 	banner.TextColor3 = accent
 	banner.Visible = banner.Text ~= ""
 	newBadge.Visible = result.First or (result.Size > 1 and result.FirstOfSize) or false
-	newBadge.Text = if result.First then "NEW!" else "NEW " .. string.upper(size.Name) .. "!"
+	newBadge.Text = if result.First then "NEW ANIMAL" else "NEW " .. string.upper(size.Name)
 	nameText.Text = name
 	nameText.TextColor3 = if result.Size > 1 then size.Color else Color3.new(1, 1, 1)
-	rarityPill.Text = string.upper(rarity.Name) .. "  ·  " .. Config.formatOdds(pet.Odds)
+	rarityPill.Text = string.upper(rarity.Name) .. "  ·  " .. string.upper(Config.formatOdds(pet.Odds))
 	rarityPill.BackgroundColor3 = rarity.Color
-	powerText.Text = Config.formatNumber(Config.petPower(name)) .. " Power" .. (if result.Size > 1 then "  ·  " .. size.Name .. " x" .. size.Power else "")
+	pad.BackgroundColor3 = accent
+	padStroke.Color = accent
+	-- the power counts up (satisfying), then holds
+	local power = Config.petPower(name)
+	local suffix = " PWR" .. (if result.Size > 1 then "  ·  " .. string.upper(size.Name) .. " x" .. size.Power else "")
+	powerText.Text = "0" .. suffix
+	task.spawn(function()
+		local start = os.clock()
+		local length = if tier >= 4 then 1.1 else 0.55
+		while reveal.Visible and os.clock() - start < length do
+			local u = (os.clock() - start) / length
+			powerText.Text = Config.formatNumber(power * (1 - (1 - u) ^ 3)) .. suffix
+			task.wait()
+		end
+		powerText.Text = Config.formatNumber(power) .. suffix
+	end)
+	-- one scan line sweeps down over the pet
+	scan.Visible = true
+	scan.BackgroundColor3 = accent
+	scan.Position = UDim2.fromScale(0.5, 0)
+	TweenService:Create(scan, TweenInfo.new(0.6, Enum.EasingStyle.Quad), { Position = UDim2.fromScale(0.5, 1) }):Play()
+	task.delay(0.62, function()
+		scan.Visible = false
+	end)
 
 	-- the other pets from this roll, small underneath
 	clear(extras)
@@ -551,7 +595,7 @@ local function showReveal(result, fast, others)
 	if tier <= 0 then
 		sparkleBurst(8, 12, { Color3.new(1, 1, 1), accent }, 160)
 		Effects.play("Coin", 1.3)
-		hold = 0.8
+		hold = 0.7
 	elseif tier == 1 then
 		sparkleBurst(14, 14, { Color3.new(1, 1, 1), accent, Ui.GOLD }, 200)
 		Effects.jingle(2)
@@ -682,7 +726,7 @@ local function show(results, fast, world)
 	-- middle, so as the offset grows the pets move DOWN the screen
 	local startOffset = 2 * SPACING
 	local finalOffset = (LANDING - 1) * SPACING
-	local duration = (if fast then 0.8 elseif first then 2.4 else 1.5) + (if tier >= 3 and not fast then 0.6 else 0)
+	local duration = (if fast then 0.75 elseif first then 2.2 else 1.2) + (if tier >= 3 and not fast then 0.6 else 0)
 	local progress = 0
 	local lastOffset, lastIndex = nil, -1
 	local speedEarly, speedLate = 0, math.huge
@@ -796,6 +840,30 @@ local function show(results, fast, world)
 	stage.Rotation = 0
 	flexBanner.Visible = false
 
+	-- a near miss: a much rarer pet stopped right above yours
+	local above = items[LANDING + 1]
+	local nearMiss = above and above.Odds >= 10 * Config.PETS_BY_NAME[best.Pet].Odds and tier <= 2
+	if nearMiss then
+		local tag = Ui.new("TextLabel", {
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(1, 6, 0.5, 0),
+			Size = UDim2.fromOffset(120, 18),
+			BackgroundTransparency = 0,
+			BackgroundColor3 = Ui.DANGER,
+			Font = Ui.FONT_TITLE,
+			TextScaled = false,
+			TextSize = 9,
+			Text = "SO CLOSE",
+			TextColor3 = Ui.TEXT,
+			ZIndex = 57,
+			Parent = above.Frame,
+		}, { Ui.corner(3) })
+		Effects.play("Click", 0.6)
+		task.delay(1.2, function()
+			tag:Destroy()
+		end)
+	end
+
 	-- 4. the silhouette glows in its rarity's colour a moment
 	local landed = items[LANDING]
 	local glowTime = if fast then (if tier >= 4 then 0.4 else 0.15) else (if first then 0.45 else 0.3) + math.min(tier, 5) * 0.18
@@ -827,6 +895,7 @@ local function show(results, fast, world)
 		ShakeGrows = maxShake > earlyShake,
 		Silhouette = glowTime,
 		StripCardsShown = PETS,
+		NearMiss = nearMiss,
 		Others = #others,
 		Flex = flex,
 		FlexShown = flexShown,
@@ -838,6 +907,131 @@ local function show(results, fast, world)
 
 	TweenService:Create(shade, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
 	task.wait(0.2)
+end
+
+-- Hidden hatches ---------------------------------------------------------------------------------
+-- With hatches hidden, results slide in as small cards on the right (no
+-- veil, nothing blocking) and fade after a few seconds. Big results still
+-- get a moment: a Huge or Titanic flashes its name in the middle.
+
+local feedList = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.new(1, -130, 0.42, 0),
+	Size = UDim2.fromOffset(250, 380),
+	BackgroundTransparency = 1,
+	ZIndex = 45,
+	Parent = gui,
+}, {
+	Ui.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Vertical,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+local feedBanner = Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.3),
+	Size = UDim2.fromOffset(800, 50),
+	Font = Ui.FONT_TITLE,
+	TextScaled = false,
+	TextSize = 30,
+	TextStrokeTransparency = 0.3,
+	TextStrokeColor3 = Ui.INK,
+	Visible = false,
+	ZIndex = 46,
+	Parent = gui,
+})
+local feedBannerScale = Ui.new("UIScale", { Parent = feedBanner })
+local feedOrder = 0
+Hatch.LastFeed = nil -- for the simulator
+
+function Hatch.feed(results)
+	local shown = {}
+	for _, result in ipairs(results) do
+		local name = Config.petName(result.Pet, result.Size)
+		local pet, size = Config.petInfo(name)
+		local rarity = Config.rarity(pet.Odds)
+		local tier = Hatch.tier(result)
+		local accent = if size.Index > 1 then size.Color else rarity.Color
+		feedOrder += 1
+		local card = Ui.card({
+			LayoutOrder = feedOrder,
+			Size = UDim2.fromOffset(250, 54),
+			BackgroundColor3 = Ui.GLASS,
+			BackgroundTransparency = 0.15,
+			ZIndex = 45,
+			Parent = feedList,
+		}, accent)
+		local view = PetView.take(name)
+		view.Size = UDim2.fromOffset(52, 52)
+		view.ZIndex = 46
+		view.Parent = card
+		Ui.new("TextLabel", {
+			Position = UDim2.fromOffset(58, 8),
+			Size = UDim2.new(1, -64, 0, 18),
+			TextScaled = false,
+			TextSize = 15,
+			Text = name,
+			TextColor3 = if size.Index > 1 then size.Color else Ui.TEXT,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			ZIndex = 46,
+			Parent = card,
+		})
+		Ui.new("TextLabel", {
+			Position = UDim2.fromOffset(58, 30),
+			Size = UDim2.new(1, -64, 0, 14),
+			Font = Ui.FONT_TITLE,
+			TextScaled = false,
+			TextSize = 8,
+			Text = string.upper(rarity.Name) .. "  ·  " .. Config.formatNumber(Config.petPower(name)) .. " PWR" .. (if result.First then "  ·  NEW" else ""),
+			TextColor3 = rarity.Color,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 46,
+			Parent = card,
+		})
+		local scale = Ui.new("UIScale", { Scale = 0.6, Parent = card })
+		TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		task.delay(if tier >= 3 then 6 else 3, function()
+			PetView.releaseAll(card)
+			card:Destroy()
+		end)
+		table.insert(shown, name)
+		if tier >= 4 then
+			-- a Huge or Titanic still gets its moment, without stopping you
+			feedBanner.Text = (if tier >= 5 then "TITANIC " else "HUGE ") .. string.upper(result.Pet) .. "!"
+			feedBanner.TextColor3 = accent
+			feedBanner.Visible = true
+			feedBannerScale.Scale = 2
+			TweenService:Create(feedBannerScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+			flashScreen(accent, 0.6, 0.5)
+			Effects.jingle(if tier >= 5 then 7 else 5)
+			Effects.confetti(if tier >= 5 then 80 else 40)
+			task.delay(2, function()
+				feedBanner.Visible = false
+			end)
+		elseif tier >= 2 then
+			Effects.jingle(2)
+		else
+			Effects.play("Coin", 1.4, 0.05)
+		end
+	end
+	-- never more than 6 cards at once
+	local cards = {}
+	for _, child in ipairs(feedList:GetChildren()) do
+		if child:IsA("Frame") then
+			table.insert(cards, child)
+		end
+	end
+	table.sort(cards, function(x, y)
+		return x.LayoutOrder < y.LayoutOrder
+	end)
+	for i = 1, #cards - 6 do
+		PetView.releaseAll(cards[i])
+		cards[i]:Destroy()
+	end
+	Hatch.LastFeed = { Names = shown, Cards = math.min(#cards, 6) }
 end
 
 -- Plays the whole hatch for a roll's results. Yields until it's done.
