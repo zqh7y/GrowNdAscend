@@ -64,6 +64,7 @@ HIT_EVERY = 0.6
 OVERHEAD = 1.6  # seconds per enemy: running over, retargeting, its hops
 BONUS_EVERY, BONUS_LUCK = 10, 2
 CHAIN_CHANCE, CHAIN_MAX = 1 / 12, 1024  # luck boosts (Config.BOOST_CHANCE, Config.nextChain)
+MAX_HIT = num(r'MAX_HIT = ([\d.]+)')
 MAX_LUCK = num(r'MAX_LUCK = ([\d.e]+)')
 
 SIZE_STAT = [1, 2, 4]  # Huge/Titanic multiply the bonus part
@@ -116,7 +117,7 @@ def run(hours=8, seed=1, verbose=False):
                 luck = min(luck * REBIRTH_LUCK ** rebirths * world_luck * multiplier, MAX_LUCK)
                 odds = 2
                 for o, w in reversed(PETS[1:]):
-                    if rng.random() < luck / (o * WORLD_PENALTY ** max(0, w - world)):
+                    if rng.random() < min(luck / (o * WORLD_PENALTY ** max(0, w - world)), MAX_HIT):
                         odds = o
                         break
                 size = 0

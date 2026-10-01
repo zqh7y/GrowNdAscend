@@ -32,12 +32,13 @@ chase Huge and Titanic pets.**
 - **The hatch:** the server rolls first (each roll is a pet or a luck
   boost, plus the exact luck it used); the screen only shows that result.
   - **The reel** is vertical and sits at the bottom of the screen, by hand
-    and on auto: a soft frosted tray (10% opacity) slides up, and small
+    and on auto: a soft frosted tray (10% opacity), fixed in one spot
+    (it never moves during a spin; only the cards inside do), where small
     white cards (the pet on the left, its **complete, exact chance** in a
     pill on the right, e.g. "1 in 12.5K") fall from the top to the bottom
     and ease to a stop on your result. Two little notches on the tray's
     edges mark the middle slot; the card that stops there lifts and takes
-    a coloured outline (gold for rare results), then the tray slips away.
+    a coloured outline (gold for rare results), then the tray fades away.
     Luck boosts are green cards with a clover. The chances come from the
     same luck, size luck and world the server rolled with
     (`Config.chanceOf`); no rarity names.
@@ -48,10 +49,14 @@ chase Huge and Titanic pets.**
     x1024. A small clover badge above the Roll, Auto and mode buttons shows it ("×8"):
     filled green while a roll is using it, white with a gold edge while
     it's waiting for your next roll; it pops when it grows and shrinks
-    away when it's used up. The server keeps the waiting boost in
+    away when it's used up.
+  - **Controls:** a big blue **ROLL** button (or the R key) with a slim bar
+    that fills while the next roll gets ready (it says SKIP while a hatch
+    is showing), and an **AUTO** on/off switch above it. Bigger hatch
+    reveals can be turned on in Settings ("Big hatch reveals"). The server keeps the waiting boost in
     your saved data, so rejoining doesn't lose it, and rapid presses can't
     use it twice.
-  - **Full mode** (the eye button): a bigger reel with a silhouette moment,
+  - **Big hatch reveals** (Settings): a bigger reel with a silhouette moment,
     then a centred reveal where the pet rises large with its name, exact
     chance and power counting up. About 1 full hatch in 30 is a **flex
     roll**: a Huge or Titanic slides past ("Huge Dragon?!"); the reel still
@@ -66,7 +71,7 @@ chase Huge and Titanic pets.**
     screen, heartbeats with rings of light, rainbow cracks, a flash, then
     "INSANE PULL!".
 
-  The Roll, Auto and hatch mode buttons sit on their own layer above
+  The ROLL button and AUTO switch sit on their own layer above
   everything, so they always work. Every 10th roll has 2x luck.
 - **Feel:** panels fade and rise in, and ease away on close; cards in the
   Inventory and Index grow in one after another; equipping pops the card
@@ -74,6 +79,21 @@ chase Huge and Titanic pets.**
   rebirth flashes the screen; walking into another world slides a small
   banner with its name down under the HUD. **Settings → Reduced motion**
   turns off bounces, shakes, camera kicks and most confetti.
+- **Every animal hatches in every world**: animals from later worlds are
+  much rarer in earlier ones (25x per world ahead) but never impossible,
+  and no single step of a roll is ever certain (`Config.MAX_HIT`), so even
+  huge luck can't make any animal impossible. Index cards show the exact
+  chance of your next roll where you stand and say "Hatches in every
+  world".
+- **Inventory (My Pets):** simple cards for younger players: a big picture,
+  the name, the power (a sword and a number), the rarity as a coloured
+  edge and top stripe, a green check when equipped and one button (Equip /
+  Unequip). Tap a card for its details on the right (rarity, size and its
+  five multipliers with icons). Tabs: All, Equipped, Huge, Titanic; the
+  sort button says what it does ("Strongest first").
+- **Your Team** (top of the screen): each equipped pet in a round chip with
+  its damage per second and its share of the team's damage under it
+  ("1.2K · 45%"); the shares always add up to 100%.
 - **Pet stats:** every animal has its own five multipliers (its `Stats` in
   `Config.PETS`), shown on its Inventory card: **Speed** (how fast it
   moves), **Luck**, **Coins**, **Damage** (its own hits) and **EXP**. Every
@@ -219,7 +239,7 @@ The fusion machine shows its state: slow rings when idle, fast rings and
 lots of sparkles while fusing (the orb takes the pet's colour and grows), and
 a golden beam of light when a huge pet is ready.
 
-**Testing:** rebirths cost no coins (the level is still needed) and every area is open (see CLAUDE.md, restore before release).
+**Testing (temporary):** rebirths cost no coins (the level is still needed), area unlocks cost 0 coins (the gates still start locked and are unlocked at the gate as normal), and every join re-locks the areas so the gates can be seen (see CLAUDE.md, restore before release).
 
 ## Solo servers
 

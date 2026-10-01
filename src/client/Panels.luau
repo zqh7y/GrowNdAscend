@@ -285,11 +285,12 @@ end)
 
 -- Settings ---------------------------------------------------------------------------------
 
-local settingsModal, settingsBox = Screen.modal(440, 400, "Settings")
+local settingsModal, settingsBox = Screen.modal(440, 480, "Settings")
 Screen.title(settingsBox, "Settings")
 local SETTINGS = {
 	{ Key = "DamageNumbers", Name = "Damage numbers" },
-	{ Key = "Reveals", Name = "Full hatch animation" },
+	{ Key = "FullHatch", Name = "Big hatch reveals" },
+	{ Key = "Reveals", Name = "Slow first hatches" },
 	{ Key = "Sounds", Name = "Sounds" },
 	{ Key = "ReducedMotion", Name = "Reduced motion" },
 }

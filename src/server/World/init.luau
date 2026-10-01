@@ -161,7 +161,7 @@ local function buildGate(i)
 		gate,
 		CFrame.new(x, 23.5, 0) * CFrame.Angles(0, math.rad(90), 0),
 		Vector3.new(34, 6, 0.8),
-		area.Name:upper() .. "  ·  " .. Config.formatNumber(Config.areaCost(i)) .. " COINS",
+		area.Name:upper() .. "  ·  " .. Config.areaCostText(i),
 		Color3.new(1, 1, 1),
 		area.Color:Lerp(Color3.new(0, 0, 0), 0.15)
 	)
@@ -174,7 +174,7 @@ local function buildGate(i)
 	})
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Unlock " .. area.Name
-	prompt.ObjectText = Config.formatNumber(Config.areaCost(i)) .. " coins"
+	prompt.ObjectText = string.lower(Config.areaCostText(i))
 	prompt.HoldDuration = 0.3
 	prompt.MaxActivationDistance = 14
 	prompt.RequiresLineOfSight = false
@@ -196,7 +196,7 @@ function World.setGateOpen(i, open)
 	gate.Button.Transparency = if open then 1 else 0
 	Build.setSignText(gate.Sign, if open
 		then area.Name:upper()
-		else area.Name:upper() .. "  ·  " .. Config.formatNumber(Config.areaCost(i)) .. " COINS")
+		else area.Name:upper() .. "  ·  " .. Config.areaCostText(i))
 end
 
 -- Areas -------------------------------------------------------------------------------

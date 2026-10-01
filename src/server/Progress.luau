@@ -106,6 +106,9 @@ end
 local function onLoaded(player)
 	local data = PlayerData.get(player)
 	if data then
+		if Config.RELOCK_AREAS_FOR_TESTING then
+			data.Unlocked = Config.startingArea() -- (testing: see Config)
+		end
 		data.Unlocked = math.max(data.Unlocked, Config.startingArea())
 		refreshGates(data.Unlocked)
 		PlayerData.sync(player)

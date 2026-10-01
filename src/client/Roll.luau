@@ -12,6 +12,7 @@ local Ui = require(script.Parent.Ui)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
 local Hatch = require(script.Parent.Hatch)
+local Effects = require(script.Parent.Effects)
 
 local Roll = {}
 
@@ -20,7 +21,7 @@ local gui = Screen.Gui
 
 local rolling = false
 local autoRoll = false
-local rollButton, autoButton, hideButton -- set by the HUD
+local rollButton, autoButton -- set by Roll.buildControls
 
 -- Luck pill -----------------------------------------------------------------------------------
 -- Your effective luck where you stand ("🍀 ×7.4"), as a compact pill that
@@ -268,9 +269,10 @@ Hatch.BoostChanged.Event:Connect(setBadge)
 
 -- Rolling --------------------------------------------------------------------------------
 
+local rollLabel, cooldownFill -- set by Roll.buildControls
 local function setRollLabel(text)
-	if rollButton then
-		rollButton.Parent.Caption.Text = text
+	if rollLabel then
+		rollLabel.Text = string.upper(text)
 	end
 end
 
@@ -286,7 +288,7 @@ function Roll.roll()
 		return
 	end
 	rolling = true
-	setRollLabel("Rolling")
+	setRollLabel("Roll")
 	local started = os.clock()
 	local world = currentWorld(data)
 	local discoveredBefore = table.clone(data.Discovered or {})
@@ -301,7 +303,9 @@ function Roll.roll()
 		-- bush cutscene and a crazy pull its own show (Hatch decides, from the
 		-- results the server already rolled; the animation never changes them)
 		local mode = if State.Settings.FullHatch and not autoRoll then "full" else "compact"
+		setRollLabel("Skip") -- pressing it now skips the show
 		Hatch.play(results, fast, results[1].World or world, mode, autoRoll)
+		setRollLabel("Roll")
 		local discovered = discoveredBefore
 		for _, result in ipairs(results) do
 			if result.First and not discovered[result.Pet] then
@@ -314,10 +318,16 @@ function Roll.roll()
 			end
 		end
 	end
-	-- wait out the cooldown
-	local left = Config.rollCooldown(State.Data) - (os.clock() - started)
-	if left > 0 then
-		task.wait(left)
+	-- wait out the cooldown (the bar in the Roll button fills meanwhile)
+	local cooldown = Config.rollCooldown(State.Data)
+	while os.clock() - started < cooldown do
+		if cooldownFill then
+			cooldownFill.Size = UDim2.fromScale(math.clamp((os.clock() - started) / cooldown, 0, 1), 1)
+		end
+		task.wait()
+	end
+	if cooldownFill then
+		cooldownFill.Size = UDim2.fromScale(1, 1)
 	end
 	setRollLabel("Roll")
 	rolling = false
@@ -325,13 +335,15 @@ end
 
 local function refreshAuto()
 	if autoButton then
-		Ui.setStyle(autoButton, if autoRoll then "success" else "glass")
-		autoButton.Parent.Caption.Text = if autoRoll then "AUTO ON" else "AUTO"
-	end
-	if hideButton then
-		local full = State.Settings.FullHatch
-		Ui.setStyle(hideButton, if full then "purple" else "glass")
-		hideButton.Parent.Caption.Text = if full then "FULL" else "COMPACT"
+		-- the AUTO switch: green with the knob on the right when on
+		local on = autoRoll
+		autoButton.BackgroundColor3 = if on then Color3.fromRGB(230, 249, 238) else Ui.WHITE
+		autoButton.Edge.Color = if on then Ui.SUCCESS else Ui.LINE
+		autoButton.Label.Text = if on then "AUTO ON" else "AUTO"
+		autoButton.Label.TextColor3 = if on then Color3.fromRGB(30, 140, 80) else Ui.INK
+		local track = autoButton.Track
+		TweenService:Create(track, TweenInfo.new(0.18, Enum.EasingStyle.Quint), { BackgroundColor3 = if on then Ui.SUCCESS else Color3.fromRGB(205, 210, 224) }):Play()
+		TweenService:Create(track.Knob, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Position = if on then UDim2.new(1, -25, 0.5, 0) else UDim2.new(0, 3, 0.5, 0) }):Play()
 	end
 end
 
@@ -355,11 +367,189 @@ function Roll.toggleHatchMode()
 end
 Roll.toggleHide = Roll.toggleHatchMode
 
--- the HUD gives us its dock buttons
-function Roll.bindButtons(roll, auto, hide)
-	rollButton, autoButton, hideButton = roll, auto, hide
+-- (kept for older callers)
+function Roll.bindButtons(roll, auto)
+	rollButton, autoButton = roll, auto
 	refreshAuto()
 end
+
+-- the ROLL button and the AUTO switch (for the simulator)
+function Roll.controls()
+	return rollButton, autoButton
+end
+
+-- The roll controls ---------------------------------------------------------------------------
+-- Two controls, the way RNG games do it: a big ROLL button (or the R key /
+-- a gamepad's X) with a slim bar that fills while the next roll gets
+-- ready, and an AUTO switch above it (a real on/off switch, green when on).
+-- While a hatch is showing, the button says SKIP. The compact/full hatch
+-- choice lives in Settings ("Big hatch reveals").
+
+local function pressable(button, scale, onClick)
+	local hover = false
+	button.MouseEnter:Connect(function()
+		hover = true
+		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = if Ui.reduced() then 1 else 1.03 }):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		hover = false
+		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = 1 }):Play()
+	end)
+	button.MouseButton1Down:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.06), { Scale = if Ui.reduced() then 1 else 0.94 }):Play()
+	end)
+	button.MouseButton1Up:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = if hover and not Ui.reduced() then 1.03 else 1 }):Play()
+	end)
+	button.Activated:Connect(function()
+		Effects.play("Click", 1, 0.05)
+		onClick()
+	end)
+end
+
+function Roll.buildControls(parent)
+	-- AUTO switch
+	local auto = Ui.new("TextButton", {
+		Name = "AutoSwitch",
+		LayoutOrder = 1,
+		Size = UDim2.fromOffset(170, 46),
+		BackgroundColor3 = Ui.WHITE,
+		AutoButtonColor = false,
+		Text = "",
+		Parent = parent,
+	}, { Ui.corner(23) })
+	local autoEdge = Ui.stroke(Ui.LINE, 1.5, 0)
+	autoEdge.Name = "Edge"
+	autoEdge.Parent = auto
+	Ui.new("TextLabel", {
+		Name = "Label",
+		Position = UDim2.fromOffset(18, 0),
+		Size = UDim2.new(1, -90, 1, 0),
+		Font = Ui.FONT,
+		TextScaled = false,
+		TextWrapped = false,
+		TextSize = 17,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = "AUTO",
+		TextColor3 = Ui.INK,
+		Parent = auto,
+	})
+	local track = Ui.new("Frame", {
+		Name = "Track",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -10, 0.5, 0),
+		Size = UDim2.fromOffset(52, 28),
+		BackgroundColor3 = Color3.fromRGB(205, 210, 224),
+		Parent = auto,
+	}, { Ui.corner(14) })
+	Ui.new("Frame", {
+		Name = "Knob",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 3, 0.5, 0),
+		Size = UDim2.fromOffset(22, 22),
+		BackgroundColor3 = Ui.WHITE,
+		Parent = track,
+	}, { Ui.corner(11) })
+	pressable(auto, Ui.new("UIScale", { Parent = auto }), Roll.toggleAuto)
+
+	-- ROLL button
+	local roll = Ui.new("TextButton", {
+		Name = "RollButton",
+		LayoutOrder = 2,
+		Size = UDim2.fromOffset(170, 78),
+		BackgroundColor3 = Ui.WHITE,
+		AutoButtonColor = false,
+		Text = "",
+		Parent = parent,
+	}, {
+		Ui.corner(26),
+		Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(96, 164, 255), Color3.fromRGB(52, 106, 240)) }),
+	})
+	Ui.stroke(Color3.fromRGB(40, 90, 210), 2, 0.35).Parent = roll
+	-- a soft shine on the top half
+	Ui.new("Frame", {
+		Position = UDim2.fromOffset(8, 5),
+		Size = UDim2.new(1, -16, 0.42, 0),
+		BackgroundColor3 = Ui.WHITE,
+		BackgroundTransparency = 0.82,
+		Parent = roll,
+	}, { Ui.corner(20) })
+	local content = Ui.new("Frame", {
+		Size = UDim2.new(1, 0, 1, -8),
+		BackgroundTransparency = 1,
+		Parent = roll,
+	}, {
+		Ui.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 10),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	Ui.icon("dice", 28, Ui.WHITE, { LayoutOrder = 0, Parent = content })
+	rollLabel = Ui.new("TextLabel", {
+		Name = "Label",
+		LayoutOrder = 1,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 34),
+		Font = Ui.FONT_DISPLAY,
+		TextScaled = false,
+		TextWrapped = false,
+		TextSize = 32,
+		Text = "ROLL",
+		TextColor3 = Ui.WHITE,
+		TextStrokeTransparency = 0.8,
+		TextStrokeColor3 = Color3.fromRGB(30, 60, 160),
+		Parent = content,
+	})
+	-- the ready bar along the bottom
+	local bar = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -8),
+		Size = UDim2.new(1, -40, 0, 5),
+		BackgroundColor3 = Color3.fromRGB(30, 70, 190),
+		BackgroundTransparency = 0.4,
+		Parent = roll,
+	}, { Ui.corner(3) })
+	cooldownFill = Ui.new("Frame", {
+		Name = "Ready",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Ui.WHITE,
+		Parent = bar,
+	}, { Ui.corner(3) })
+	-- the key hint
+	local key = Ui.new("TextLabel", {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -10, 0, 8),
+		Size = UDim2.fromOffset(18, 18),
+		BackgroundColor3 = Ui.WHITE,
+		BackgroundTransparency = 0.25,
+		Font = Ui.FONT,
+		TextScaled = false,
+		TextSize = 11,
+		Text = "R",
+		TextColor3 = Color3.fromRGB(40, 90, 210),
+		Parent = roll,
+	}, { Ui.corner(5) })
+	key.Visible = not game:GetService("UserInputService").TouchEnabled
+	pressable(roll, Ui.new("UIScale", { Parent = roll }), function()
+		task.spawn(Roll.roll)
+	end)
+	rollButton, autoButton = roll, auto
+	refreshAuto()
+	return roll, auto
+end
+
+-- the R key (or a gamepad's X) rolls too
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+	if processed then
+		return
+	end
+	if input.KeyCode == Enum.KeyCode.R or input.KeyCode == Enum.KeyCode.ButtonX then
+		task.spawn(Roll.roll)
+	end
+end)
 
 task.spawn(function()
 	while true do

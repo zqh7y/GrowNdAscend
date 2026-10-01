@@ -3,8 +3,9 @@
 -- count), HUGE and TITANIC (the same 70 in those sizes, tracked separately;
 -- they don't add to the 70). Found ones show in full colour; the rest are
 -- dark silhouettes marked "???". Every animal can hatch in every world, so
--- each card shows its home world and its odds in the world you're standing
--- in (animals from worlds ahead are much rarer there). Tabs along the top
+-- each card shows the exact chance of your next roll in the world you're
+-- standing in (animals from worlds ahead are much rarer there, never
+-- impossible). Tabs along the top
 -- show one world's animals at a time.
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -318,11 +319,20 @@ local function card(pet, sizeIndex, found, world)
 	end
 	line(88, 16, Ui.FONT, if found then pet.Name else "???", if found then Ui.TEXT else Ui.MUTED)
 	line(108, 11, Ui.FONT_TITLE, string.upper(rarity.Name), rarity.Color)
-	-- odds where you stand (the size chance included for Huge/Titanic)
-	local odds = Config.worldOdds(pet, world) * size.Chance
-	line(123, 12, Ui.FONT_MEDIUM, Config.formatOdds(odds) .. " here", if pet.World > world then Color3.fromRGB(255, 170, 170) else Ui.MUTED)
-	local area = Config.AREAS[pet.World]
-	line(141, 12, Ui.FONT_MEDIUM, "Best in " .. area.Name, area.Color)
+	-- the exact chance of your next roll here (your luck, size luck and this
+	-- world: the same numbers the server rolls with); every animal can hatch
+	-- in every world, it's just rarer in worlds before its home world
+	local data = State.Data
+	local chance = 0
+	if data then
+		local nextIsBonus = (data.Rolls + 1) % Config.BONUS_EVERY == 0
+		local sizeLuck = Config.sizeLuck(data) * (if nextIsBonus then Config.BONUS_LUCK else 1)
+		chance = Config.chanceOf(Config.petName(pet.Name, sizeIndex), Config.luck(data, nextIsBonus, world), sizeLuck, world)
+	end
+	local here = line(123, 12, Ui.FONT_MEDIUM, Config.formatChance(chance) .. " here", Ui.INK)
+	here.Name = "ChanceHere"
+	local every = line(141, 11, Ui.FONT_MEDIUM, "Hatches in every world", Ui.MUTED)
+	every.Name = "Worlds"
 	return frame
 end
 
@@ -340,7 +350,9 @@ function refresh(force)
 		table.insert(names, name)
 	end
 	table.sort(names)
-	local signature = Index.Tab .. "|" .. Index.Size .. "|" .. world .. "|" .. table.concat(names, ",")
+	local nextIsBonus = (data.Rolls + 1) % Config.BONUS_EVERY == 0
+	local luckKey = string.format("%.6g|%.6g", Config.luck(data, nextIsBonus, world), Config.sizeLuck(data) * (if nextIsBonus then 2 else 1))
+	local signature = Index.Tab .. "|" .. Index.Size .. "|" .. world .. "|" .. luckKey .. "|" .. table.concat(names, ",")
 	if signature == lastSignature and not force then
 		return
 	end

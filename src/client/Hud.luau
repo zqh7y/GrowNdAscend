@@ -12,6 +12,7 @@ local Ui = require(script.Parent.Ui)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
 local Effects = require(script.Parent.Effects)
+local PetView = require(script.Parent.PetView)
 local Roll = require(script.Parent.Roll)
 local Index = require(script.Parent.Index)
 local Inventory = require(script.Parent.Inventory)
@@ -69,7 +70,7 @@ end)
 local team = Ui.glass({
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 70),
-	Size = UDim2.fromOffset(0, 40),
+	Size = UDim2.fromOffset(0, 60),
 	AutomaticSize = Enum.AutomaticSize.X,
 	Radius = 20,
 	Parent = gui,
@@ -95,7 +96,7 @@ Ui.new("TextLabel", {
 local chips = Ui.new("Frame", {
 	LayoutOrder = 1,
 	AutomaticSize = Enum.AutomaticSize.X,
-	Size = UDim2.fromOffset(0, 28),
+	Size = UDim2.fromOffset(0, 50),
 	BackgroundTransparency = 1,
 	Parent = team,
 }, {
@@ -117,46 +118,78 @@ local teamText = Ui.new("TextLabel", {
 	Parent = team,
 })
 
+-- each equipped pet: a round chip with the pet inside, and under it its
+-- damage per second and its share of the team's damage ("1.2K · 45%")
+Hud.TeamShares = nil -- for the simulator: what the team bar shows
+local teamKey = nil
 local function refreshTeam(data)
+	local shares, total = Config.teamShares(data)
+	local parts = { Config.maxEquipped(data), total }
+	for _, share in ipairs(shares) do
+		table.insert(parts, share.Name .. "=" .. share.Percent)
+	end
+	local key = table.concat(parts, ",")
+	teamText.Text = Config.formatNumber(total) .. " DPS"
+	if key == teamKey then
+		return
+	end
+	teamKey = key
+	PetView.releaseAll(chips)
 	for _, child in ipairs(chips:GetChildren()) do
 		if child:IsA("GuiObject") then
 			child:Destroy()
 		end
 	end
+	local shown = {}
 	for slot = 1, Config.maxEquipped(data) do
-		local name = data.Equipped[slot]
+		local share = shares[slot]
+		local name = share and share.Name
 		local pet, size = Config.petInfo(name)
-		local chip = Ui.new("Frame", {
+		local holder = Ui.new("Frame", {
+			Name = "Slot" .. slot,
 			LayoutOrder = slot,
-			Size = UDim2.fromOffset(26, 26),
-			BackgroundColor3 = if pet then pet.Color else Ui.GLASS_LIGHT,
-			BackgroundTransparency = if pet then 0 else 0.4,
+			Size = UDim2.fromOffset(64, 50),
+			BackgroundTransparency = 1,
 			Parent = chips,
+		})
+		local chip = Ui.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0),
+			Size = UDim2.fromOffset(32, 32),
+			BackgroundColor3 = if pet then pet.Color:Lerp(Ui.WHITE, 0.55) else Ui.GLASS_LIGHT,
+			BackgroundTransparency = if pet then 0 else 0.3,
+			Parent = holder,
 		}, { Ui.corner(0.5) })
-		Ui.stroke(if size and size.Index > 1 then size.Color else Color3.new(1, 1, 1), if size then 1 + size.Index else 1.5, if pet then 0 else 0.7).Parent = chip
-		if size and size.Index > 1 then
-			Ui.new("TextLabel", {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 1),
-				Size = UDim2.fromOffset(18, 11),
-				BackgroundTransparency = 0,
-				BackgroundColor3 = size.Color,
+		Ui.stroke(if size and size.Index > 1 then size.Color elseif pet then pet.Color else Ui.LINE, if size and size.Index > 1 then 2.5 else 1.5, 0).Parent = chip
+		if pet then
+			local view = PetView.take(name)
+			view.Size = UDim2.fromScale(1.15, 1.15)
+			view.AnchorPoint = Vector2.new(0.5, 0.5)
+			view.Position = UDim2.fromScale(0.5, 0.5)
+			view.Parent = chip
+			local label = Ui.new("TextLabel", {
+				Name = "Share",
+				Position = UDim2.fromOffset(-6, 33),
+				Size = UDim2.new(1, 12, 0, 15),
+				Font = Ui.FONT,
 				TextScaled = false,
-				TextSize = 9,
-				Text = size.Name:sub(1, 1),
-				TextColor3 = Color3.fromRGB(30, 30, 50),
-				Parent = chip,
-			}, { Ui.corner(5) })
+				TextWrapped = false,
+				TextSize = 11,
+				TextColor3 = Ui.INK,
+				Text = Config.formatNumber(share.Dps) .. " · " .. share.Percent .. "%",
+				Parent = holder,
+			})
+			table.insert(shown, { Name = name, Dps = share.Dps, Percent = share.Percent, Text = label.Text })
 		end
 	end
-	teamText.Text = Config.formatNumber(Config.teamDamage(data)) .. " damage/sec"
+	Hud.TeamShares = shown
 end
 
 -- Level and EXP (under the team) ---------------------------------------------------------------
 
 local levelBar = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 118),
+	Position = UDim2.new(0.5, 0, 0, 138),
 	Size = UDim2.fromOffset(330, 34),
 	BackgroundTransparency = 1,
 	Parent = gui,
@@ -353,7 +386,7 @@ local controls = Ui.new("Frame", {
 	Name = "Controls",
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -18, 1, -16),
-	Size = UDim2.fromOffset(96, 0),
+	Size = UDim2.fromOffset(170, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundTransparency = 1,
 	Parent = gui,
@@ -367,16 +400,13 @@ local controls = Ui.new("Frame", {
 	}),
 })
 controls.Parent = Screen.Controls
-local _, hideButton = button(controls, 0, "eye", "Compact", Roll.toggleHatchMode, 44)
-local _, autoButton = button(controls, 1, "loop", "Auto", Roll.toggleAuto, 56)
-local _, rollButton = button(controls, 2, "dice", "Roll", function()
-	task.spawn(Roll.roll)
-end, 88, "primary")
-Roll.bindButtons(rollButton, autoButton, hideButton)
+-- the AUTO switch and the big ROLL button (Roll.luau draws them)
+Roll.buildControls(controls)
+
 -- the luck boost badge sits on top of the control column (clear of the
 -- reel at any screen size: the column is always right of it)
 Roll.BoostBadge.AnchorPoint = Vector2.new(0.5, 1)
-Roll.BoostBadge.Position = UDim2.new(1, -66, 1, -288)
+Roll.BoostBadge.Position = UDim2.new(1, -103, 1, -160)
 Roll.BoostBadge.Parent = Screen.Controls
 
 -- World banner ----------------------------------------------------------------------------------
@@ -386,7 +416,7 @@ Roll.BoostBadge.Parent = Screen.Controls
 local banner = Ui.new("Frame", {
 	Name = "WorldBanner",
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 150),
+	Position = UDim2.new(0.5, 0, 0, 180),
 	Size = UDim2.fromOffset(0, 34),
 	AutomaticSize = Enum.AutomaticSize.X,
 	BackgroundColor3 = Ui.WHITE,
@@ -418,12 +448,12 @@ local function showBanner(area)
 	bannerText.TextColor3 = area.Color:Lerp(Ui.INK, 0.35)
 	bannerEdge.Color = area.Color
 	banner.Visible = true
-	banner.Position = UDim2.new(0.5, 0, 0, if Ui.reduced() then 150 else 120)
+	banner.Position = UDim2.new(0.5, 0, 0, if Ui.reduced() then 180 else 150)
 	banner.BackgroundTransparency = 0
-	TweenService:Create(banner, TweenInfo.new(0.35, Enum.EasingStyle.Quint), { Position = UDim2.new(0.5, 0, 0, 150) }):Play()
+	TweenService:Create(banner, TweenInfo.new(0.35, Enum.EasingStyle.Quint), { Position = UDim2.new(0.5, 0, 0, 180) }):Play()
 	task.delay(2.2, function()
 		if token == bannerToken then
-			TweenService:Create(banner, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { Position = UDim2.new(0.5, 0, 0, 120), BackgroundTransparency = 1 }):Play()
+			TweenService:Create(banner, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { Position = UDim2.new(0.5, 0, 0, 150), BackgroundTransparency = 1 }):Play()
 			task.delay(0.26, function()
 				if token == bannerToken then
 					banner.Visible = false

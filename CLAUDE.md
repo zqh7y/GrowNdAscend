@@ -11,12 +11,17 @@ for how it plays and where the code lives.
   `src/shared/Config.luau`. While it's on, rebirths cost no coins (the
   required level and the max of 8 still apply); the real costs are in
   `Config.REBIRTHS`.
-- **BEFORE THE FINAL VERSION: All areas are currently free and their gates
-  are open for testing. Restore the normal area costs (25K / 12M / 130B
-  coins) before releasing the final version of the game.** Set
-  `Config.AREAS_FREE_FOR_TESTING = false` in `src/shared/Config.luau`.
-  Saves made while testing keep every area unlocked, so also reset player
-  data (change the DataStore name in `PlayerData.luau`) before release.
+- **BEFORE THE FINAL VERSION: Area unlocks currently cost 0 coins for
+  testing (TEMPORARY). Restore the intended coin costs (25K / 12M / 130B,
+  in `Config.AREAS[i].Cost`) before releasing the final version of the
+  game.** Set `Config.AREA_COST_FOR_TESTING = nil` in
+  `src/shared/Config.luau`. The gates, borders, signs ("0 COINS (TEST)")
+  and unlock buttons work as normal while testing; you just pay nothing.
+- **BEFORE THE FINAL VERSION: every join currently re-locks the areas
+  (only World 1 open) so the locked gates can be inspected (TEMPORARY).**
+  Set `Config.RELOCK_AREAS_FOR_TESTING = false`. Saves from older test
+  builds may have every area unlocked, so also reset player data (change
+  the DataStore name in `PlayerData.luau`) before release.
 
 ## Notes for working on this project
 
@@ -32,13 +37,13 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 83-point player checklist (spawning, rolling, pets
+- The sim ends with a 90-point player checklist (spawning, rolling, pets
   fighting, levels and EXP, rebirth keeping worlds, the full and compact hatches, flex
   rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
-  hatch show step by step). It must say "checklist: 83/83 passed". It takes
+  hatch show step by step). It must say "checklist: 90/90 passed". It takes
   a few minutes; run it in the background.
 - Economy: `python3 tools/economy/simulate.py 3 --hours 10` simulates an
   active player (it reads worlds, rebirths, levels and animals from
@@ -120,6 +125,14 @@ for how it plays and where the code lives.
   `Config.chanceOf`, which follows `Config.rollResult` step by step: change
   one, change the other (the sim checks them against 1M real rolls). The
   boost is applied inside `Config.luck`.
+- The hatch reel container (`Hatch.Spinner`) is anchored at one spot and
+  must never be moved, resized or tweened during a spin (only the cards
+  inside move; the sim checks every frame). An earlier slide-in/out tween
+  made it drift and snap when rolls came quickly.
+- Odds: every step of a roll hits at most `Config.MAX_HIT` (99%), so every
+  animal has a non-zero chance in every world at any luck (tested).
+- Roll controls: `Roll.buildControls` (ROLL button + AUTO switch, R key);
+  compact/full is the "Big hatch reveals" setting (`State.Settings.FullHatch`).
 - Collection rewards: `Config.MILESTONES` (Size, Count, Coins, Boost); the
   server pays them in `Progress.luau` (ClaimMilestone), marking
   `data.Milestones[id]` first, so each is paid once. Coin amounts are tuned

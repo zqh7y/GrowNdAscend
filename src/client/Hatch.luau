@@ -208,7 +208,6 @@ end
 -- when a roll starts and slips away afterwards.
 
 local EASE_OUT = TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local EASE_IN = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 
 -- the luck boost's tile: a green rounded square with a clover and "×2"
 local function boostTile(parent, size)
@@ -351,8 +350,12 @@ local REEL_SIZES = {
 	compact = { Width = 280, Height = 214, Card = 60, Art = 52, Slot = 70, Reach = 1.75, Chip = 126, ChipHeight = 28, Text = 15 },
 	full = { Width = 340, Height = 300, Card = 84, Art = 76, Slot = 96, Reach = 1.75, Chip = 150, ChipHeight = 34, Text = 18 },
 }
+-- The tray is anchored at one fixed spot and NEVER moves or resizes during a
+-- spin: only the cards inside it move. (It used to slide in and out with
+-- position tweens; a new roll could start while the slide-out tween was
+-- still running, so the tray drifted down mid-spin and then snapped back.)
+-- Its size only changes between rolls, when switching compact/full.
 local BOTTOM = UDim2.new(0.5, 0, 1, -14)
-local HIDDEN = UDim2.new(0.5, 0, 1, 40)
 
 local spinner = Ui.new("Frame", {
 	Name = "HatchReel",
@@ -368,7 +371,6 @@ local spinner = Ui.new("Frame", {
 Hatch.Spinner = spinner -- (for the simulator)
 local trayEdge = Ui.stroke(Ui.WHITE, 1.5, 0.45)
 trayEdge.Parent = spinner
-local spinnerScale = Ui.new("UIScale", { Parent = spinner })
 -- the middle-slot notches: two small rounded wedges on the tray's edges
 local notches = {}
 for _, side in ipairs({ 0, 1 }) do
@@ -430,17 +432,17 @@ local function boostState(state, multiplier)
 	return state .. " ×" .. multiplier
 end
 
-local hideToken = 0
+-- shows the tray (fixed in place; it just fades its background in)
+local fadeToken = 0
 local function showSpinner()
-	hideToken += 1 -- cancel a pending hide
-	if spinner.Visible and spinner.Position == BOTTOM then
-		return
+	fadeToken += 1 -- cancels a pending hide
+	spinner.Position = BOTTOM
+	spinner.AnchorPoint = Vector2.new(0.5, 1)
+	if not spinner.Visible then
+		spinner.Visible = true
+		spinner.BackgroundTransparency = 1
+		TweenService:Create(spinner, EASE_OUT, { BackgroundTransparency = 0.9 }):Play()
 	end
-	spinner.Visible = true
-	spinner.Position = HIDDEN
-	spinnerScale.Scale = 0.96
-	TweenService:Create(spinner, EASE_OUT, { Position = BOTTOM }):Play()
-	TweenService:Create(spinnerScale, EASE_OUT, { Scale = 1 }):Play()
 end
 
 -- Spins the reel onto `best` (a result already decided by the server).
@@ -463,8 +465,8 @@ local function spin(results, best, fast, full)
 		items[i] = reelItem(spinRow, if i == LANDING then resultName else names[i], look, silhouette, ctx)
 		items[i].Flex = flexAt[i]
 	end
+	-- (the size only changes when compact/full is switched, never mid-spin)
 	spinner.Size = UDim2.fromOffset(look.Width, look.Height)
-	spinner.BackgroundTransparency = 0.9
 	spinName.Text = ""
 	flexLabel.Visible = false
 	for _, notch in pairs(notches) do
@@ -485,6 +487,7 @@ local function spin(results, best, fast, full)
 	local flexShown, flexNames = 0, {}
 	local watch = items[LANDING]
 	local xs, ys = {}, {}
+	local trayMoved = 0
 	while true do
 		local now = os.clock()
 		local dt = now - previous
@@ -524,9 +527,14 @@ local function spin(results, best, fast, full)
 		end
 		lastOffset = offset
 		layoutReel(items, offset, look.Slot, look.Reach)
-		-- (for the simulator) how the result's card moves on screen
+		-- (for the simulator) how the result's card moves on screen, and
+		-- that the tray itself stays exactly where it is
 		table.insert(xs, watch.Frame.Position.X.Offset)
 		table.insert(ys, watch.Frame.Position.Y.Offset)
+		local p = spinner.Position
+		if p.X.Scale ~= 0.5 or p.X.Offset ~= 0 or p.Y.Scale ~= 1 or p.Y.Offset ~= -14 or spinner.Size.Y.Offset ~= look.Height then
+			trayMoved += 1
+		end
 		local index = math.floor(offset + 0.5)
 		if index ~= lastIndex then
 			lastIndex = index
@@ -611,23 +619,22 @@ local function spin(results, best, fast, full)
 		NextChip = badgeAfter,
 		First = first,
 		Tier = tier,
-		Motion = { Sideways = sideways, Down = down, Up = up },
+		Motion = { Sideways = sideways, Down = down, Up = up, TrayMoved = trayMoved },
 	}
 end
 
--- the tray slips away (the next roll brings it back)
+-- the tray hides after a roll: the cards fade, then it's hidden (it never
+-- moves; a roll starting meanwhile keeps it)
 local function hideSpinner()
 	flexLabel.Visible = false
-	hideToken += 1
-	local token = hideToken
+	fadeToken += 1
+	local token = fadeToken
 	if not spinner.Visible then
 		clear(spinRow)
 		return
 	end
-	TweenService:Create(spinner, EASE_IN, { Position = HIDDEN }):Play()
-	TweenService:Create(spinnerScale, EASE_IN, { Scale = 0.96 }):Play()
-	task.delay(0.2, function()
-		if token == hideToken then
+	task.delay(0.12, function()
+		if token == fadeToken then
 			spinner.Visible = false
 			clear(spinRow)
 		end

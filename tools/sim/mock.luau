@@ -351,7 +351,7 @@ local SIGNALS = {
 	MouseClick = true, Triggered = true, Event = true, OnServerEvent = true, OnClientEvent = true, PlayerAdded = true,
 	PlayerRemoving = true, Changed = true, Activated = true, MouseEnter = true, MouseLeave = true,
 	MouseButton1Down = true, MouseButton1Up = true, Heartbeat = true, RenderStepped = true, CharacterAdded = true,
-	ChildAdded = true, ChildRemoved = true,
+	ChildAdded = true, ChildRemoved = true, InputBegan = true,
 }
 
 local InstMT = {}

@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 13 (2026 polish: reel, tree, index rewards)"
+Config.BUILD = "build 14 (fixed reel, 0-coin test gates, kid inventory, new controls)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -318,12 +318,23 @@ function Config.worldOdds(pet, world)
 	return pet.Odds * Config.WORLD_PENALTY ^ ahead
 end
 
+-- No single step of a roll is ever certain: a step hits at most 99% of the
+-- time. Without this, enough luck would make one pet certain and every pet
+-- after it (including later-world pets in earlier worlds) impossible. With
+-- it, every animal always has a real, non-zero chance in every world.
+Config.MAX_HIT = 0.99
+
+-- the chance one step of the roll hits this pet
+function Config.hitChance(pet, luck, world)
+	return math.clamp(luck / Config.worldOdds(pet, world), 0, Config.MAX_HIT)
+end
+
 -- Try the rarest pet first, then the next rarest, and so on. Luck multiplies
 -- every pet's chance; if nothing hits you get the most common pet.
 function Config.roll(luck, random, world)
 	for i = #Config.PETS, 2, -1 do
 		local pet = Config.PETS[i]
-		if random:NextNumber() < luck / Config.worldOdds(pet, world) then
+		if random:NextNumber() < Config.hitChance(pet, luck, world) then
 			return pet
 		end
 	end
@@ -345,7 +356,7 @@ function Config.petChances(luck, world)
 	local chances, remaining = {}, 1
 	for i = #Config.PETS, 2, -1 do
 		local pet = Config.PETS[i]
-		local hit = math.clamp(luck / Config.worldOdds(pet, world), 0, 1)
+		local hit = Config.hitChance(pet, luck, world)
 		chances[pet.Name] = remaining * hit
 		remaining *= 1 - hit
 	end
@@ -695,6 +706,43 @@ function Config.hitDamage(data, name)
 	return Config.petPower(name) * Config.upgradeValue(data, "Damage") * Config.petStat(name, "Damage")
 end
 
+-- One equipped pet's damage per second
+function Config.petDps(data, name)
+	return Config.hitDamage(data, name) / Config.PET_HIT_EVERY
+end
+
+-- Each equipped pet's share of the team's damage, as whole percents that
+-- add up to exactly 100 (largest remainders get the rounding); all zeros
+-- when the team deals nothing. Returns { { Name, Dps, Percent }, ... } in
+-- slot order.
+function Config.teamShares(data)
+	local shares, total = {}, 0
+	for _, name in ipairs(data.Equipped or {}) do
+		local dps = Config.petDps(data, name)
+		total += dps
+		table.insert(shares, { Name = name, Dps = dps, Percent = 0 })
+	end
+	if total <= 0 or total ~= total then
+		return shares, 0
+	end
+	local used, order = 0, {}
+	for i, share in ipairs(shares) do
+		local exact = share.Dps / total * 100
+		share.Percent = math.floor(exact)
+		share.Rest = exact - share.Percent
+		used += share.Percent
+		order[i] = i
+	end
+	table.sort(order, function(a, b)
+		return shares[a].Rest > shares[b].Rest
+	end)
+	for k = 1, 100 - used do
+		local share = shares[order[(k - 1) % #order + 1]]
+		share.Percent += 1
+	end
+	return shares, total
+end
+
 -- Everything the team deals per second (shown on the team bar)
 function Config.teamDamage(data)
 	local total = 0
@@ -746,21 +794,35 @@ Config.AREAS = {
 	},
 }
 
--- TESTING ONLY: every area costs 0 coins and every gate is open, so all
--- four areas can be walked into right away.
--- BEFORE THE FINAL VERSION set this to false (see CLAUDE.md).
-Config.AREAS_FREE_FOR_TESTING = true
+-- TESTING ONLY (temporary): every area unlock costs this many coins (0)
+-- instead of its real Cost. The gates, borders, signs and unlock buttons
+-- all work as normal: areas start locked and you unlock them at the gate,
+-- you just pay nothing. BEFORE THE FINAL VERSION set this to nil so the
+-- real costs (25K / 12M / 130B) apply (see CLAUDE.md).
+Config.AREA_COST_FOR_TESTING = 0
+-- TESTING ONLY (temporary): every join starts with only World 1 unlocked,
+-- even if the save has more (older test builds opened every area), so the
+-- locked gates can be looked at. BEFORE THE FINAL VERSION set this to false.
+Config.RELOCK_AREAS_FOR_TESTING = true
 
 function Config.areaCost(i)
-	if Config.AREAS_FREE_FOR_TESTING then
-		return 0
+	if Config.AREA_COST_FOR_TESTING then
+		return Config.AREA_COST_FOR_TESTING
 	end
 	return Config.AREAS[i].Cost
 end
 
+-- What the gate says the unlock costs
+function Config.areaCostText(i)
+	if Config.AREA_COST_FOR_TESTING then
+		return Config.formatNumber(Config.AREA_COST_FOR_TESTING) .. " COINS (TEST)"
+	end
+	return Config.formatNumber(Config.AREAS[i].Cost) .. " COINS"
+end
+
 -- The highest area a player has on join and after a rebirth
 function Config.startingArea()
-	return if Config.AREAS_FREE_FOR_TESTING then #Config.AREAS else 1
+	return 1
 end
 
 -- X where area i starts
@@ -897,6 +959,10 @@ function Config.formatNumber(n)
 		-- would round up to "1000K", show "1M" instead
 		tier += 1
 		scaled /= 1000
+	end
+	if scaled >= 1000 then
+		-- past the last suffix: short scientific form, never a long digit string
+		return string.format("%.2fe%d", n / 10 ^ math.floor(math.log10(n)), math.floor(math.log10(n)))
 	end
 	local text = if scaled < 100 then string.format("%.2f", scaled) else string.format("%.1f", scaled)
 	text = text:gsub("%.?0+$", "")

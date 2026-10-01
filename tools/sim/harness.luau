@@ -114,6 +114,42 @@ if ok then
 			print("GAME ERROR: " .. message)
 		end
 	end
+	-- GATES (testing build): areas start locked and cost 0 coins; the gate
+	-- still has to be used. Check the locked look, unlock World 2 at its gate,
+	-- check the open look, then open the rest for the tests below.
+	do
+		local W = __cache["World/init"]
+		local function signText(sign)
+			for _, d in ipairs(sign:GetDescendants()) do
+				if d:IsA("TextLabel") then return d.Text end
+			end
+			return ""
+		end
+		local locked = {}
+		for i = 2, #Config.AREAS do
+			local g = W.Gates[i]
+			table.insert(locked, {
+				Collide = g.Barrier.CanCollide, Transparency = g.Barrier.Transparency, Prompt = g.Prompt.Enabled,
+				Button = g.Button.Transparency, Sign = signText(g.Sign),
+				Posts = #g.Barrier.Parent:GetChildren(),
+			})
+		end
+		local unlockedBefore = data.Unlocked
+		data.Coins = 0
+		W.Gates[2].Prompt.Triggered:Fire(player)
+		STEP(0.05)
+		local g2 = W.Gates[2]
+		STATS.Gates = {
+			UnlockedBefore = unlockedBefore, Locked = locked, UnlockedAfter = data.Unlocked, CoinsAfter = data.Coins,
+			Open = { Collide = g2.Barrier.CanCollide, Transparency = g2.Barrier.Transparency, Prompt = g2.Prompt.Enabled, Posts = #g2.Barrier.Parent:GetChildren(),
+				Sign = signText(g2.Sign) },
+		}
+		print("gates:", unlockedBefore, locked[1].Sign, "->", data.Unlocked, STATS.Gates.Open.Sign)
+		data.Unlocked = #Config.AREAS
+		for i = 2, #Config.AREAS do
+			W.setGateOpen(i, true)
+		end
+	end
 	data.Pets = { Dog = 5, Cat = 1, ["Huge Tiger"] = 1 }
 	data.Equipped = { "Dog", "Cat", "Huge Tiger" }
 
@@ -333,7 +369,7 @@ if ok then
 		end
 		STATS.MoveProblems = #moveProblems
 		try("Inventory.open", C("Inventory").open)
-		for f = 1, 5 do
+		for f = 1, #C("Inventory").FILTERS do
 			try("Inventory filter " .. f, function()
 				C("Inventory").Filter = f
 				C("Inventory").open()
@@ -688,8 +724,18 @@ if ok then
 			C("Roll").toggleAuto()
 		end
 		local autoBottom, chainFeeds, lastFeed = false, {}, nil
+		local trayFrames, trayOff = 0, 0
 		for _ = 1, 900 do
 			frames(1)
+			-- the tray never moves: every frame it's shown, it's at the same spot
+			local tray = Hatch.Spinner
+			if tray.Visible then
+				trayFrames += 1
+				local p = tray.Position
+				if p.X.Scale ~= 0.5 or p.X.Offset ~= 0 or p.Y.Scale ~= 1 or p.Y.Offset ~= -14 or tray.AnchorPoint.X ~= 0.5 or tray.AnchorPoint.Y ~= 1 then
+					trayOff += 1
+				end
+			end
 			if Hatch.LastFeed and Hatch.LastFeed ~= lastFeed then
 				lastFeed = Hatch.LastFeed
 				table.insert(chainFeeds, { Multiplier = lastFeed.Multiplier, Next = lastFeed.NextMultiplier })
@@ -697,6 +743,7 @@ if ok then
 			end
 		end
 		STATS.ChainFeeds = chainFeeds
+		STATS.Tray = { Frames = trayFrames, Off = trayOff }
 		local autoRolls = data.Rolls - autoBefore
 		C("Roll").toggleAuto()
 		for _ = 1, 900 do
@@ -882,6 +929,136 @@ if ok then
 		rootPart.CFrame = CFrame.new(Cfg.areaStart(1) + 50, 3, 0)
 		frames(30)
 		STATS.Polish = polish
+
+		-- BUILD 14: Index labels, simple inventory, team shares, roll controls
+		local b14 = {}
+		-- Index: no "Best in", every world, the exact chance here
+		Index.Tab, Index.Size = 0, 1
+		Index.open()
+		frames(2)
+		local bestIn, everyWorld, chanceOk, checkedCards = 0, 0, 0, 0
+		local idxData = data
+		local idxWorld = Index.currentWorld(idxData)
+		local nextIsBonus = (idxData.Rolls + 1) % Cfg.BONUS_EVERY == 0
+		local luckNow = Cfg.luck(idxData, nextIsBonus, idxWorld)
+		local sizeLuckNow = Cfg.sizeLuck(idxData) * (if nextIsBonus then Cfg.BONUS_LUCK else 1)
+		for _, cardFrame in ipairs(Index.Grid:GetChildren()) do
+			if cardFrame:IsA("Frame") then
+				for _, d in ipairs(cardFrame:GetDescendants()) do
+					if d:IsA("TextLabel") then
+						if string.find(d.Text, "Best in") then bestIn += 1 end
+						if d.Name == "Worlds" and d.Text == "Hatches in every world" then everyWorld += 1 end
+						if d.Name == "ChanceHere" then
+							checkedCards += 1
+							local pet = Cfg.PETS[cardFrame.LayoutOrder]
+							local want = Cfg.formatChance(Cfg.chanceOf(pet.Name, luckNow, sizeLuckNow, idxWorld)) .. " here"
+							if d.Text == want then chanceOk += 1 end
+						end
+					end
+				end
+			end
+		end
+		b14.Index = { BestIn = bestIn, EveryWorld = everyWorld, ChanceOk = chanceOk, Cards = checkedCards }
+		-- Inventory: simple cards, details on tap, one Equip/Unequip button
+		local Inv = C("Inventory")
+		data.Pets = { Tiger = 2, Dog = 1, ["Huge Fox"] = 1 }
+		data.Equipped = {}
+		data.Upgrades = {}
+		PlayerData.sync(player)
+		Inv.Filter, Inv.Sort = 1, 1
+		Inv.open()
+		frames(2)
+		local statsInGrid, simpleCards, tigerCard = 0, 0, nil
+		for _, cardFrame in ipairs(Inv.Grid:GetChildren()) do
+			if cardFrame:IsA("GuiObject") then
+				if cardFrame:FindFirstChild("PetName") and cardFrame:FindFirstChild("Power") and cardFrame:FindFirstChild("Action") then
+					simpleCards += 1
+				end
+				if cardFrame.Name == "Tiger" then tigerCard = cardFrame end
+				for _, d in ipairs(cardFrame:GetDescendants()) do
+					if d.Name == "Stats" then statsInGrid += 1 end
+				end
+			end
+		end
+		local actionBefore = tigerCard and tigerCard.Action.Content.Label.Text
+		if tigerCard then
+			tigerCard.Action.Activated:Fire()
+			frames(3)
+		end
+		local equippedTiger = table.find(data.Equipped, "Tiger") ~= nil
+		local tigerAfter
+		for _, cardFrame in ipairs(Inv.Grid:GetChildren()) do
+			if cardFrame.Name == "Tiger" then tigerAfter = cardFrame end
+		end
+		Inv.showDetails("Huge Fox")
+		local detailOk = 0
+		for _, stat in ipairs(Cfg.STATS) do
+			for _, row in ipairs(Inv.Detail:GetDescendants()) do
+				if row.Name == stat and row:FindFirstChild("Value") and row.Value.Text == Cfg.formatStat(Cfg.petStat("Huge Fox", stat)) then
+					detailOk += 1
+				end
+			end
+		end
+		b14.Inventory = { Cards = simpleCards, StatsInGrid = statsInGrid, Before = actionBefore, Equipped = equippedTiger,
+			After = tigerAfter and tigerAfter.Action.Content.Label.Text, Tick = tigerAfter and tigerAfter:FindFirstChild("Equipped") ~= nil, DetailStats = detailOk }
+		C("Screen").close(Inv.Detail.Parent.Parent.Parent)
+		-- team shares: per-pet DPS and % adding up to 100, updating with the team
+		local Hud = C("Hud")
+		data.Pets = { Tiger = 1, Dog = 1, ["Huge Fox"] = 1 }
+		data.Upgrades = { Slots = 1 }
+		data.Equipped = { "Tiger", "Dog", "Huge Fox" }
+		PlayerData.sync(player)
+		frames(2)
+		local function sharesOk()
+			local shares, total, sum, close = Hud.TeamShares or {}, 0, 0, true
+			for _, sh in ipairs(shares) do total += sh.Dps end
+			for _, sh in ipairs(shares) do
+				sum += sh.Percent
+				if total > 0 and math.abs(sh.Percent - sh.Dps / total * 100) > 1 then close = false end
+				if not string.find(sh.Text, sh.Percent .. "%%") then close = false end
+			end
+			return #shares, sum, close
+		end
+		local n3, sum3, ok3 = sharesOk()
+		remotes.Equip:InvokeServer("Tiger", true)
+		frames(2)
+		local n2, sum2, ok2 = sharesOk()
+		data.Equipped = {}
+		PlayerData.sync(player)
+		frames(2)
+		local n0 = select(1, sharesOk())
+		local zeroShares, zeroTotal = Cfg.teamShares({ Equipped = {}, Upgrades = {} })
+		b14.Team = { N3 = n3, Sum3 = sum3, Ok3 = ok3, N2 = n2, Sum2 = sum2, Ok2 = ok2, N0 = n0, ZeroOk = #zeroShares == 0 and zeroTotal == 0 }
+		-- roll controls: ROLL + AUTO switch; compact/full lives in Settings
+		local Roll = C("Roll")
+		local rollB, autoB = Roll.controls()
+		local wasOn = Roll.autoOn()
+		autoB.Activated:Fire()
+		local switchedOn = Roll.autoOn() ~= wasOn and autoB.Label.Text == "AUTO ON"
+		autoB.Activated:Fire()
+		frames(1)
+		for _ = 1, 600 do
+			if not Hatch.busy() then break end
+			frames(1)
+		end
+		local compactInControls, bigReveals = 0, 0
+		for _, d in ipairs(player.PlayerGui.ControlsGui:GetDescendants()) do
+			if d:IsA("TextLabel") and (d.Text == "COMPACT" or d.Text == "FULL" or d.Text == "Compact") then compactInControls += 1 end
+		end
+		for _, d in ipairs(player.PlayerGui.GameGui:GetDescendants()) do
+			if d:IsA("TextLabel") and d.Text == "Big hatch reveals" then bigReveals += 1 end
+		end
+		local inControls = false
+		local node = rollB
+		while node do
+			if node == player.PlayerGui.ControlsGui then inControls = true end
+			node = node.Parent
+		end
+		b14.Controls = { Roll = inControls, Auto = autoB ~= nil, Switched = switchedOn,
+			Back = Roll.autoOn() == wasOn, Compact = compactInControls, Setting = bigReveals }
+		STATS.B14 = b14
+		print(string.format("build 14: index %d/%d chances exact, %d 'Best in'; inventory %d simple cards, %d stat blocks in grid, %s -> %s; team %d pets %d%%, %d pets %d%%; controls switched %s, compact in controls %d",
+			chanceOk, checkedCards, bestIn, simpleCards, statsInGrid, tostring(actionBefore), tostring(b14.Inventory.After), n3, sum3, n2, sum2, tostring(switchedOn), compactInControls))
 		print(string.format("polish: first claim %s (+%s coins, shown %s); repeat paid %s; luck pill %s -> %s (expected %s); badge %s -> %s; tree %d/%d priced, states %s/%s/%s/%s; banner %s",
 			tostring(polish.FirstClaim and polish.FirstClaim.Id), tostring(polish.CoinsAfterFirst), table.concat((polish.FirstClaim or {}).Shown or {}, " + "),
 			tostring(not polish.Repeat.CoinsSame), tostring(before), tostring(after), tostring(polish.LuckPill.Expected), tostring(waitingState), tostring(polish.Badge.After),
@@ -1048,7 +1225,8 @@ if ok then
 	item(14, "rebirth", data.Rebirths == r0 + 1 and data.Coins == 0, "rebirths " .. data.Rebirths)
 
 	-- 15. world progression with real prices (testing switch off for this check)
-	Config.AREAS_FREE_FOR_TESTING = false
+	local testCost = Config.AREA_COST_FOR_TESTING
+	Config.AREA_COST_FOR_TESTING = nil
 	data.Unlocked = 1
 	data.Coins = Config.AREAS[2].Cost
 	local okWorlds = true
@@ -1058,7 +1236,7 @@ if ok then
 		STEP(0.01)
 		okWorlds = okWorlds and data.Unlocked == i and data.Coins == 0
 	end
-	Config.AREAS_FREE_FOR_TESTING = true
+	Config.AREA_COST_FOR_TESTING = testCost
 	item(15, "world gates open for their price", okWorlds, "costs " .. Config.formatNumber(Config.AREAS[2].Cost) .. " / " .. Config.formatNumber(Config.AREAS[3].Cost) .. " / " .. Config.formatNumber(Config.AREAS[4].Cost))
 
 	-- 16. the 40 minute target is checked by tools/economy/simulate.py (Python)
@@ -1548,6 +1726,51 @@ if ok then
 			string.format("%d/%d cards show a price/state; Coins %s, Luck %s then %s, Rolls %s", t.WithPrice or 0, t.Count or 0, tostring(t.Maxed), tostring(t.Affordable), tostring(t.Available), tostring(t.Locked)))
 		item(83, "reduced motion + world banner", p.Reduced == true and p.NormalMotion == true and p.Banner == Config.AREAS[2].Name,
 			"reduced motion skips the animations; walking into World 2 shows '" .. tostring(p.Banner) .. "'")
+	end
+
+	-- 84-91. build 14
+	do
+		local hh = STATS.Hatch or {}
+		local tray = STATS.Tray or {}
+		local fm = ((hh.common or {}).Motion) or {}
+		local cm = (STATS.Chain8 or {}).Motion or {}
+		item(84, "roll tray stays in place", (tray.Frames or 0) > 30 and tray.Off == 0 and fm.TrayMoved == 0 and cm.TrayMoved == 0,
+			string.format("%d auto-roll frames with the tray shown, %d off its spot; 0 tray moves during spins", tray.Frames or 0, tray.Off or -1))
+		-- every pet, every world, any luck: a real chance
+		local zero, worst = 0, 1
+		for _, pet in ipairs(Config.PETS) do
+			for world = 1, #Config.AREAS do
+				for _, luck in ipairs({ 1, 50, 1e4, 1e5, Config.MAX_LUCK }) do
+					local p = Config.chanceOf(pet.Name, luck, 1, world)
+					if not (p > 0) then zero += 1 end
+					if pet.World > world then worst = math.min(worst, p) end
+				end
+			end
+		end
+		item(85, "every pet can hatch in every world", zero == 0, string.format("%d zero chances over 70 pets x 4 worlds x 5 luck levels (rarest later-world pet early: %s)", zero, Config.formatChance(worst)))
+		local b = STATS.B14 or {}
+		local ix = b.Index or {}
+		item(86, "Index: every world, exact chance here", ix.BestIn == 0 and (ix.Cards or 0) == 70 and ix.EveryWorld == 70 and ix.ChanceOk == 70,
+			string.format("%d/%d cards say 'Hatches in every world', %d/%d show the exact chance here, %d 'Best in'", ix.EveryWorld or 0, ix.Cards or 0, ix.ChanceOk or 0, ix.Cards or 0, ix.BestIn or -1))
+		local g = STATS.Gates or {}
+		local lockedOk = g.Locked ~= nil
+		for _, l in ipairs(g.Locked or {}) do
+			if not (l.Collide == true and l.Transparency < 0.5 and l.Prompt == true and l.Button == 0 and string.find(l.Sign, "0 COINS %(TEST%)")) then lockedOk = false end
+		end
+		local open = g.Open or {}
+		item(87, "0-coin test gates: locked, then unlocked at the gate", lockedOk and g.UnlockedBefore == 1 and g.UnlockedAfter == 2 and g.CoinsAfter == 0
+			and open.Collide == false and open.Transparency == 1 and open.Prompt == false and open.Posts == (g.Locked[1] or {}).Posts and not string.find(open.Sign, "COINS"),
+			string.format("joined with World %s; locked gate says '%s'; unlocked for 0 coins -> World %s, barrier open, posts and sign kept ('%s')",
+				tostring(g.UnlockedBefore), tostring(g.Locked and g.Locked[1] and g.Locked[1].Sign), tostring(g.UnlockedAfter), tostring(open.Sign)))
+		local inv = b.Inventory or {}
+		item(88, "simple inventory with a details view", inv.Cards == 3 and inv.StatsInGrid == 0 and inv.Before == "Equip" and inv.Equipped == true and inv.After == "Unequip" and inv.Tick == true and inv.DetailStats == 5,
+			string.format("%d cards (picture, name, power, one button), no stat blocks in the grid; Equip -> equipped, now '%s' with a check; details show all 5 stats", inv.Cards or 0, tostring(inv.After)))
+		local t = b.Team or {}
+		item(89, "team DPS shares add up to 100%", t.N3 == 3 and t.Sum3 == 100 and t.Ok3 and t.N2 == 2 and t.Sum2 == 100 and t.Ok2 and t.N0 == 0 and t.ZeroOk,
+			string.format("3 pets: %d%%, after unequipping one: %d%%, empty team: no shares, no errors", t.Sum3 or 0, t.Sum2 or 0))
+		local ctl = b.Controls or {}
+		item(90, "new ROLL + AUTO controls, compact in Settings", ctl.Roll == true and ctl.Auto == true and ctl.Switched == true and ctl.Back == true and ctl.Compact == 0 and (ctl.Setting or 0) >= 1,
+			"big ROLL button and an AUTO switch; the compact/full choice is 'Big hatch reveals' in Settings")
 	end
 
 	local passed = 0
