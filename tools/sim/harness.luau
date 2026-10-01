@@ -483,6 +483,22 @@ if ok then
 				data.Pets[res.Pet] = nil
 			end
 			STATS.AuraClient.Gun = hasGun
+			-- every animal wears its own outfit (70 different looks)
+			local dressed, looks, broken = 0, {}, {}
+			for _, pet in ipairs(Config.PETS) do
+				local ok2, model = pcall(C("PetModels").build, pet.Name)
+				local look = Config.outfitOf(pet.Name)
+				if ok2 and model:GetAttribute("Outfit") == look.Name then
+					dressed += 1
+				else
+					table.insert(broken, pet.Name)
+				end
+				looks[look.Name .. (if look.Alt then "/2" else "/1")] = true
+			end
+			local distinct = 0
+			for _ in pairs(looks) do distinct += 1 end
+			local okT, titanic = pcall(C("PetModels").build, "Titanic " .. Config.PETS[1].Name)
+			STATS.Outfits = { Dressed = dressed, Distinct = distinct, Broken = table.concat(broken, ", "), Titanic = okT and titanic:GetAttribute("Outfit") ~= nil }
 			data.Pets.Cat = 2
 			C("Screen").close(AuraMachine.Modal)
 			PlayerData.sync(player)
@@ -2131,6 +2147,10 @@ if ok then
 		item(104, "aura boosts its pet; bees, reveal and tag shown", au.Boost ~= nil and math.abs(au.Boost - (au.WantBoost or 0)) < 1e-9 and ac.Gun == true and ac.Reveal == true and ac.RevealName == ac.WantName
 			and ac.Tag == (ac.WantName and string.upper(ac.WantName)),
 			string.format("damage x%s from the aura; %s has mini bees (%s), the reveal says '%s', its tile says '%s'", tostring(au.WantBoost), tostring(ac.Result), tostring(ac.Bees), tostring(ac.RevealName), tostring(ac.Tag)))
+		local of = STATS.Outfits or {}
+		item(105, "every pet wears its own outfit", of.Dressed == #Config.PETS and of.Distinct == #Config.PETS and of.Titanic == true,
+			string.format("%d/%d animals dressed, %d different looks (%d outfits x 2 colourways), a Titanic wears its outfit under its crown%s",
+				of.Dressed or 0, #Config.PETS, of.Distinct or 0, #Config.OUTFITS, if of.Broken and of.Broken ~= "" then "; broken: " .. of.Broken else ""))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))

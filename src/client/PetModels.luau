@@ -1104,6 +1104,389 @@ local function cape(model, where, color, edge, ermine)
 end
 
 -- what a pet wears, by rarity level (1 common .. 7 secret) and size
+-- Outfits ---------------------------------------------------------------------------------------
+-- Every animal wears its own outfit (Config.OUTFITS / Config.outfitOf: 35
+-- outfits in two colourways, one per animal). Sizes are in `u`, half the
+-- head's height, so an outfit fits any head. Each builder returns how far
+-- above the head top its hat reaches (a Titanic's crown sits on top of it).
+local function outfit(ctx, where, head, look)
+	local m = ctx.Model
+	local top = where.Crown
+	local u = math.max(top.Y - head.Y, 0.3)
+	local frontZ = head.Z - u * 1.02
+	local eyeY = head.Y + u * 0.25
+	local chest = where.Chest
+	local alt = look.Alt
+	local function pick(a, b)
+		return if alt then b else a
+	end
+	local function at(x, y, z)
+		return top + V(x * u, y * u, z * u)
+	end
+	local function face(x, y)
+		return V(head.X + x * u, eyeY + y * u, frontZ)
+	end
+	local function blk(p, sx, sy, sz, color, props)
+		return box(m, p, V(sx, sy, sz) * u, color, props)
+	end
+	local function chk(p, sx, sy, sz, color, props)
+		return chunk(m, p, V(sx, sy, sz) * u, color, 0.08 * u, props)
+	end
+	local function ball(p, d, color, material)
+		return part(m, { Shape = Enum.PartType.Ball, Size = V(d, d, d) * u, CFrame = CFrame.new(p), Color = color, Material = material or SMOOTH })
+	end
+	local function cylX(p, length, d, color, material)
+		return part(m, { Shape = Enum.PartType.Cylinder, Size = V(length, d, d) * u, CFrame = CFrame.new(p), Color = color, Material = material or SMOOTH })
+	end
+	local function cylZ(p, length, d, color, material)
+		return part(m, { Shape = Enum.PartType.Cylinder, Size = V(length, d, d) * u, CFrame = CFrame.new(p) * CFrame.Angles(0, math.rad(90), 0), Color = color, Material = material or SMOOTH })
+	end
+	-- a cone made of stacked blocks, from `base` up
+	local function cone(base, width, height, steps, colorOf, lean)
+		for k = 0, steps - 1 do
+			local f = k / steps
+			local w = width * (1 - f * 0.85)
+			local p = base + V(0, (f + 0.5 / steps) * height * u, (lean or 0) * f * u)
+			chk(p, w, height / steps + 0.02, w, colorOf(k))
+		end
+	end
+	-- a band around the head at height y (fraction of u from the top)
+	local function band(y, thick, color, props)
+		return blk(at(0, y, 0) + V(head.X - top.X, 0, head.Z - top.Z), 2.08, thick, 2.08, color, props)
+	end
+	local B = {}
+	B.Fireman = function()
+		local red = pick(Color3.fromRGB(214, 40, 40), Color3.fromRGB(250, 190, 30))
+		chk(at(0, 0.38, 0), 1.9, 0.75, 1.9, red)
+		blk(at(0, 0.06, 0.18), 2.3, 0.12, 2.5, red:Lerp(INK, 0.15))
+		blk(at(0, 0.78, 0), 0.3, 0.16, 1.9, red:Lerp(WHITE, 0.2))
+		blk(at(0, 0.45, -0.98), 0.55, 0.55, 0.08, GOLD, { Material = METAL })
+		return 0.85
+	end
+	B.Cop = function()
+		local navy = pick(Color3.fromRGB(32, 44, 96), Color3.fromRGB(40, 40, 46))
+		chk(at(0, 0.3, 0), 1.8, 0.45, 1.8, navy)
+		blk(at(0, 0.56, 0), 2.15, 0.14, 2.15, navy)
+		blk(at(0, 0.08, -1.12), 1.5, 0.08, 0.6, INK)
+		blk(at(0, 0.32, -0.93), 0.38, 0.38, 0.06, GOLD, { Material = METAL })
+		blk(chest + V(0.3 * u, 0.1 * u, -0.06), 0.3, 0.36, 0.06, GOLD, { Material = METAL })
+		return 0.65
+	end
+	B.Doctor = function()
+		local band1 = pick(WHITE, Color3.fromRGB(120, 200, 220))
+		band(-0.35, 0.2, band1)
+		cylZ(V(head.X, top.Y - 0.3 * u, frontZ - 0.06 * u), 0.08, 0.7, Color3.fromRGB(205, 210, 225), METAL)
+		local scope = Color3.fromRGB(60, 64, 80)
+		for _, side in ipairs({ -1, 1 }) do
+			blk(chest + V(side * 0.32 * u, 0.15 * u, -0.05), 0.1, 0.5, 0.1, scope)
+		end
+		blk(chest + V(0, -0.12 * u, -0.05), 0.74, 0.1, 0.1, scope)
+		cylZ(chest + V(0.2 * u, -0.3 * u, -0.08), 0.08, 0.3, Color3.fromRGB(205, 210, 225), METAL)
+		return 0
+	end
+	B.Rapper = function()
+		local cap = pick(INK, Color3.fromRGB(210, 40, 60))
+		chk(at(0, 0.27, 0), 1.85, 0.5, 1.85, cap)
+		blk(at(0, 0.06, 1.15), 1.3, 0.08, 0.7, cap:Lerp(WHITE, 0.15)) -- worn backwards
+		ball(at(0, 0.55, 0), 0.22, cap:Lerp(WHITE, 0.3))
+		-- a big gold chain with a "$" medallion
+		for k = -3, 3 do
+			local a = k / 3 * 1.1
+			blk(chest + V(math.sin(a) * 0.55 * u, (math.cos(a) * 0.35 - 0.2) * u, -0.06), 0.16, 0.16, 0.1, GOLD, { Material = METAL })
+		end
+		cylZ(chest + V(0, -0.62 * u, -0.08), 0.1, 0.5, GOLD, METAL)
+		blk(chest + V(0, -0.62 * u, -0.14), 0.07, 0.36, 0.04, pick(Color3.fromRGB(40, 160, 70), Color3.fromRGB(80, 170, 255)))
+		blk(chest + V(0, -0.62 * u, -0.15), 0.22, 0.07, 0.04, pick(Color3.fromRGB(40, 160, 70), Color3.fromRGB(80, 170, 255)))
+		return 0.55
+	end
+	B.Millionaire = function()
+		local hat = pick(INK, WHITE)
+		blk(at(0, 0.06, 0), 2.0, 0.1, 2.0, hat)
+		chk(at(0, 0.78, 0), 1.3, 1.4, 1.3, hat)
+		blk(at(0, 0.3, 0), 1.36, 0.24, 1.36, pick(GOLD, INK), { Material = if alt then SMOOTH else METAL })
+		-- a gold monocle on one eye
+		cylZ(face(0.45, 0) - V(0, 0, 0.04 * u), 0.06, 0.6, GOLD, METAL)
+		cylZ(face(0.45, 0) - V(0, 0, 0.07 * u), 0.04, 0.45, Color3.fromRGB(200, 230, 255), GLASS).Transparency = 0.5
+		blk(face(0.45, -0.5) - V(0, 0, 0.05 * u), 0.04, 0.7, 0.04, GOLD, { Material = METAL })
+		return 1.5
+	end
+	B.Chef = function()
+		local white = pick(WHITE, IVORY)
+		chk(at(0, 0.3, 0), 1.6, 0.6, 1.6, white)
+		for _, p in ipairs({ { -0.45, 0.85 }, { 0.45, 0.85 }, { 0, 1.05 } }) do
+			ball(at(p[1], p[2], 0), 1.05, white)
+		end
+		if alt then
+			blk(at(0, 0.08, 0), 1.64, 0.14, 1.64, Color3.fromRGB(220, 50, 50))
+		end
+		return 1.5
+	end
+	B.Pirate = function()
+		local hat = pick(INK, Color3.fromRGB(150, 30, 40))
+		blk(at(0, 0.2, 0), 2.3, 0.38, 1.5, hat)
+		chk(at(0, 0.45, 0.1), 1.6, 0.4, 1.2, hat)
+		blk(at(0, 0.3, -0.76), 0.34, 0.3, 0.06, WHITE)
+		-- the eye patch and its strap
+		blk(face(-0.45, 0) - V(0, 0, 0.05 * u), 0.55, 0.5, 0.06, INK)
+		blk(V(head.X, eyeY + 0.25 * u, head.Z), 2.08, 0.08, 2.08, INK)
+		return 0.7
+	end
+	B.Cowboy = function()
+		local hat = pick(Color3.fromRGB(150, 98, 52), INK)
+		blk(at(0, 0.06, 0), 2.8, 0.1, 2.6, hat)
+		for _, side in ipairs({ -1, 1 }) do
+			blk(at(side * 1.3, 0.16, 0), 0.25, 0.18, 2.4, hat)
+		end
+		chk(at(0, 0.45, 0), 1.5, 0.75, 1.4, hat)
+		blk(at(0, 0.18, 0), 1.54, 0.16, 1.44, pick(INK, Color3.fromRGB(190, 40, 40)))
+		return 0.85
+	end
+	B.Wizard = function()
+		local hat = pick(Color3.fromRGB(110, 60, 200), Color3.fromRGB(40, 90, 210))
+		blk(at(0, 0.05, 0), 2.5, 0.1, 2.5, hat)
+		cone(at(0, 0.05, 0), 1.8, 2.0, 5, function()
+			return hat
+		end, 0.6)
+		for _, p in ipairs({ { 0.5, 0.6, -0.65 }, { -0.35, 1.1, -0.4 } }) do
+			box(m, CFrame.new(at(p[1], p[2], p[3])) * CFrame.Angles(0, 0, math.rad(45)), V(0.22, 0.22, 0.06) * u, GOLD, { Material = NEON })
+		end
+		return 2.0
+	end
+	B.Builder = function()
+		local hat = pick(Color3.fromRGB(255, 200, 30), Color3.fromRGB(255, 130, 30))
+		chk(at(0, 0.28, 0), 1.9, 0.55, 1.9, hat)
+		blk(at(0, 0.6, 0), 0.26, 0.16, 1.9, hat:Lerp(WHITE, 0.25))
+		blk(at(0, 0.05, -1.1), 1.9, 0.08, 0.5, hat)
+		return 0.7
+	end
+	B.Astronaut = function()
+		local centre = V(head.X, head.Y, head.Z)
+		local dome = ball(centre, 3.7, pick(Color3.fromRGB(200, 230, 255), Color3.fromRGB(255, 220, 140)), GLASS)
+		dome.Transparency = 0.7
+		blk(V(head.X, head.Y - 1.45 * u, head.Z), 2.7, 0.3, 2.7, WHITE)
+		blk(V(head.X + 1.3 * u, head.Y - 1.45 * u, head.Z - 0.5 * u), 0.2, 0.3, 0.3, Color3.fromRGB(220, 60, 60))
+		return 0.9
+	end
+	B.Graduate = function()
+		local cap = pick(INK, Color3.fromRGB(32, 44, 96))
+		chk(at(0, 0.18, 0), 1.75, 0.36, 1.75, cap)
+		box(m, CFrame.new(at(0, 0.42, 0)) * CFrame.Angles(0, math.rad(45), 0), V(2.5, 0.1, 2.5) * u, cap)
+		ball(at(0, 0.5, 0), 0.2, GOLD)
+		blk(at(1.15, 0.2, -0.3), 0.08, 0.6, 0.08, GOLD)
+		blk(at(1.15, -0.15, -0.3), 0.18, 0.2, 0.18, GOLD)
+		return 0.55
+	end
+	B.Party = function()
+		local a, b = pick(Color3.fromRGB(255, 90, 160), Color3.fromRGB(70, 160, 255)), pick(Color3.fromRGB(255, 220, 60), Color3.fromRGB(110, 220, 120))
+		cone(at(0, 0, 0.1), 1.2, 1.5, 4, function(k)
+			return if k % 2 == 0 then a else b
+		end)
+		ball(at(0, 1.6, 0.1), 0.42, WHITE)
+		return 1.7
+	end
+	B.DJ = function()
+		local band1, glow = pick(INK, WHITE), pick(Color3.fromRGB(0, 230, 255), Color3.fromRGB(255, 60, 200))
+		blk(at(0, 0.12, 0), 2.15, 0.16, 0.34, band1)
+		for _, side in ipairs({ -1, 1 }) do
+			blk(at(side * 1.07, -0.25, 0), 0.16, 0.7, 0.34, band1)
+			cylX(V(head.X + side * 1.15 * u, head.Y, head.Z), 0.34, 0.95, band1)
+			cylX(V(head.X + side * 1.33 * u, head.Y, head.Z), 0.05, 0.7, glow, NEON)
+		end
+		return 0.2
+	end
+	B.Surfer = function()
+		local lens = pick(INK, Color3.fromRGB(80, 200, 220))
+		blk(face(0, 0.15) - V(0, 0, 0.05 * u), 2.0, 0.12, 0.08, INK)
+		for _, side in ipairs({ -1, 1 }) do
+			blk(face(side * 0.48, 0) - V(0, 0, 0.06 * u), 0.8, 0.5, 0.08, lens, { Material = GLASS })
+		end
+		local flowers = { pick(Color3.fromRGB(255, 90, 140), Color3.fromRGB(90, 160, 255)), pick(Color3.fromRGB(255, 200, 60), WHITE), pick(Color3.fromRGB(255, 140, 60), Color3.fromRGB(160, 120, 255)) }
+		for k = -3, 3 do
+			local a = k / 3 * 1.2
+			ball(chest + V(math.sin(a) * 0.6 * u, (math.cos(a) * 0.3 - 0.05) * u, -0.08), 0.32, flowers[(k + 4) % 3 + 1])
+		end
+		return 0
+	end
+	B.Viking = function()
+		local metal = pick(Color3.fromRGB(190, 196, 210), GOLD)
+		chk(at(0, 0.25, 0), 2.0, 0.6, 2.0, metal, { Material = METAL })
+		blk(at(0, 0.6, 0), 0.22, 0.14, 2.0, metal:Lerp(INK, 0.2), { Material = METAL })
+		blk(at(0, -0.05, -1.0), 0.22, 0.55, 0.1, metal, { Material = METAL })
+		for _, side in ipairs({ -1, 1 }) do
+			for k = 0, 2 do
+				box(m, CFrame.new(at(side * (1.1 + k * 0.22), 0.3 + k * 0.32, 0)) * CFrame.Angles(0, 0, math.rad(side * (-20 + k * 25))), V(0.34 - k * 0.08, 0.4, 0.34 - k * 0.08) * u, IVORY)
+			end
+		end
+		return 0.65
+	end
+	B.Ninja = function()
+		local cloth = pick(INK, Color3.fromRGB(200, 40, 50))
+		band(-0.4, 0.32, cloth)
+		blk(V(head.X, top.Y - 0.4 * u, frontZ - 0.05 * u), 0.7, 0.26, 0.06, Color3.fromRGB(200, 205, 220), { Material = METAL })
+		for _, side in ipairs({ -1, 1 }) do
+			box(m, CFrame.new(V(head.X + side * 0.2 * u, top.Y - 0.55 * u, head.Z + 1.2 * u)) * CFrame.Angles(math.rad(-30), 0, math.rad(side * 15)), V(0.22, 0.08, 0.7) * u, cloth)
+		end
+		return 0
+	end
+	B.Santa = function()
+		local red = pick(Color3.fromRGB(214, 30, 40), Color3.fromRGB(40, 160, 70))
+		chk(at(0, 0.32, 0), 1.8, 0.5, 1.8, red)
+		box(m, CFrame.new(at(0, 0.75, 0.35)) * CFrame.Angles(math.rad(-25), 0, 0), V(1.1, 0.6, 1.1) * u, red)
+		blk(at(0, 0.06, 0), 2.02, 0.32, 2.02, WHITE)
+		ball(at(0, 1.0, 0.85), 0.5, WHITE)
+		return 1.1
+	end
+	B.Skater = function()
+		local knit = pick(Color3.fromRGB(240, 120, 40), Color3.fromRGB(60, 190, 200))
+		chk(at(0, 0.28, 0), 1.95, 0.6, 1.95, knit, { Material = FABRIC })
+		blk(at(0, -0.05, 0), 2.04, 0.26, 2.04, knit:Lerp(INK, 0.2), { Material = FABRIC })
+		ball(at(0, 0.72, 0), 0.5, knit:Lerp(WHITE, 0.4))
+		return 0.85
+	end
+	B.Detective = function()
+		local hat = pick(Color3.fromRGB(120, 96, 70), Color3.fromRGB(70, 72, 84))
+		blk(at(0, 0.05, 0), 2.35, 0.08, 2.35, hat)
+		chk(at(0, 0.38, 0), 1.5, 0.62, 1.4, hat)
+		blk(at(0, 0.62, 0), 0.3, 0.1, 1.2, hat:Lerp(INK, 0.3))
+		blk(at(0, 0.16, 0), 1.54, 0.16, 1.44, INK)
+		return 0.7
+	end
+	B.Sailor = function()
+		local cap, trim = pick(WHITE, Color3.fromRGB(32, 44, 96)), pick(Color3.fromRGB(32, 44, 96), WHITE)
+		chk(at(0, 0.26, 0), 1.75, 0.5, 1.75, cap)
+		blk(at(0, 0.08, 0), 1.79, 0.15, 1.79, trim)
+		box(m, CFrame.new(chest + V(0, 0.05 * u, -0.05)) * CFrame.Angles(0, 0, math.rad(45)), V(0.55, 0.55, 0.06) * u, Color3.fromRGB(32, 44, 96))
+		blk(chest + V(0, -0.15 * u, -0.1), 0.24, 0.2, 0.06, Color3.fromRGB(214, 40, 40))
+		return 0.55
+	end
+	B.Knight = function()
+		local metal, plume = pick(Color3.fromRGB(190, 196, 210), GOLD), pick(Color3.fromRGB(214, 40, 40), Color3.fromRGB(70, 130, 255))
+		chk(at(0, 0.05, 0), 2.1, 0.75, 2.1, metal, { Material = METAL })
+		blk(at(0, -0.4, -1.05), 0.2, 0.6, 0.1, metal, { Material = METAL })
+		for k = 0, 2 do
+			chk(at(0, 0.55 + k * 0.28, 0.3 + k * 0.25), 0.3, 0.35, 0.5, plume)
+		end
+		return 1.1
+	end
+	B.Farmer = function()
+		local straw, ribbon = pick(Color3.fromRGB(235, 205, 120), Color3.fromRGB(245, 225, 160)), pick(Color3.fromRGB(214, 40, 40), Color3.fromRGB(70, 130, 255))
+		blk(at(0, 0.05, 0), 2.8, 0.1, 2.8, straw, { Material = FABRIC })
+		chk(at(0, 0.35, 0), 1.5, 0.55, 1.5, straw, { Material = FABRIC })
+		blk(at(0, 0.17, 0), 1.54, 0.16, 1.54, ribbon)
+		return 0.65
+	end
+	B.Painter = function()
+		local beret = pick(Color3.fromRGB(200, 40, 60), Color3.fromRGB(40, 40, 50))
+		box(m, CFrame.new(at(0.15, 0.18, 0)) * CFrame.Angles(0, 0, math.rad(-10)), V(2.0, 0.3, 2.0) * u, beret, { Material = FABRIC })
+		ball(at(0.15, 0.38, 0), 0.22, beret)
+		return 0.4
+	end
+	B.Scientist = function()
+		local lens = pick(Color3.fromRGB(110, 220, 255), Color3.fromRGB(255, 160, 60))
+		band(-0.22, 0.2, Color3.fromRGB(60, 64, 80))
+		for _, side in ipairs({ -1, 1 }) do
+			cylZ(V(head.X + side * 0.45 * u, top.Y - 0.2 * u, frontZ - 0.08 * u), 0.2, 0.6, Color3.fromRGB(60, 64, 80))
+			cylZ(V(head.X + side * 0.45 * u, top.Y - 0.2 * u, frontZ - 0.19 * u), 0.04, 0.45, lens, GLASS)
+		end
+		return 0
+	end
+	B.Pilot = function()
+		local leather = pick(Color3.fromRGB(130, 82, 48), Color3.fromRGB(70, 90, 60))
+		chk(at(0, 0.15, 0.05), 2.05, 0.5, 2.05, leather)
+		for _, side in ipairs({ -1, 1 }) do
+			blk(at(side * 1.04, -0.55, 0.1), 0.12, 0.8, 0.8, leather)
+			cylZ(at(side * 0.45, 0.42, -0.6), 0.16, 0.5, GOLD, METAL)
+		end
+		return 0.5
+	end
+	B.Baseball = function()
+		local cap = pick(Color3.fromRGB(40, 90, 210), Color3.fromRGB(214, 40, 40))
+		chk(at(0, 0.27, 0), 1.85, 0.5, 1.85, cap)
+		blk(at(0, 0.06, -1.15), 1.3, 0.08, 0.75, cap:Lerp(INK, 0.15))
+		ball(at(0, 0.55, 0), 0.2, WHITE)
+		blk(at(0, 0.3, -0.93), 0.45, 0.3, 0.05, WHITE)
+		return 0.55
+	end
+	B.Nurse = function()
+		local cap = pick(WHITE, Color3.fromRGB(255, 190, 210))
+		blk(at(0, 0.2, -0.3), 1.3, 0.42, 0.6, cap)
+		blk(at(0, 0.2, -0.62), 0.12, 0.3, 0.04, Color3.fromRGB(220, 40, 50))
+		blk(at(0, 0.2, -0.62), 0.3, 0.12, 0.04, Color3.fromRGB(220, 40, 50))
+		return 0.42
+	end
+	B.Explorer = function()
+		local khaki = pick(Color3.fromRGB(205, 185, 135), Color3.fromRGB(130, 140, 90))
+		blk(at(0, 0.05, 0), 2.45, 0.08, 2.45, khaki)
+		chk(at(0, 0.35, 0), 1.9, 0.6, 1.9, khaki)
+		chk(at(0, 0.72, 0), 1.2, 0.25, 1.2, khaki)
+		blk(at(0, 0.15, 0), 1.94, 0.14, 1.94, Color3.fromRGB(110, 70, 40))
+		return 0.85
+	end
+	B.Mechanic = function()
+		local cap = pick(Color3.fromRGB(60, 90, 140), Color3.fromRGB(200, 70, 40))
+		chk(at(0, 0.25, 0), 1.85, 0.45, 1.85, cap)
+		blk(at(0, 0.06, -1.12), 1.3, 0.08, 0.6, cap:Lerp(INK, 0.2))
+		-- a little wrench badge on the front
+		box(m, CFrame.new(at(0, 0.28, -0.93)) * CFrame.Angles(0, 0, math.rad(45)), V(0.1, 0.45, 0.05) * u, Color3.fromRGB(200, 205, 220), { Material = METAL })
+		return 0.5
+	end
+	B.Superhero = function()
+		local main, bolt = pick(Color3.fromRGB(214, 40, 40), Color3.fromRGB(40, 90, 210)), GOLD
+		band(-0.3, 0.22, main)
+		box(m, CFrame.new(V(head.X, top.Y - 0.3 * u, frontZ - 0.06 * u)) * CFrame.Angles(0, 0, math.rad(30)), V(0.14, 0.5, 0.05) * u, bolt, { Material = NEON })
+		box(m, CFrame.new(chest + V(0, 0.08 * u, -0.07)) * CFrame.Angles(0, 0, math.rad(45)), V(0.5, 0.5, 0.06) * u, bolt, { Material = METAL })
+		box(m, CFrame.new(chest + V(0, 0.08 * u, -0.1)) * CFrame.Angles(0, 0, math.rad(45)), V(0.32, 0.32, 0.06) * u, main)
+		return 0
+	end
+	B.Gamer = function()
+		local shell, glow = pick(INK, WHITE), pick(Color3.fromRGB(60, 255, 120), Color3.fromRGB(170, 90, 255))
+		blk(at(0, 0.1, 0), 2.12, 0.14, 0.3, shell)
+		for _, side in ipairs({ -1, 1 }) do
+			blk(at(side * 1.06, -0.3, 0), 0.14, 0.7, 0.3, shell)
+			cylX(V(head.X + side * 1.12 * u, head.Y, head.Z), 0.3, 0.8, shell)
+			cylX(V(head.X + side * 1.28 * u, head.Y, head.Z), 0.04, 0.55, glow, NEON)
+		end
+		-- the microphone, from the left ear to the mouth
+		box(m, CFrame.lookAt(V(head.X - 0.95 * u, head.Y - 0.35 * u, head.Z - 0.6 * u), V(head.X - 0.2 * u, head.Y - 0.5 * u, frontZ - 0.1 * u)), V(0.07, 0.07, 1.0) * u, shell)
+		ball(V(head.X - 0.25 * u, head.Y - 0.5 * u, frontZ - 0.12 * u), 0.2, glow, NEON)
+		return 0.15
+	end
+	B.Gardener = function()
+		local petals = if alt then { Color3.fromRGB(90, 160, 255), WHITE } else { Color3.fromRGB(255, 120, 170), Color3.fromRGB(255, 210, 60) }
+		for k = 0, 5 do
+			local a = k / 6 * math.pi * 2
+			local p = V(head.X + math.cos(a) * 0.95 * u, top.Y + 0.08 * u, head.Z + math.sin(a) * 0.95 * u)
+			ball(p, 0.42, petals[k % 2 + 1])
+			ball(p + V(0, 0.12 * u, 0), 0.16, Color3.fromRGB(255, 230, 120))
+			box(m, CFrame.new(p + V(0, -0.05 * u, 0)) * CFrame.Angles(0, -a, 0), V(0.4, 0.06, 0.18) * u, Color3.fromRGB(80, 170, 80))
+		end
+		return 0.35
+	end
+	B.Angel = function()
+		local ring = pick(GOLD, Color3.fromRGB(235, 240, 255))
+		for k = 0, 9 do
+			local a = k / 10 * math.pi * 2
+			box(m, CFrame.new(at(math.cos(a) * 0.75, 0.75, math.sin(a) * 0.75)) * CFrame.Angles(0, -a, 0), V(0.18, 0.12, 0.5) * u, ring, { Material = NEON })
+		end
+		return 0.9
+	end
+	B.Devil = function()
+		local horn = pick(Color3.fromRGB(214, 30, 40), Color3.fromRGB(120, 40, 160))
+		for _, side in ipairs({ -1, 1 }) do
+			for k = 0, 2 do
+				box(m, CFrame.new(at(side * (0.6 + k * 0.08), 0.15 + k * 0.25, -0.1)) * CFrame.Angles(0, 0, math.rad(side * -15)), V(0.36 - k * 0.1, 0.3, 0.36 - k * 0.1) * u, horn)
+			end
+		end
+		return 0.7
+	end
+	local builder = B[look.Name]
+	if not builder then
+		return 0
+	end
+	m:SetAttribute("Outfit", look.Name)
+	return builder()
+end
+
 local function dress(ctx, where, level, sizeIndex)
 	local model, animated = ctx.Model, ctx.Animated
 	local s = where.Scale
@@ -1183,7 +1566,8 @@ local function dress(ctx, where, level, sizeIndex)
 		end
 	end
 	if sizeIndex >= 3 then
-		crown(model, where.Crown, s, animated)
+		-- (on top of the outfit's hat)
+		crown(model, where.Crown + V(0, (where.HatLift or 0), 0), s, animated)
 		-- a gold chest plate with a big gem
 		box(model, chest + V(0, 0.1 * s, -0.02), V(0.6, 0.36, 0.06) * s, GOLD, { Material = METAL })
 		box(model, CFrame.new(chest + V(0, 0.1 * s, -0.07)) * CFrame.Angles(0, 0, math.rad(45)), V(0.2, 0.2, 0.06) * s, Color3.fromRGB(255, 60, 120), { Material = GLASS })
@@ -1304,6 +1688,12 @@ function PetModels.build(name, plain)
 
 	local head, where = BODIES[spec.Body](ctx)
 	if not plain then
+		-- its own outfit first (the Titanic crown sits on top of the hat)
+		local look = Config.outfitOf(name)
+		if look then
+			local u = math.max(where.Crown.Y - head.Y, 0.3)
+			where.HatLift = outfit(ctx, where, head, look) * u
+		end
 		dress(ctx, where, level, size.Index)
 		local aura = Config.petAura(name)
 		if aura then

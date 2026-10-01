@@ -282,7 +282,8 @@ Ui.new("UIStroke", { Color = Ui.OUTLINE, Thickness = 1.5, Parent = tipRarity })
 local tipOdds = tipLabel(3, { Font = Ui.FONT_DISPLAY, TextSize = 20, TextColor3 = Color3.fromRGB(190, 120, 20) })
 local tipPower = tipLabel(4, { Font = Ui.FONT, TextSize = 17, TextColor3 = Ui.INK })
 local tipStats = tipLabel(5, { Font = Ui.FONT_MEDIUM, TextSize = 13, TextColor3 = Ui.MUTED, TextWrapped = true, Size = UDim2.new(1, 0, 0, 34) })
-local tipWorlds = tipLabel(6, { Name = "Worlds", Font = Ui.FONT_MEDIUM, TextSize = 12, TextColor3 = Ui.MUTED, Text = "Hatches in every world" })
+local tipOutfit = tipLabel(6, { Name = "Outfit", Font = Ui.FONT, TextSize = 13, TextColor3 = Ui.INK })
+local tipWorlds = tipLabel(7, { Name = "Worlds", Font = Ui.FONT_MEDIUM, TextSize = 12, TextColor3 = Ui.MUTED, Text = "Hatches in every world" })
 local tipOwner = nil
 
 -- shows the card for a tile (or hides it with nil)
@@ -311,6 +312,9 @@ function Index.showTip(frame, info)
 		end
 	end
 	tipStats.Text = table.concat(parts, "  ·  ")
+	local look = Config.outfitOf(name)
+	tipOutfit.Text = if found and look then "Outfit: " .. look.Name else ""
+	tipOutfit.Visible = found and look ~= nil
 	tipStats.Visible = #parts > 0
 	tipWorlds.Text = "Hatches in every world"
 	tipEdge.Color = rarity.Color

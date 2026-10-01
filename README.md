@@ -173,6 +173,13 @@ chase Huge and Titanic pets.**
   or stops at the fountain. Each world has its own light. Quiet stretches
   alternate with lively ones, everything is capped, and only the world you're
   in is alive (`Ambient.luau`).
+- **Outfits:** every animal wears its own outfit (looks only): Fireman,
+  Cop, Doctor, Rapper, Millionaire, Chef, Pirate, Cowboy, Wizard, Builder,
+  Astronaut, Graduate, Party, DJ, Surfer, Viking, Ninja, Santa, Skater,
+  Detective, Sailor, Knight, Farmer, Painter, Scientist, Pilot, Baseball,
+  Nurse, Explorer, Mechanic, Superhero, Gamer, Gardener, Angel and Devil,
+  each in two colourways, so all 70 look different. The Index card and the
+  Inventory details say which; a Titanic wears its crown on top of its hat.
 - **Pet Aura Machine** (Sahara, where the fusion machine was): put in 3 of
   the same pet (any size, no aura yet) and get 1 of it back with a random
   **aura: mini bees** flying in circles around it in the aura's colour

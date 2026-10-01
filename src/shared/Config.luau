@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 29 (aura bees instead of weapons)"
+Config.BUILD = "build 30 (an outfit for every pet)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -148,6 +148,30 @@ end
 -- The saved/equipped name of a pet of a size: "Tiger", "Huge Tiger", ...
 function Config.petName(petName, sizeIndex)
 	return Config.SIZES[sizeIndex or 1].Prefix .. petName
+end
+
+-- Outfits -----------------------------------------------------------------------
+-- Every animal wears its own outfit (only looks, no stats). There are 35
+-- outfits in two colourways: animal #1 gets outfit 1, #36 gets outfit 1 in
+-- its second colours, and so on, so all 70 look different. PetModels
+-- builds them; the Inventory and the Index show the name.
+Config.OUTFITS = {
+	"Fireman", "Cop", "Doctor", "Rapper", "Millionaire", "Chef", "Pirate", "Cowboy", "Wizard",
+	"Builder", "Astronaut", "Graduate", "Party", "DJ", "Surfer", "Viking", "Ninja", "Santa",
+	"Skater", "Detective", "Sailor", "Knight", "Farmer", "Painter", "Scientist", "Pilot",
+	"Baseball", "Nurse", "Explorer", "Mechanic", "Superhero", "Gamer", "Gardener", "Angel", "Devil",
+}
+
+-- A pet's outfit: its number in OUTFITS, its name and whether it's the
+-- second colourway
+function Config.outfitOf(name)
+	local pet = Config.petInfo(name)
+	if not pet then
+		return nil
+	end
+	local count = #Config.OUTFITS
+	local index = (pet.Index - 1) % count + 1
+	return { Index = index, Name = Config.OUTFITS[index], Alt = pet.Index > count }
 end
 
 -- Auras (the Pet Aura Machine in the Sahara) ---------------------------------------

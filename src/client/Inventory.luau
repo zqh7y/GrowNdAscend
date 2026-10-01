@@ -429,13 +429,13 @@ end)
 local detailView = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.fromScale(0.5, 0),
-	Size = UDim2.fromOffset(130, 112),
+	Size = UDim2.fromOffset(110, 88),
 	BackgroundTransparency = 1,
 	ZIndex = 37,
 	Parent = detail,
 })
 local detailName = label(detail, {
-	Position = UDim2.fromOffset(0, 112),
+	Position = UDim2.fromOffset(0, 88),
 	Size = UDim2.new(1, 0, 0, 26),
 	Font = Ui.FONT_DISPLAY,
 	TextSize = 22,
@@ -445,7 +445,7 @@ local detailName = label(detail, {
 })
 local detailTag = label(detail, {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 140),
+	Position = UDim2.new(0.5, 0, 0, 116),
 	Size = UDim2.fromOffset(0, 20),
 	AutomaticSize = Enum.AutomaticSize.X,
 	BackgroundTransparency = 0,
@@ -461,7 +461,7 @@ Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 9), PaddingRight = UDim.new(0, 9
 local function row(parent, order, iconName, color, text)
 	local r = Ui.new("Frame", {
 		LayoutOrder = order,
-		Size = UDim2.new(1, 0, 0, 25),
+		Size = UDim2.new(1, 0, 0, 20),
 		BackgroundColor3 = Ui.WHITE,
 		ZIndex = 37,
 		Parent = parent,
@@ -491,13 +491,13 @@ local function row(parent, order, iconName, color, text)
 end
 local rows = Ui.new("Frame", {
 	Name = "Stats",
-	Position = UDim2.fromOffset(0, 168),
-	Size = UDim2.new(1, 0, 0, 230),
+	Position = UDim2.fromOffset(0, 142),
+	Size = UDim2.new(1, 0, 0, 212),
 	BackgroundTransparency = 1,
 	ZIndex = 37,
 	Parent = detail,
 }, {
-	Ui.new("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder }),
+	Ui.new("UIListLayout", { Padding = UDim.new(0, 1), SortOrder = Enum.SortOrder.LayoutOrder }),
 })
 local powerValue = row(rows, 1, "sword", Ui.INK, "Power")
 local dpsValue = row(rows, 2, "bolt", Ui.DANGER, "Damage / sec")
@@ -515,6 +515,8 @@ for i, look in ipairs(STAT_LOOK) do
 	statValues[look.Stat] = value
 end
 local ownedValue = row(rows, 9, "paw", Ui.BLUE, "You have")
+local outfitValue, outfitRow = row(rows, 10, "star", Ui.PURPLE, "Outfit")
+outfitRow.Name = "Outfit"
 
 local detailAction = Ui.button({
 	AnchorPoint = Vector2.new(0.5, 1),
@@ -571,6 +573,8 @@ local function fillDetails(name)
 	detailTag.Text = string.upper(rarity.Name) .. (if size.Index > 1 then "  ·  " .. string.upper(size.Name) else "")
 		.. (if aura then "  ·  " .. string.upper(aura.Name) else "")
 	detailTag.BackgroundColor3 = accentOf(name)
+	local outfit = Config.outfitOf(name)
+	outfitValue.Text = if outfit then outfit.Name else "-"
 	powerValue.Text = Config.formatNumber(Config.petPower(name))
 	dpsValue.Text = Config.formatNumber(Config.petDps(data, name))
 	for _, look in ipairs(STAT_LOOK) do
