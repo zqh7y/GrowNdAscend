@@ -214,7 +214,7 @@ Coins at the top with YOUR TEAM (equipped pets and damage per second)
 under them, colourful navigation down the left (Inventory, Index, Upgrades,
 Rebirth, Settings; the leaderboards live in the Forest), and two buttons at
 the bottom right made like the navigation buttons (rounded square, icon,
-caption under it): ROLL a bit bigger and blue, and AUTO next to it (white
+caption under it): ROLL a bit bigger and blue, and AUTO to its left (white
 "AUTO OFF" / green "AUTO ON" with a status dot), each with a soft shadow
 and a faint shine; nothing drawn behind them. The compact/full hatch
 choice lives in Settings, so the middle stays clear for the fights. The

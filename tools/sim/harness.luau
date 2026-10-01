@@ -1190,7 +1190,7 @@ if ok then
 		b14.Controls = { Roll = inControls, Auto = autoB ~= nil, Switched = switchedOn,
 			Back = Roll.autoOn() == wasOn, Compact = compactInControls, Setting = bigReveals,
 			Dock = dock ~= nil and rollB.Parent.Parent == dock and autoB.Parent.Parent == dock,
-			Above = rollB.Parent.LayoutOrder < autoB.Parent.LayoutOrder and panels == 0,
+			Above = rollB.Parent.LayoutOrder > autoB.Parent.LayoutOrder and panels == 0,
 			Bigger = rollB.Size.X.Offset > autoB.Size.X.Offset,
 			Label = rollLabel ~= nil, LabelChanges = labelChanges }
 		STATS.B14 = b14
@@ -1915,7 +1915,7 @@ if ok then
 			and inv.DetailStats == 5 and inv.Dps == true and inv.Same == true and inv.Normal == "Dog,Tiger" and inv.Huge == "Huge Fox",
 			string.format("Equip -> equipped, button now '%s', card has a check; all 5 stats + DPS shown; switching pets keeps the grid; Normal = %s, Huge = %s",
 				tostring(inv.After), tostring(inv.Normal), tostring(inv.Huge)))
-		item(92, "just two buttons: ROLL, AUTO next to it", ctl.Dock == true and ctl.Above == true and ctl.Bigger == true and ctl.Label == true and ctl.LabelChanges == 0,
+		item(92, "just two buttons: AUTO, then ROLL in the corner", ctl.Dock == true and ctl.Above == true and ctl.Bigger == true and ctl.Label == true and ctl.LabelChanges == 0,
 			string.format("ROLL and AUTO side by side like the other buttons, no panel behind them, ROLL bigger; label changed %d times in 120 auto-roll frames", ctl.LabelChanges or -1))
 		local eb = (STATS.B15 or {}).Best or {}
 		local du = (STATS.B15 or {}).Dupes or {}

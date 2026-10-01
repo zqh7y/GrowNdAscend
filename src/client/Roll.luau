@@ -389,9 +389,10 @@ end
 -- on the left (a rounded square with an icon and a caption under it), with
 -- a cleaner finish: a soft shadow under each, a faint shine on top, small
 -- bold captions.
+-- AUTO sits on the left and ROLL on the right, in the corner.
 --   ROLL   a little bigger, blue. A slim bar inside fills while the next
 --          roll gets ready; its caption says SKIP while a hatch shows (by hand).
---   AUTO   next to it: white with a dark icon and "AUTO OFF", or green with
+--   AUTO   left of it: white with a dark icon and "AUTO OFF", or green with
 --          "AUTO ON" and a small status dot in its corner.
 -- The R key (or a gamepad's X) rolls too. The compact/full hatch choice
 -- lives in Settings ("Big hatch reveals").
@@ -446,7 +447,7 @@ function Roll.buildControls(parent)
 		IconSize = 34,
 		Size = ROLL_SIZE,
 		Style = "primary",
-		LayoutOrder = 1,
+		LayoutOrder = 2,
 		Parent = row,
 	}, function()
 		Effects.play("Click", 1, 0.05)
@@ -481,7 +482,7 @@ function Roll.buildControls(parent)
 		IconSize = 26,
 		Size = AUTO_SIZE,
 		Style = "glass",
-		LayoutOrder = 2,
+		LayoutOrder = 1,
 		Parent = row,
 	}, function()
 		Effects.play("Click", 1, 0.05)

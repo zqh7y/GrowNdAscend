@@ -135,7 +135,7 @@ for how it plays and where the code lives.
 - Odds: every step of a roll hits at most `Config.MAX_HIT` (99%), so every
   animal has a non-zero chance in every world at any luck (tested).
 - Roll controls: `Roll.buildControls` makes two `Ui.dockButton`s side by
-  side, same style as the left navigation (`Roll.DOCK_SIZE` is the row):
+  side (AUTO left, ROLL right in the corner), same style as the left navigation (`Roll.DOCK_SIZE` is the row):
   ROLL slightly bigger, blue (ready bar inside, R key, caption SKIP during
   a hand hatch) and AUTO (white / green with `Roll.AutoDot`, caption
   `Roll.AutoCaption`); both get a soft shadow and shine (`finish`). Invisible row, no panel. The user wants them like
