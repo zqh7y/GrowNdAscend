@@ -159,8 +159,10 @@ for how it plays and where the code lives.
   tiles (odds via `Config.oddsOf` + `Config.shortOdds`, "1/430K");
   `Ui.hexagon` (3 rotated rects in a CanvasGroup with one gradient) and
   `Ui.chunky` (outlined display text) are the building blocks. Panel titles
-  are big tilted outlined text, close is a big red X (Screen.modal). Roll
-  results float at the top (`Hatch.showResults`). Upgrade tree: hexagon
+  are big tilted outlined text, close is a big red X (Screen.modal). Normal and auto
+  rolls cycle in place at the top (Hatch `cycle`, speed `Hatch.CYCLE_START`/
+  `CYCLE_END`; the user wanted it slower than their reference video); the
+  bottom reel is only for "Big hatch reveals". Upgrade tree: hexagon
   nodes, card pops up on tap (`UpgradeTree.Card`).
 - Animation: use `Ui.appear`, `Ui.pop`, `Effects.flash` and quick Quint
   easing; check `Ui.reduced()` (Settings → Reduced motion) before

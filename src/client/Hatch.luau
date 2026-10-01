@@ -1391,72 +1391,102 @@ Hatch.ResultsRow = resultsRow
 Hatch.LastResults = nil -- for the simulator: { Names, Odds }
 local resultsId = 0
 
--- Shows the pets a roll gave, big, near the top of the screen
-function Hatch.showResults(results, fast)
-	resultsId += 1
-	local id = resultsId
-	PetView.releaseAll(resultsRow)
-	clear(resultsRow)
-	local shown = { Names = {}, Odds = {} }
-	local order = 0
-	for _, r in ipairs(results) do
-		if not isBoost(r) and r.Pet then
-			order += 1
-			local name = Config.petName(r.Pet, r.Size or 1)
-			local pet = Config.PETS_BY_NAME[r.Pet]
-			local rarity = Config.rarity(pet.Odds)
-			local holder = Ui.new("Frame", {
-				Name = name,
-				LayoutOrder = order,
-				Size = UDim2.fromOffset(170, 200),
-				BackgroundTransparency = 1,
-				ZIndex = 20,
-				Parent = resultsRow,
-			})
+-- One slot in the row: the pet (or the luck-boost tile), its odds and its name
+local function makeSlot(order)
+	local holder = Ui.new("Frame", {
+		Name = "Slot" .. order,
+		LayoutOrder = order,
+		Size = UDim2.fromOffset(170, 200),
+		BackgroundTransparency = 1,
+		ZIndex = 20,
+		Parent = resultsRow,
+	})
+	local viewHolder = Ui.new("Frame", {
+		Name = "Pet",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
+		Size = UDim2.fromOffset(150, 132),
+		BackgroundTransparency = 1,
+		ZIndex = 21,
+		Parent = holder,
+	})
+	local pop = Ui.new("UIScale", { Parent = viewHolder })
+	local odds = Ui.chunky({
+		Name = "Odds",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 128),
+		Size = UDim2.new(1, 30, 0, 36),
+		TextSize = 34,
+		Colors = { Ui.WHITE, Ui.WHITE },
+		Outline = 3,
+		ZIndex = 22,
+		Parent = holder,
+	})
+	local label = Ui.chunky({
+		Name = "PetName",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 164),
+		Size = UDim2.new(1, 30, 0, 28),
+		TextSize = 24,
+		Outline = 2.5,
+		ZIndex = 22,
+		Parent = holder,
+	})
+	return { Holder = holder, View = viewHolder, Pop = pop, Odds = odds, Name = label, Shows = nil }
+end
+
+-- Puts a pet (or the boost) in a slot with its odds text; `big` pops it harder
+local function setSlot(slot, name, oddsText, big)
+	if slot.Shows ~= name then
+		PetView.releaseAll(slot.View)
+		clear(slot.View)
+		if name == BOOST then
+			boostTile(slot.View, 100).ZIndex = 21
+		else
 			local view = PetView.take(name)
-			view.AnchorPoint = Vector2.new(0.5, 0)
-			view.Position = UDim2.fromScale(0.5, 0)
-			view.Size = UDim2.fromOffset(150, 132)
+			view.Size = UDim2.fromScale(1, 1)
 			view.ZIndex = 21
-			view.Parent = holder
-			local odds = Ui.chunky({
-				Name = "Odds",
-				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.new(0.5, 0, 0, 128),
-				Size = UDim2.new(1, 30, 0, 36),
-				TextSize = 34,
-				Text = Config.shortOdds(Config.oddsOf(name)),
-				Colors = { rarity.Color:Lerp(Ui.WHITE, 0.45), rarity.Color },
-				Outline = 3,
-				ZIndex = 22,
-				Parent = holder,
-			})
-			Ui.chunky({
-				Name = "PetName",
-				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.new(0.5, 0, 0, 164),
-				Size = UDim2.new(1, 30, 0, 28),
-				TextSize = 24,
-				Text = name,
-				Outline = 2.5,
-				ZIndex = 22,
-				Parent = holder,
-			})
-			table.insert(shown.Names, name)
-			table.insert(shown.Odds, odds.Text)
-			if not Ui.reduced() then
-				local scale = Ui.new("UIScale", { Scale = 0.3, Parent = holder })
-				TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, (order - 1) * 0.06), { Scale = 1 }):Play()
-			end
+			view.Parent = slot.View
 		end
+		slot.Shows = name
 	end
-	Hatch.LastResults = shown
+	local color
+	if name == BOOST then
+		color = Ui.SUCCESS
+		slot.Name.Text = "Luck Boost"
+	else
+		color = Config.rarity(Config.PETS_BY_NAME[(Config.petInfo(name)).Name].Odds).Color
+		slot.Name.Text = name
+	end
+	slot.Odds.Text = oddsText
+	slot.Odds.Tint.Color = ColorSequence.new(color:Lerp(Ui.WHITE, 0.45), color)
+	if not Ui.reduced() then
+		slot.Pop.Scale = if big then 1.35 else 0.72
+		TweenService:Create(slot.Pop, TweenInfo.new(if big then 0.35 else 0.14, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+end
+
+-- the odds shown for a result: the exact chance it was rolled at (the
+-- server sends the luck it used), or its plain odds for results from elsewhere
+local function oddsTextFor(result, name)
+	if name == BOOST then
+		return "x" .. Config.BOOST.Multiplier
+	end
+	if result.Luck then
+		local ctx = rollContext(result)
+		local chance = Config.chanceOf(name, ctx.Luck, ctx.SizeLuck, ctx.World)
+		return if chance > 0 then Config.shortOdds(1 / chance) else "-"
+	end
+	return Config.shortOdds(Config.oddsOf(name))
+end
+
+local function resultName(r)
+	return if isBoost(r) then BOOST else Config.petName(r.Pet, r.Size or 1)
+end
+
+-- the row stays a moment, then rises and fades (unless a new roll took it)
+local function fadeResultsLater(id, fast)
 	resultsRow.Position = UDim2.new(0.5, 0, 0, 205)
-	resultsRow.Visible = order > 0
-	if order == 0 then
-		return
-	end
-	-- stay a moment, then rise and fade
 	task.delay(if fast then 1.4 else 2.2, function()
 		if resultsId ~= id then
 			return
@@ -1478,6 +1508,150 @@ function Hatch.showResults(results, fast)
 	end)
 end
 
+-- Shows the pets a roll gave, big, near the top of the screen (no cycling)
+function Hatch.showResults(results, fast)
+	resultsId += 1
+	local id = resultsId
+	PetView.releaseAll(resultsRow)
+	clear(resultsRow)
+	local shown = { Names = {}, Odds = {} }
+	local order = 0
+	for _, r in ipairs(results) do
+		if not isBoost(r) and r.Pet then
+			order += 1
+			local name = resultName(r)
+			local slot = makeSlot(order)
+			setSlot(slot, name, oddsTextFor(r, name), true)
+			table.insert(shown.Names, name)
+			table.insert(shown.Odds, slot.Odds.Text)
+		end
+	end
+	Hatch.LastResults = shown
+	resultsRow.Visible = order > 0
+	if order > 0 then
+		fadeResultsLater(id, fast)
+	end
+end
+
+-- THE ROLL (compact and auto): one slot per result in the row near the top.
+-- Each flickers through pets that can come out of this roll (with their
+-- exact odds and names), slower and slower, then lands on what the server
+-- gave. Returns what happened, in the same shape as the reel's spin.
+Hatch.CYCLE_START, Hatch.CYCLE_END = 0.18, 0.5 -- seconds per pet, at the start / near the end
+local function cycle(results, best, fast)
+	local ctx = rollContext(best)
+	local tier = Hatch.tier(best)
+	plays += 1
+	local first = plays <= 3
+	resultsId += 1
+	local id = resultsId
+	PetView.releaseAll(resultsRow)
+	clear(resultsRow)
+	resultsRow.Position = UDim2.new(0.5, 0, 0, 205)
+	resultsRow.Visible = true
+	local multiplier = best.Multiplier or 1
+	local badgeAtStart = boostState(if multiplier > 1 then "active" else "none", multiplier)
+
+	local slots = {}
+	for i, r in ipairs(results) do
+		local slot = makeSlot(i)
+		slot.Result = r
+		slot.Final = resultName(r)
+		slot.Context = rollContext(r)
+		slot.Pool = reelNames(slot.Context, false)
+		slot.Next = 0
+		slot.Step = math.random(1, #slot.Pool)
+		slots[i] = slot
+	end
+	local duration = (if fast then 1.8 elseif first then 3.2 else 2.6) + (if tier >= 3 and not fast then 0.6 else 0)
+	local start = os.clock()
+	local shownForBest, intervals = {}, {}
+	while true do
+		local t = os.clock() - start
+		if t >= duration or skipRequested then
+			break
+		end
+		local u = t / duration
+		local interval = Hatch.CYCLE_START + (Hatch.CYCLE_END - Hatch.CYCLE_START) * u * u
+		for i, slot in ipairs(slots) do
+			if t >= slot.Next then
+				slot.Step = slot.Step % #slot.Pool + 1
+				local name = slot.Pool[slot.Step]
+				if name == slot.Final and #slot.Pool > 1 then
+					-- (the real result only shows when it lands)
+					slot.Step = slot.Step % #slot.Pool + 1
+					name = slot.Pool[slot.Step]
+				end
+				local oddsText = if name == BOOST then "x" .. Config.BOOST.Multiplier else (function()
+					local chance = Config.chanceOf(name, slot.Context.Luck, slot.Context.SizeLuck, slot.Context.World)
+					return if chance > 0 then Config.shortOdds(1 / chance) else "-"
+				end)()
+				setSlot(slot, name, oddsText, false)
+				if slot.Result == best then
+					table.insert(shownForBest, { Name = name, Text = oddsText })
+					table.insert(intervals, interval)
+				end
+				if i == 1 then
+					Effects.play("Roll", 0.9 + u * 0.5, 0.02)
+				end
+				-- each slot ticks on its own beat
+				slot.Next = t + interval * (0.9 + math.random() * 0.2)
+			end
+		end
+		task.wait()
+	end
+
+	-- every slot lands on its real result
+	local landedText = nil
+	for _, slot in ipairs(slots) do
+		setSlot(slot, slot.Final, oddsTextFor(slot.Result, slot.Final), true)
+		if slot.Result == best then
+			landedText = slot.Odds.Text
+		end
+	end
+	local nextMultiplier = best.NextMultiplier or 1
+	local badgeAfter = boostState(if nextMultiplier > 1 then "waiting" else "none", nextMultiplier)
+	if nextMultiplier > multiplier then
+		Effects.play("Coin", 1.6)
+	end
+	if isBoost(best) then
+		Effects.jingle(3)
+	elseif tier >= 2 and tier < 4 then
+		Effects.jingle(2)
+	elseif tier < 2 then
+		Effects.play("Coin", 1.3, 0.05)
+	end
+	local names, odds = {}, {}
+	for _, slot in ipairs(slots) do
+		if slot.Final ~= BOOST then
+			table.insert(names, slot.Final)
+			table.insert(odds, slot.Odds.Text)
+		end
+	end
+	Hatch.LastResults = { Names = names, Odds = odds }
+	fadeResultsLater(id, fast)
+	local finalName = resultName(best)
+	return {
+		Landed = { Name = finalName },
+		LandedExactly = true,
+		Result = finalName,
+		SpeedEarly = 1 / (intervals[1] or 1),
+		SpeedLate = 1 / (intervals[#intervals] or 1),
+		Flex = false,
+		FlexShown = 0,
+		FlexNames = {},
+		Chances = shownForBest,
+		ResultChance = landedText,
+		Context = ctx,
+		LuckChip = badgeAtStart,
+		NextChip = badgeAfter,
+		First = first,
+		Tier = tier,
+		Slots = #slots,
+		Motion = { Sideways = 0, Down = 0, Up = 0, TrayMoved = 0 },
+	}
+end
+
 local function show(results, fast, mode, auto)
 	-- the reel lands on the best pet; on a boost if the spin only gave boosts
 	local best, bestScore = results[1], -math.huge
@@ -1496,7 +1670,7 @@ local function show(results, fast, mode, auto)
 	local full = mode ~= "compact"
 	local tier = Hatch.tier(best)
 	Hatch.LastCutscene = nil
-	local spun = spin(results, best, fast, full)
+	local spun = if full then spin(results, best, fast, full) else cycle(results, best, fast)
 	local landed = spun.Landed
 
 	local record = {
@@ -1526,8 +1700,9 @@ local function show(results, fast, mode, auto)
 		end)(),
 		Multiplier = best.Multiplier or 1,
 		NextMultiplier = best.NextMultiplier or 1,
-		Bottom = spinner.AnchorPoint.Y == 1 and spinner.Position.Y.Scale == 1,
-		Backdrop = spinner.BackgroundTransparency,
+		Bottom = if full then spinner.AnchorPoint.Y == 1 and spinner.Position.Y.Scale == 1 else false,
+		Backdrop = if full then spinner.BackgroundTransparency else 1,
+		Slots = spun.Slots,
 	}
 	if full and not isBoost(best) then
 		-- a short silhouette moment, longer for rarer pets
@@ -1556,10 +1731,7 @@ local function show(results, fast, mode, auto)
 		showReveal(best, fast, others)
 		Screen.blur(false)
 	end
-	-- the pets float big near the top (compact hatches and auto)
-	if not full then
-		Hatch.showResults(results, fast)
-	end
+
 	if shade.Visible then
 		TweenService:Create(shade, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
 		task.wait(0.2)

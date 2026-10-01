@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 22 (hexagon collection look)"
+Config.BUILD = "build 23 (rolls cycle in place, like the video)"
 
 -- Pets -------------------------------------------------------------------------
 

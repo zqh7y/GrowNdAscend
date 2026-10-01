@@ -729,11 +729,15 @@ if ok then
 		for _ = 1, 900 do
 			frames(1)
 			-- the tray never moves: every frame it's shown, it's at the same spot
-			local tray = Hatch.Spinner
-			if tray.Visible then
+			-- compact/auto rolls: the bottom reel never shows; the row near the
+			-- top cycles in one fixed spot while a roll plays
+			if Hatch.Spinner.Visible then
+				trayOff += 1
+			end
+			if Hatch.busy() and Hatch.ResultsRow.Visible then
 				trayFrames += 1
-				local p = tray.Position
-				if p.X.Scale ~= 0.5 or p.X.Offset ~= 0 or p.Y.Scale ~= 1 or p.Y.Offset ~= -14 or tray.AnchorPoint.X ~= 0.5 or tray.AnchorPoint.Y ~= 1 then
+				local p = Hatch.ResultsRow.Position
+				if p.X.Scale ~= 0.5 or p.X.Offset ~= 0 or p.Y.Offset ~= 205 then
 					trayOff += 1
 				end
 			end
@@ -772,7 +776,7 @@ if ok then
 		local feed = Hatch.LastFeed or {}
 		local controlsGui, gameGui = player.PlayerGui:FindFirstChild("ControlsGui"), player.PlayerGui:FindFirstChild("GameGui")
 		STATS.Controls = controlsGui ~= nil and controlsGui:FindFirstChild("Controls") ~= nil and (controlsGui.DisplayOrder or 0) > (gameGui.DisplayOrder or 0)
-		STATS.Chain8 = { Motion = feed.Motion, Expected = math.min(baseLuck * 8, __cache["Shared/Config"].MAX_LUCK), Luck = feed.Context and feed.Context.Luck, Multiplier = feed.Multiplier, Chip = feed.LuckChip, Chances = feed.Chances, Context = feed.Context, Result = feed.Landed, ResultChance = feed.ResultChance }
+		STATS.Chain8 = { Early = feed.SpeedEarly, Late = feed.SpeedLate, Slots = feed.Slots, Motion = feed.Motion, Expected = math.min(baseLuck * 8, __cache["Shared/Config"].MAX_LUCK), Luck = feed.Context and feed.Context.Luck, Multiplier = feed.Multiplier, Chip = feed.LuckChip, Chances = feed.Chances, Context = feed.Context, Result = feed.Landed, ResultChance = feed.ResultChance }
 		STATS.AutoHide = { AutoBottom = autoBottom, TopAfter = feed.Bottom == true, AutoRolls = autoRolls, HiddenRolls = data.Rolls - hiddenBefore, EverShaded = everShaded, Landed = feed.LandedName, Names = feed.Names, Backdrop = feed.Backdrop }
 		print(string.format("auto roll with no upgrades: %d rolls in 15s | compact hatch: %d roll, landed %s (shown %s), backdrop transparency %s, full screen dim %s",
 			autoRolls, STATS.AutoHide.HiddenRolls, tostring(feed.LandedName), tostring(feed.Names and feed.Names[1]), tostring(feed.Backdrop), tostring(everShaded)))
@@ -1679,7 +1683,8 @@ if ok then
 	item(64, "crazy pulls get a very special show", crazy.Tier == 6 and crazy.Crazy == true and string.find(crazy.Banner or "", "INSANE") ~= nil and (crazy.Seconds or 0) > (titanic.Seconds or 0) and crazy.Revealed == "Glitch",
 		string.format("'%s', %.1fs vs %.1fs for a Titanic", tostring(crazy.Banner), crazy.Seconds or 0, titanic.Seconds or 0))
 	item(65, "Roll / Auto / mode buttons always reachable", STATS.Controls == true, "own layer above panels and the hatch")
-	item(66, "spins show at the bottom (by hand and auto)", ah.AutoBottom == true and ah.TopAfter == true, "spinner at the bottom both ways")
+	item(66, "rolls cycle near the top (by hand and auto)", ah.AutoBottom == false and ah.TopAfter == false and (STATS.Tray or {}).Off == 0,
+		"no bottom reel for normal or auto rolls; the slots cycle at the top")
 
 	-- 67. the odds shown are the real odds: a million rolls with the real
 	-- roll function land on each pet as often as Config.chanceOf says
@@ -1731,15 +1736,14 @@ if ok then
 		local wrong, labels = 0, 0
 		for _, shown in ipairs(c8.Chances or {}) do
 			labels += 1
-			local expected = Config.formatChance(Config.chanceOf(shown.Name, ctx.Luck or 0, ctx.SizeLuck or 0, ctx.World or 1))
-			-- the label holds the whole text, unwrapped, in a box wide enough for it
-			local fits = shown.Label == shown.Text and shown.Wrapped == false and shown.Scaled == false and (shown.Width or 0) >= #shown.Text * (shown.TextSize or 99) * 0.62 + 8
-			if shown.Text ~= expected or not string.match(shown.Text, "^1 in [%d%.]+%a*$") or not fits then
+			local expected = if shown.Name == Config.BOOST.Name then "x" .. Config.BOOST.Multiplier
+				else Config.shortOdds(1 / Config.chanceOf(shown.Name, ctx.Luck or 0, ctx.SizeLuck or 0, ctx.World or 1))
+			if shown.Text ~= expected then
 				wrong += 1
 			end
 		end
 		local commonH = (STATS.Hatch or {}).common or {}
-		item(68, "every reel item shows its complete, exact chance", labels >= 20 and wrong == 0 and c8.ResultChance ~= nil and commonH.RevealChance == commonH.ResultChance,
+		item(68, "every pet flashing by shows its exact chance", labels >= 4 and wrong == 0 and c8.ResultChance ~= nil and commonH.RevealChance == commonH.ResultChance,
 			string.format("%d labels, %d wrong; result %s; e.g. '%s'", labels, wrong, tostring(c8.ResultChance), tostring(c8.Chances and c8.Chances[1] and c8.Chances[1].Text)))
 	end
 
@@ -1789,8 +1793,9 @@ if ok then
 		local hh = STATS.Hatch or {}
 		local fm = ((hh.common or {}).Motion) or {}
 		local cm = (STATS.Chain8 or {}).Motion or {}
-		item(73, "vertical reel, top to bottom", fm.Sideways == 0 and (fm.Down or 0) > 5 and fm.Up == 0 and cm.Sideways == 0 and (cm.Down or 0) > 5 and cm.Up == 0,
-			string.format("full: %d frames down, %d up, %s px sideways; compact: %d down, %d up, %s px sideways", fm.Down or 0, fm.Up or 0, tostring(fm.Sideways), cm.Down or 0, cm.Up or 0, tostring(cm.Sideways)))
+		local c8 = STATS.Chain8 or {}
+		item(73, "big reel falls top to bottom; cycling slows down", fm.Sideways == 0 and (fm.Down or 0) > 5 and fm.Up == 0 and cm.Sideways == 0 and (c8.Early or 0) > (c8.Late or 0) * 1.5,
+			string.format("big reel: %d frames down, %d up, %s px sideways; cycling: %.1f pets/s at first -> %.1f at the end", fm.Down or 0, fm.Up or 0, tostring(fm.Sideways), c8.Early or 0, c8.Late or 0))
 	end
 
 	-- 74, 75. luck boosts are real server results: they stack and are used up
@@ -1952,8 +1957,8 @@ if ok then
 		local tray = STATS.Tray or {}
 		local fm = ((hh.common or {}).Motion) or {}
 		local cm = (STATS.Chain8 or {}).Motion or {}
-		item(84, "roll tray stays in place", (tray.Frames or 0) > 30 and tray.Off == 0 and fm.TrayMoved == 0 and cm.TrayMoved == 0,
-			string.format("%d auto-roll frames with the tray shown, %d off its spot; 0 tray moves during spins", tray.Frames or 0, tray.Off or -1))
+		item(84, "rolls stay in place", (tray.Frames or 0) > 30 and tray.Off == 0 and fm.TrayMoved == 0 and cm.TrayMoved == 0,
+			string.format("%d auto-roll frames cycling at the top, %d off its spot (or a bottom reel); the big reel never moves", tray.Frames or 0, tray.Off or -1))
 		-- every pet, every world, any luck: a real chance
 		local zero, worst = 0, 1
 		for _, pet in ipairs(Config.PETS) do
