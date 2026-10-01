@@ -16,8 +16,7 @@ local PetView = require(script.Parent.PetView)
 local Roll = require(script.Parent.Roll)
 local Index = require(script.Parent.Index)
 local Inventory = require(script.Parent.Inventory)
-local UpgradeTree = require(script.Parent.UpgradeTree)
-require(script.Parent.LuckBoard) -- the Luck Board drawn on its stand in the world
+require(script.Parent.UpgradeBoard) -- every upgrade, on the board standing in the world
 local Panels = require(script.Parent.Panels)
 
 local Hud = {}
@@ -356,9 +355,8 @@ end
 
 button(nav, 1, "paw", "Inventory", Inventory.open, nil, "blue")
 local _, indexButton = button(nav, 2, "book", "Index", Index.open, nil, "purple")
-local _, upgradesButton = button(nav, 3, "tree", "Upgrades", UpgradeTree.open, nil, "green")
-button(nav, 4, "star", "Rebirth", Panels.openRebirth, nil, "magenta")
-button(nav, 5, "gear", "Settings", Panels.openSettings, nil, "gray")
+button(nav, 3, "star", "Rebirth", Panels.openRebirth, nil, "magenta")
+button(nav, 4, "gear", "Settings", Panels.openSettings, nil, "gray")
 
 -- a gold dot on Index when a collection reward is ready
 local indexDot = Ui.new("Frame", {
@@ -372,16 +370,6 @@ local indexDot = Ui.new("Frame", {
 }, { Ui.corner(0.5), Ui.stroke(Ui.WHITE, 2) })
 Hud.IndexDot = indexDot
 
--- a gold dot on Upgrades when something can be bought
-local upgradeDot = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.new(1, -4, 0, 4),
-	Size = UDim2.fromOffset(14, 14),
-	BackgroundColor3 = Ui.GOLD,
-	Visible = false,
-	ZIndex = 5,
-	Parent = upgradesButton,
-}, { Ui.corner(0.5), Ui.stroke(Ui.INK, 1.5) })
 
 
 -- Gameplay controls (right side), on their own layer so they always work --------------------------
@@ -489,7 +477,6 @@ State.watch(function()
 	coinsText.Text = Config.formatNumber(data.Coins)
 	refreshTeam(data)
 	refreshLevel(data)
-	upgradeDot.Visible = UpgradeTree.anyAffordable()
 	indexDot.Visible = Index.anyClaimable()
 end)
 

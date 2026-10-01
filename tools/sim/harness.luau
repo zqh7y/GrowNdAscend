@@ -425,13 +425,12 @@ if ok then
 				C("Index").open()
 			end)
 		end
-		try("UpgradeTree.open", C("UpgradeTree").open)
-		try("UpgradeTree.select", C("UpgradeTree").select, "SizeLuck")
-		try("UpgradeTree.buy", C("UpgradeTree").buy)
-		for _, id in ipairs({ "Coins", "RollSpeed", "AutoHatch", "Luck", "SizeLuck", "Damage", "Damage", "Slots" }) do
+		for _, section in ipairs(C("UpgradeBoard").SECTIONS) do
+			try("UpgradeBoard.select " .. section.Name, C("UpgradeBoard").select, section.Name)
+		end
+		for _, id in ipairs({ "Coins", "RollSpeed", "AutoHatch", "Luck", "SizeLuck", "Damage", "Damage", "Slots", "paw" }) do
 			try("buy " .. id, function()
-				C("UpgradeTree").select(id)
-				C("UpgradeTree").buy()
+				C("UpgradeBoard").buy(id)
 			end)
 		end
 		print("upgrades now:", data.Upgrades.Coins, data.Upgrades.AutoHatch, data.Upgrades.Slots)
@@ -522,12 +521,13 @@ if ok then
 				data.LuckBoard.paw = Config.LUCK_BOARD_BY_ID.paw.Max
 				lb.MaxRefused = remotes.BuyLuck.OnServerInvoke(player, "paw") == false
 				PlayerData.sync(player)
-				local Board = C("LuckBoard")
+				local Board = C("UpgradeBoard")
+				Board.select("Luck")
 				frames(1)
 				lb.Total = Board.Total.Text
-				lb.WantTotal = "x" .. Config.formatStat(Config.boardLuck(data)):sub(1, -2)
+				lb.WantTotal = Board.sectionValue("Luck", data)
 				lb.PawButton = Board.Rows.paw.Buy.Content.Label.Text
-				lb.Dot = Board.Gui.Adornee == workspace.Map.LuckBoard.Screen and Board.Gui.Parent == player.PlayerGui
+				lb.Dot = Board.Gui.Adornee == workspace.Map.UpgradeBoard.Screen and Board.Gui.Parent == player.PlayerGui
 				data.LuckBoard = savedBoard or {}
 				data.Coins = savedCoins
 				PlayerData.sync(player)
@@ -1020,26 +1020,28 @@ if ok then
 			end
 		end
 		polish.Badge = { Waiting = waitingState, After = Roll.BadgeState, InControls = Roll.BoostBadge.Parent == player.PlayerGui.ControlsGui, Sentences = sentences }
-		-- upgrade tree: every card shows its price or state, and the four states read right
-		local Tree = C("UpgradeTree")
+		-- the upgrade board: every upgrade (all of them) shows its price or state,
+		-- and the four states read right
+		local Board = C("UpgradeBoard")
 		data.Equipped = {} -- (no fighting: coins must stay where we put them)
 		data.Upgrades = { Coins = 20 }
 		data.Coins = 1e15
 		PlayerData.sync(player)
-		Tree.open()
-		Tree.select("Luck")
 		frames(2)
-		local withPrice = 0
-		for _, n in pairs(Tree.Nodes) do
-			if n.PriceText.Text ~= "" then withPrice += 1 end
+		local withPrice, onBoard = 0, 0
+		for _, section in ipairs(Board.SECTIONS) do
+			Board.select(section.Name)
+			frames(1)
+			for _, r in pairs(Board.Rows) do
+				onBoard += 1
+				if r.Buy.Content.Label.Text ~= "" then withPrice += 1 end
+			end
 		end
-		local states = table.clone(Tree.States)
+		local states = table.clone(Board.States)
 		data.Coins = 0
 		PlayerData.sync(player)
-		Tree.select("Luck")
 		frames(2)
-		polish.Tree = { WithPrice = withPrice, Count = #Cfg.UPGRADES, Maxed = states.Coins, Affordable = states.Luck, Available = Tree.States.Luck, Locked = Tree.States.Rolls }
-		C("Screen").close(Tree.Modal)
+		polish.Tree = { WithPrice = withPrice, OnBoard = onBoard, Count = #Cfg.UPGRADES + #Cfg.LUCK_BOARD, Maxed = states.Coins, Affordable = states.Luck, Available = Board.States.Luck, Locked = Board.States.Rolls }
 		-- reduced motion
 		local Ui = C("Ui")
 		local State = C("State")
@@ -1245,7 +1247,7 @@ if ok then
 		frames(1)
 		Inv.equipBest()
 		b15.Feedback = { Optimized = type(Inv.LastEquipBest) == "table" and Inv.LastEquipBest.Changed == false,
-			TreeButton = C("UpgradeTree").EquipBestButton ~= nil, InvButton = Inv.EquipBestButton ~= nil }
+			InvButton = Inv.EquipBestButton ~= nil }
 		data.Equipped = {}
 		PlayerData.sync(player)
 		frames(1)
@@ -1317,16 +1319,15 @@ if ok then
 			look.ResultsVisible = Hatch.ResultsRow.Visible
 			for _ = 1, 100 do STEP(0.03) end
 			look.ResultsGone = not Hatch.ResultsRow.Visible
-			-- the upgrade tree: hexagon nodes, the card only after a tap
-			local Tree = C("UpgradeTree")
-			Tree.open()
+			-- the upgrade board: sections on the left; Luck holds Luck, Size Luck and the 6 Luck Board rows
+			local Board = C("UpgradeBoard")
+			Board.select("Luck")
 			frames(1)
-			look.CardBefore = Tree.Card.Visible
-			Tree.select("Luck")
-			frames(1)
-			look.CardAfter = Tree.Card.Visible
-			look.NodeHex = Tree.Nodes.Luck.Hex ~= nil and Tree.Nodes.Luck.Hex:FindFirstChild("Fill") ~= nil
-			C("Screen").close(Tree.Modal)
+			local luckRows = 0
+			for _ in pairs(Board.Rows) do luckRows += 1 end
+			look.Sections = #Board.SECTIONS
+			look.LuckRows = luckRows
+			look.OnStand = Board.Gui.Adornee == workspace.Map.UpgradeBoard.Screen
 			-- the luck sign
 			look.Luck = C("Roll").LuckPill.Value.Text
 			b15.Look = look
@@ -2080,8 +2081,8 @@ if ok then
 		item(81, "boost badge by the Roll button, no sentences", b.Waiting == "waiting" and b.After == "none" and b.InControls == true and b.Sentences == 0,
 			string.format("x8 saved -> '%s', used up -> '%s'; %d 'NEXT ROLL' texts on screen", tostring(b.Waiting), tostring(b.After), b.Sentences or -1))
 		local t = p.Tree or {}
-		item(82, "upgrade tree: prices and states visible", t.WithPrice == t.Count and t.Maxed == "maxed" and t.Affordable == "affordable" and t.Available == "available" and t.Locked == "locked",
-			string.format("%d/%d cards show a price/state; Coins %s, Luck %s then %s, Rolls %s", t.WithPrice or 0, t.Count or 0, tostring(t.Maxed), tostring(t.Affordable), tostring(t.Available), tostring(t.Locked)))
+		item(82, "upgrade board: every upgrade, prices and states", t.OnBoard == t.Count and t.WithPrice == t.Count and t.Maxed == "maxed" and t.Affordable == "affordable" and t.Available == "available" and t.Locked == "locked",
+			string.format("%d/%d upgrades on the board (all %d upgrades + %d Luck Board rows), each with a price/state; Coins %s, Luck %s then %s, Rolls %s", t.WithPrice or 0, t.Count or 0, #Config.UPGRADES, #Config.LUCK_BOARD, tostring(t.Maxed), tostring(t.Affordable), tostring(t.Available), tostring(t.Locked)))
 		item(83, "reduced motion + world banner", p.Reduced == true and p.NormalMotion == true and p.Banner == Config.AREAS[2].Name,
 			"reduced motion skips the animations; walking into World 2 shows '" .. tostring(p.Banner) .. "'")
 	end
@@ -2147,8 +2148,8 @@ if ok then
 			string.format("%d slots -> %s (%s DPS), only owned copies, weaker Dog unequipped; %s slots with Tiger x3 + Dog -> %d Tigers, %s equipped (all copies used, never more than owned)",
 				eb.Slots or 0, tostring(eb.Team), Config.formatNumber(eb.Dps or 0), tostring(du.Slots), du.Tigers or 0, tostring(du.Count)))
 		item(94, "Equip Best picks by damage, not shown power; says when already best", od.Found == true and od.Picked == od.Want and eb.Changed2 == true and fb.Optimized == true
-			and fb.TreeButton == true and fb.InvButton == true,
-			string.format("%s (lower power, more damage) beats %s; second press: 'Team already optimized'; buttons in Inventory and Upgrade Tree", tostring(od.Picked), tostring(od.Other)))
+			and fb.InvButton == true,
+			string.format("%s (lower power, more damage) beats %s; second press: 'Team already optimized'; button in the Inventory", tostring(od.Picked), tostring(od.Other)))
 		local tc = (STATS.B15 or {}).TeamChips or {}
 		item(95, "team bar: empty slot circles centred", tc.Full == 1 and (tc.Empty or 0) >= 1 and tc.Mid == tc.Empty,
 			string.format("%d equipped circle on top of its DPS, %d/%d empty circles in the vertical middle", tc.Full or 0, tc.Mid or 0, tc.Empty or 0))
@@ -2160,8 +2161,8 @@ if ok then
 			string.format("Huge Fox tile says %s (its odds), on a hexagon with its size; %d equipped tile on top ('%s')", tostring(lk.TileOdds), lk.Team or 0, tostring(lk.TeamTitle)))
 		item(99, "roll results float big with odds and name", lk.Results == "Tiger,Huge Fox" and lk.ResultOdds == Config.shortOdds(Config.oddsOf("Tiger")) .. "," .. Config.shortOdds(Config.oddsOf("Huge Fox")) and lk.ResultsVisible == true and lk.ResultsGone == true,
 			string.format("%s (%s), the boost left out; shown %s, gone after a moment %s", tostring(lk.Results), tostring(lk.ResultOdds), tostring(lk.ResultsVisible), tostring(lk.ResultsGone)))
-		item(100, "hexagon upgrade tree, luck sign", lk.CardBefore == false and lk.CardAfter == true and lk.NodeHex == true and string.sub(lk.Luck or "", 1, 1) == "x",
-			string.format("nodes are hexagons; the card shows only after a tap; luck sign '%s'", tostring(lk.Luck)))
+		item(100, "upgrade board in the world, luck sign", lk.Sections == 4 and lk.LuckRows == 2 + #Config.LUCK_BOARD and lk.OnStand == true and string.sub(lk.Luck or "", 1, 1) == "x",
+			string.format("4 sections (Damage, Coins, Luck, Rolls) on the board standing in the world; Luck has %s rows; luck sign '%s'", tostring(lk.LuckRows), tostring(lk.Luck)))
 		item(101, "pets show their odds over their heads", lk.WorldTag == Config.shortOdds(Config.oddsOf("Tiger")) .. " / Tiger",
 			"the equipped Tiger shows '" .. tostring(lk.WorldTag) .. "' above it")
 		-- the world leaderboards show each player's avatar next to their name

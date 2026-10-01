@@ -173,14 +173,20 @@ chase Huge and Titanic pets.**
   or stops at the fountain. Each world has its own light. Quiet stretches
   alternate with lively ones, everything is capped, and only the world you're
   in is alive (`Ambient.luau`).
-- **Luck Board**: a real board standing in the Forest, right of the path
-  near the spawn (across from the leaderboards), like the upgrade walls in
-  incremental games: walk up and click its rows. Six rows you level up with coins, each multiplying
-  your luck: Lucky Paw (x1.12 a level), Four-Leaf Clover (x1.12), Golden
-  Horseshoe (x1.12), Rainbow (x1.15), Lucky Star (x1.18), Cosmic Fortune
-  (x1.25). Each unlocks when the row before reaches level 5. They stack with
-  everything else, so luck climbs fast (about x5 at 10 minutes, x180 at 30,
-  the x1M cap by ~1.5 h for an active player). The luck breakdown has a "Luck Board" line.
+- **Upgrade Board**: every upgrade lives on a real board standing in the
+  Forest, right of the path near the spawn (across from the leaderboards),
+  like the upgrade walls in incremental games (it replaced the upgrade tree
+  screen). Walk up and click it. Sections down its left side:
+  **Damage** (Damage, Pet Slots), **Coins** (Coins), **Luck** (Luck, Size
+  Luck and the six Luck Board rows) and **Rolls** (Roll Speed, Rolls at
+  once, Auto Hatch). The top shows the section's total in big numbers; each
+  row shows its level, now -> next, a level bar and a BUY button (LOCKED
+  with what it needs, MAX when done); a gold dot marks sections with
+  something you can buy. The Luck Board rows (Lucky Paw x1.12 a level,
+  Four-Leaf Clover x1.12, Golden Horseshoe x1.12, Rainbow x1.15, Lucky Star
+  x1.18, Cosmic Fortune x1.25) each unlock when the one before reaches level
+  5, so luck climbs fast (about x5 at 10 minutes, x180 at 30, the x1M cap by
+  ~1.5 h for an active player).
 - The Index shows how rare each pet really is (its odds at x1 luck),
   whatever your luck.
 - **Outfits:** every animal wears its own outfit (looks only): Fireman,
@@ -321,19 +327,19 @@ rojo serve              # then connect from the Rojo plugin in Studio
 
 | Path | What it does |
 | --- | --- |
-| `src/shared/Config.luau` | Pets, rarities, sizes, luck, upgrade tree, combat numbers, areas, formatting |
+| `src/shared/Config.luau` | Pets, rarities, sizes, luck, upgrades, Luck Board, combat numbers, areas, formatting |
 | `src/server/PlayerData.luau` | Loading, saving, playtime, sending state to the client |
 | `src/server/World/` | Builds the map: `init` (terrain, walls, gates, spawn), `Build` (helpers), one module per area |
 | `src/server/Breakables.luau` | Living coins: spawning, hopping, health, rewards |
 | `src/server/Combat.luau` | Pets automatically fighting the nearest living coin |
 | `src/server/Rolling.luau` | Rolls (pet + size), equipping, Equip Best |
-| `src/server/Upgrades.luau` | Buying upgrade tree levels |
+| `src/server/Upgrades.luau` | Buying upgrade levels and Luck Board rows |
 | `src/server/Progress.luau` | Area gates and rebirths |
 | `src/server/Aura.luau` | The Pet Aura Machine (3 pets → 1 with a random aura) |
 | `src/server/Leaderboards.luau` | The 4 global leaderboards (OrderedDataStores) |
 | `src/client/Hud.luau` | Coins, team bar, the icon dock |
 | `src/client/Roll.luau`, `Hatch.luau` | Rolling, the luck chip, auto roll; the hatch show |
-| `src/client/UpgradeTree.luau` | The upgrade tree screen |
+| `src/client/UpgradeBoard.luau` | The Upgrade Board in the world (every upgrade) |
 | `src/client/Rebirth.luau` | The rebirth screen |
 | `src/client/Inventory.luau`, `Index.luau`, `PetView.luau` | Inventory, Animal Index, 3D pet previews |
 | `src/client/Panels.luau` | Settings, Rebirth (and the old Top panel) |

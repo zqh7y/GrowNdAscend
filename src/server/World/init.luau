@@ -23,7 +23,7 @@ local terrain = workspace.Terrain
 World.Areas = {} -- [i] = { Folder, Spots = { Vector3 }, Module }
 World.Gates = {} -- [i] = { Barrier, Sign, Button } for the gate into area i (i >= 2)
 World.Boards = {} -- [board id] = screen part (set by the Forest)
-World.LuckBoard = nil -- the Luck Board's screen part (first area)
+World.UpgradeBoard = nil -- the Upgrade Board's screen part (first area)
 World.Fusion = nil -- the fusion machine (set by the Sahara)
 World.SPAWN = Vector3.new(10, 4, 0)
 World.Spawns = {} -- [i] = CFrame on the ground at the start of area i, facing +X
@@ -200,15 +200,16 @@ function World.setGateOpen(i, open)
 		else area.Name:upper() .. "  ·  " .. Config.areaCostText(i))
 end
 
--- The Luck Board ----------------------------------------------------------------------
+-- The Upgrade Board --------------------------------------------------------------------
 -- A big stand like an incremental game's upgrade wall: a white frame with
--- a green cap and a "LUCK BOARD" sign, clovers on top and a screen part the
--- client draws the board on (rows with BUY buttons you click right there).
+-- a green cap and an "UPGRADES" sign, clovers on top and a screen part the
+-- client draws every upgrade on (sections on the left, rows with BUY
+-- buttons you click right there). It replaced the upgrade tree screen.
 local GREEN = Color3.fromRGB(46, 196, 120)
-function World.buildLuckBoard(center)
-	local model = Build.model(map, "LuckBoard")
+function World.buildUpgradeBoard(center)
+	local model = Build.model(map, "UpgradeBoard")
 	local facing = CFrame.lookAt(center, Vector3.new(center.X, center.Y, 0))
-	local WIDTH, HEIGHT = 16, 12.5
+	local WIDTH, HEIGHT = 20, 15
 	local white = Color3.fromRGB(250, 250, 255)
 	-- a stage to stand it on
 	Build.part(model, { Size = Vector3.new(WIDTH + 4, 1, 6), CFrame = facing * CFrame.new(0, 0.5, 0), Color = white })
@@ -220,10 +221,10 @@ function World.buildLuckBoard(center)
 		Build.part(model, { Size = Vector3.new(0.8, HEIGHT + 5, 0.8), CFrame = facing * CFrame.new(x, (HEIGHT + 5) / 2 + 1, 0.2), Color = white })
 		Build.ball(model, (facing * CFrame.new(x, HEIGHT + 6.2, 0.2)).Position, 1.3, { Color = GREEN, Material = Enum.Material.Neon })
 	end
-	Build.sign(model, facing * CFrame.new(0, HEIGHT + 4.2, 0.2), Vector3.new(14, 2.8, 0.6), "LUCK BOARD", Color3.new(1, 1, 1), GREEN)
+	Build.sign(model, facing * CFrame.new(0, HEIGHT + 4.2, 0.2), Vector3.new(14, 2.8, 0.6), "UPGRADES", Color3.new(1, 1, 1), GREEN)
 	-- three big clovers on top
 	for k = -1, 1 do
-		local at = facing * CFrame.new(k * 5, HEIGHT + 7.2, 0.2)
+		local at = facing * CFrame.new(k * 6.5, HEIGHT + 7.2, 0.2)
 		for _, o in ipairs({ { -0.5, 0.5 }, { 0.5, 0.5 }, { -0.5, -0.5 }, { 0.5, -0.5 } }) do
 			Build.ball(model, (at * CFrame.new(o[1], o[2], 0)).Position, 1.1, { Color = GREEN })
 		end
@@ -274,12 +275,12 @@ for i, area in ipairs(Config.AREAS) do
 		end
 	end
 
-	-- the Luck Board stands in the first area, on the right of the path
+	-- the Upgrade Board stands in the first area, on the right of the path
 	-- near the spawn (the leaderboards are on the left), facing the middle
 	if i == 1 then
-		local center = Vector3.new(x0 + 26, 0, HALF - 5)
-		World.LuckBoard = World.buildLuckBoard(center)
-		for dx = -9, 9, 6 do
+		local center = Vector3.new(x0 + 22, 0, HALF - 5)
+		World.UpgradeBoard = World.buildUpgradeBoard(center)
+		for dx = -12, 12, 6 do
 			space:add(center + Vector3.new(dx, 0, 0), 5.5)
 		end
 	end

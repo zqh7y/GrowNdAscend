@@ -65,7 +65,7 @@ for how it plays and where the code lives.
   (Roblox's menu and chat buttons are there).
 - Keep the map around 8-9K parts in total (the sim prints the counts).
 - Gameplay numbers live in `Config`: add pets to `PETS`, sizes to `SIZES`,
-  upgrade branches to `UPGRADES` (the upgrade tree draws itself from it).
+  upgrades to `UPGRADES` (and to a section in UpgradeBoard.SECTIONS).
   Don't hard-code sizes or upgrade ids elsewhere.
 - The server owns positions and health of living coins and all combat;
   the client only animates (Living.luau, Pets.luau) from the coin records
@@ -162,13 +162,15 @@ for how it plays and where the code lives.
   are big tilted outlined text, close is a big red X (Screen.modal). Normal and auto
   rolls cycle in place at the bottom (Hatch `cycle`, `Hatch.ROW_POSITION`, landing zoom `Hatch.ZOOM`, speed `Hatch.CYCLE_START`/
   `CYCLE_END`; pets scroll fast (0.09s -> 0.3s each) but a roll still takes ~2.6s); the
-  bottom reel is only for "Big hatch reveals". Upgrade tree: hexagon
-  nodes, card pops up on tap (`UpgradeTree.Card`).
+  bottom reel is only for "Big hatch reveals". Upgrades are on the Upgrade Board in the world (no tree screen).
 - Luck Board: `Config.LUCK_BOARD` (one row per line, simulate.py parses
   them), levels in `data.LuckBoard`, `Config.boardLuck` multiplies
-  `Config.luck`; server BuyLuck in Upgrades.luau; the stand is World.buildLuckBoard
-  (first area), the client draws the rows on it with a SurfaceGui
-  (LuckBoard.luau). The user wanted a board in the world, not a menu screen.
+  `Config.luck`; server BuyLuck in Upgrades.luau.
+- Upgrade Board: ALL upgrades are on a board in the world (no upgrade
+  screen; the user wanted it that way): World.buildUpgradeBoard (first
+  area), client UpgradeBoard.luau draws sections (Damage, Coins, Luck,
+  Rolls) and rows with a SurfaceGui. A new upgrade must be added to a
+  section in UpgradeBoard.SECTIONS.
   The user wanted luck to grow much faster.
 - The Index shows each pet's rarity at x1 luck (`Config.oddsOf`), never
   luck-adjusted (the user asked).
