@@ -1176,7 +1176,7 @@ if ok then
 			look.Results = table.concat(lr.Names or {}, ",")
 			look.ResultOdds = table.concat(lr.Odds or {}, ",")
 			look.ResultsVisible = Hatch.ResultsRow.Visible
-			STEP(3)
+			for _ = 1, 100 do STEP(0.03) end
 			look.ResultsGone = not Hatch.ResultsRow.Visible
 			-- the upgrade tree: hexagon nodes, the card only after a tap
 			local Tree = C("UpgradeTree")
