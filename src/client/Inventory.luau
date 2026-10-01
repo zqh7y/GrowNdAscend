@@ -107,7 +107,7 @@ local sortButton = Ui.button({
 end, "glass")
 
 local grid = Screen.scrollList(box, 106, Ui.new("UIGridLayout", {
-	CellSize = UDim2.fromOffset(170, 214),
+	CellSize = UDim2.fromOffset(170, 252),
 	CellPadding = UDim2.fromOffset(12, 12),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 }))
@@ -212,6 +212,58 @@ local function card(order, name, owned, equipped, data)
 	line(106, 11, Ui.FONT_TITLE, string.upper(rarity.Name) .. " · " .. string.upper(size.Name), rarity.Color)
 	line(121, 12, Ui.FONT, Config.formatNumber(Config.petPower(name)) .. " PWR", Ui.CYAN)
 	line(137, 11, Ui.FONT_MEDIUM, Config.formatOdds(pet.Odds) .. "  ·  " .. Config.AREAS[pet.World].Name, Ui.MUTED)
+
+	-- its five multipliers (Huge/Titanic sizes included)
+	local stats = Ui.new("Frame", {
+		Name = "Stats",
+		Position = UDim2.fromOffset(0, 155),
+		Size = UDim2.new(1, 0, 0, 34),
+		BackgroundColor3 = Ui.GLASS_LIGHT,
+		ZIndex = 33,
+		Parent = frame,
+	}, {
+		Ui.corner(8),
+		Ui.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	local short = { Speed = "SPD", Luck = "LUCK", Coins = "COIN", Damage = "DMG", Exp = "EXP" }
+	for i, stat in ipairs(Config.STATS) do
+		local value = Config.petStat(name, stat)
+		local cell = Ui.new("Frame", {
+			Name = stat,
+			LayoutOrder = i,
+			Size = UDim2.new(0.2, 0, 1, 0),
+			BackgroundTransparency = 1,
+			ZIndex = 34,
+			Parent = stats,
+		})
+		Ui.new("TextLabel", {
+			Position = UDim2.fromOffset(0, 3),
+			Size = UDim2.new(1, 0, 0, 12),
+			Font = Ui.FONT,
+			TextScaled = false,
+			TextSize = 9,
+			TextColor3 = Ui.MUTED,
+			Text = short[stat],
+			ZIndex = 34,
+			Parent = cell,
+		})
+		Ui.new("TextLabel", {
+			Name = "Value",
+			Position = UDim2.fromOffset(0, 15),
+			Size = UDim2.new(1, 0, 0, 16),
+			Font = Ui.FONT,
+			TextScaled = false,
+			TextSize = 11,
+			TextColor3 = if value > 1.001 then Ui.INK else Ui.MUTED,
+			Text = Config.formatStat(value),
+			ZIndex = 34,
+			Parent = cell,
+		})
+	end
 
 	-- equip one more / take one off
 	local full = #data.Equipped >= Config.maxEquipped(data)

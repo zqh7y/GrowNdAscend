@@ -20,9 +20,11 @@ _config = open(os.path.join(os.path.dirname(__file__), "../../src/shared/Config.
 def num(pattern):
     return float(re.search(pattern, _config).group(1))
 
-_rows = re.findall(r'Name = "([^"]+)", Odds = (\d+), World = (\d+)', _config)
-PETS = [(int(o), int(w)) for _, o, w in _rows]
-ODDS_OF = {n: int(o) for n, o, _ in _rows}
+_rows = re.findall(r'Name = "([^"]+)", Odds = (\d+), World = (\d+).*?Stats = \{ Speed = ([\d.]+), Luck = ([\d.]+), Coins = ([\d.]+), Damage = ([\d.]+), Exp = ([\d.]+) \}', _config)
+PETS = [(int(o), int(w)) for _, o, w, *_ in _rows]
+ODDS_OF = {n: int(o) for n, o, *_ in _rows}
+# per-pet multipliers by odds: (luck, coins, damage, exp)
+STATS_OF = {int(o): tuple(map(float, (l, c, d, e))) for _, o, _, _sp, l, c, d, e in _rows}
 WORLD_PENALTY = num(r'WORLD_PENALTY = ([\d.]+)')
 # (health, coins, exp, unlock cost, luck) for each world, from Config.AREAS
 WORLDS = []
@@ -54,11 +56,13 @@ UP = {  # id: (value(level), cost(level), max)  -- mirrors Config.UPGRADES
 HIT_EVERY = 0.6
 OVERHEAD = 1.6  # seconds per enemy: running over, retargeting, its hops
 BONUS_EVERY, BONUS_LUCK = 10, 2
-CHAIN_CHANCE, CHAIN_MAX = 1 / 6, 1024  # the luck chain (Config.nextChain)
+CHAIN_CHANCE, CHAIN_MAX = 1 / 12, 1024  # luck boosts (Config.BOOST_CHANCE, Config.nextChain)
 MAX_LUCK = num(r'MAX_LUCK = ([\d.e]+)')
 
-def pet_luck(odds, size):  # Config.petLuck (added up, then 1 + sum)
-    return math.log10(odds) * 0.05 * [1, 2, 4][size]
+SIZE_STAT = [1, 2, 4]  # Huge/Titanic multiply the bonus part
+
+def pet_bonus(odds, size, k):  # Config.petStat - 1; k: 0 luck, 1 coins, 2 damage, 3 exp
+    return (STATS_OF[odds][k] - 1) * SIZE_STAT[size]
 
 def fmt(n):
     for s, d in (("Qa", 1e15), ("T", 1e12), ("B", 1e9), ("M", 1e6), ("K", 1e3)):
@@ -92,11 +96,14 @@ def run(hours=8, seed=1, verbose=False):
         while roll_clock >= cycle:
             roll_clock -= cycle
             multiplier = chain
-            chain = min(chain * 2, CHAIN_MAX) if rng.random() < CHAIN_CHANCE else 1
+            boosts = 0
             for _ in range(int(val("Rolls"))):
                 rolls += 1
                 bonus = BONUS_LUCK if rolls % BONUS_EVERY == 0 else 1
-                luck = val("Luck") * (1 + sum(pet_luck(o, s) for _, o, s in team)) * bonus
+                if rng.random() < CHAIN_CHANCE:  # a x2 luck boost instead of a pet
+                    boosts += 1
+                    continue
+                luck = val("Luck") * (1 + sum(pet_bonus(o, s, 0) for _, o, s in team)) * bonus
                 luck = min(luck * REBIRTH_LUCK ** rebirths * world_luck * multiplier, MAX_LUCK)
                 odds = 2
                 for o, w in reversed(PETS[1:]):
@@ -109,14 +116,17 @@ def run(hours=8, seed=1, verbose=False):
                         size = i
                         break
                 pets.append((base_power(odds) * SIZES[size][1], odds, size))
+            chain = min(multiplier * 2 ** boosts, CHAIN_MAX) if boosts else 1
             pets = sorted(pets, key=lambda p: -p[0])[:60]
             refresh_team()
         # fighting: coins and EXP
-        dps = sum(p[0] for p in team) * val("Damage") / HIT_EVERY
+        dps = sum(p[0] * (1 + pet_bonus(p[1], p[2], 2)) for p in team) * val("Damage") / HIT_EVERY
         if dps > 0:
             per_kill = hp / dps + OVERHEAD
-            coins += reward * val("Coins") * (1 + REBIRTH_COINS * rebirths) / per_kill
-            exp += exp_per / per_kill
+            coin_team = 1 + sum(pet_bonus(o, s, 1) for _, o, s in team)
+            exp_team = 1 + sum(pet_bonus(o, s, 3) for _, o, s in team)
+            coins += reward * val("Coins") * (1 + REBIRTH_COINS * rebirths) * coin_team / per_kill
+            exp += exp_per * exp_team / per_kill
             while exp >= exp_to_next(level):
                 exp -= exp_to_next(level)
                 level += 1

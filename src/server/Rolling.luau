@@ -20,7 +20,13 @@ local rollFunction = remote("RemoteFunction", "Roll")
 local equipFunction = remote("RemoteFunction", "Equip")
 local equipBestFunction = remote("RemoteFunction", "EquipBest")
 
+local Rolling = {}
 local random = Random.new()
+
+-- (for the simulator) swap the random source to script exact outcomes
+function Rolling.setRandom(source)
+	random = source or Random.new()
+end
 local lastRoll = {} -- [player] = os.clock() of their last roll
 
 local function onLoaded(player)
@@ -78,42 +84,60 @@ rollFunction.OnServerInvoke = function(player)
 	local world = PlayerData.worldOf(player)
 	local results = {}
 	local sizeLuck = Config.sizeLuck(data)
-	-- the luck chain multiplier earned by the last spin applies to this one
-	-- (Config.luck reads it); the exact luck of every roll goes back to the
-	-- client, so the odds it shows are computed from the very same numbers
+	-- the luck boost waiting from the last spin applies to every roll of
+	-- this spin and is used up by it. Each roll is either a pet or a "x2
+	-- LUCK" boost; boosts hatched now multiply into the next spin's boost.
+	-- The exact luck of every roll goes back to the client, so the odds it
+	-- shows are computed from the very same numbers. All of this happens in
+	-- one go (no yields), so rapid rolls can't use a boost twice.
 	local multiplier = Config.luckMultiplier(data)
+	local boosts = 0
 	for _ = 1, Config.rollsAtOnce(data) do
 		data.Rolls += 1
 		local isBonus = data.Rolls % Config.BONUS_EVERY == 0
-		local luck = Config.luck(data, isBonus, world)
+		local luck = Config.luck(data, isBonus, world, multiplier)
 		local rollSizeLuck = sizeLuck * (if isBonus then Config.BONUS_LUCK else 1)
-		local pet = Config.roll(luck, random, world)
-		local sizeIndex = Config.rollSize(rollSizeLuck, random)
-		local name = Config.petName(pet.Name, sizeIndex)
-
-		local isFirst = not data.Discovered[pet.Name]
-		local isFirstOfSize = not data.Discovered[name]
-		PlayerData.discover(data, name)
-		data.Pets[name] = (data.Pets[name] or 0) + 1
-		local best = data.Best and Config.PETS_BY_NAME[data.Best]
-		if not best or pet.Odds > best.Odds then
-			data.Best = pet.Name
+		local outcome = Config.rollResult(luck, rollSizeLuck, world, random)
+		if outcome.Kind == "Boost" then
+			boosts += 1
+			table.insert(results, {
+				Kind = "Boost",
+				Name = Config.BOOST.Name,
+				Boost = Config.BOOST.Multiplier,
+				Bonus = isBonus,
+				World = world,
+				Luck = luck,
+				SizeLuck = rollSizeLuck,
+				Multiplier = multiplier,
+			})
+		else
+			local pet, sizeIndex = outcome.Pet, outcome.Size
+			local name = Config.petName(pet.Name, sizeIndex)
+			local isFirst = not data.Discovered[pet.Name]
+			local isFirstOfSize = not data.Discovered[name]
+			PlayerData.discover(data, name)
+			data.Pets[name] = (data.Pets[name] or 0) + 1
+			local best = data.Best and Config.PETS_BY_NAME[data.Best]
+			if not best or pet.Odds > best.Odds then
+				data.Best = pet.Name
+			end
+			table.insert(results, {
+				Kind = "Pet",
+				Pet = pet.Name,
+				Size = sizeIndex,
+				Name = name,
+				Bonus = isBonus,
+				First = isFirst,
+				FirstOfSize = isFirstOfSize,
+				World = world,
+				Luck = luck,
+				SizeLuck = rollSizeLuck,
+				Multiplier = multiplier,
+			})
 		end
-		table.insert(results, {
-			Pet = pet.Name,
-			Size = sizeIndex,
-			Name = name,
-			Bonus = isBonus,
-			First = isFirst,
-			FirstOfSize = isFirstOfSize,
-			World = world,
-			Luck = luck,
-			SizeLuck = rollSizeLuck,
-			Multiplier = multiplier,
-		})
 	end
-	-- then this spin decides the next spin's multiplier
-	data.LuckChain = Config.nextChain(multiplier, random)
+	-- the boost for the next spin: this one's x 2 per boost hatched, or none
+	data.LuckChain = Config.nextChain(multiplier, boosts)
 	for _, result in ipairs(results) do
 		result.NextMultiplier = data.LuckChain
 	end
@@ -168,4 +192,4 @@ for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(onLoaded, player)
 end
 
-return {}
+return Rolling

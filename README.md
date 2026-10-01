@@ -29,25 +29,28 @@ chase Huge and Titanic pets.**
   world**, but animals from worlds ahead of the one you stand in are 25x
   rarer per world (a World 4 animal in World 1: 15,625x rarer), and each
   world adds luck (x1 / x1.2 / x1.45 / x1.75), so later worlds hatch better.
-- **The hatch:** the server rolls first (pet, size and the exact luck it
-  used); the screen only shows that result.
-  - **The spinner** is always at the bottom of the screen, by hand and on
-    auto, over a faint pill (10% opacity), so the game stays visible and
-    the Roll/Auto buttons stay free. Every pet carries its **exact chance**
-    for this roll ("1 in 12.5K"), worked out from the same luck, size luck
-    and world the server rolled with (`Config.chanceOf`), never a rarity
-    label. It eases to a stop on your pet and shows its name and chance.
-  - **Luck chain:** after every spin there's a 1 in 6 chance of a **x2
-    luck** multiplier for the next spin; another x2 multiplies it (x2 → x4
-    → x8 … up to x1024), a spin without one resets it. A clover chip on the
-    spinner shows it ("🍀 x4 LUCK"; "🍀 x8 LUCK next spin!" in gold when you
-    win one). It multiplies the real luck of the roll (total luck is capped
-    at 1M, so no pet is ever certain).
-  - **Full mode** (the eye button): a bigger spinner with a silhouette
-    moment, then a centred reveal where the pet rises large with its name,
-    exact chance and power counting up. About 1 full hatch in 30 is a
-    **flex roll**: a Huge or Titanic slides past ("Huge Dragon?!"); the
-    spinner still stops on what you actually rolled.
+- **The hatch:** the server rolls first (each roll is a pet or a luck
+  boost, plus the exact luck it used); the screen only shows that result.
+  - **The reel** is vertical and sits at the bottom of the screen, by hand
+    and on auto: pets and luck boosts fall from the top to the bottom over
+    a faint panel (10% opacity) and ease to a stop on your result in the
+    middle slot. Every item shows its **complete, exact chance** for this
+    roll ("1 in 12.5K") in a label wide enough to never clip, worked out
+    from the same luck, size luck and world the server rolled with
+    (`Config.chanceOf`); no rarity names.
+  - **Luck boosts** are real results: every roll has a 1 in 12 chance of
+    being a **x2 LUCK** instead of a pet. It applies to your next roll and
+    is used up by it. Boosts stack by multiplying: hatch x2 → next roll x2;
+    hatch another x2 during that roll → next roll x4, then x8, x16 … up to
+    x1024. A chip above the reel shows it ("THIS ROLL: x4 LUCK", then
+    "NEXT ROLL: x8 LUCK" in gold). The server keeps the waiting boost in
+    your saved data, so rejoining doesn't lose it, and rapid presses can't
+    use it twice.
+  - **Full mode** (the eye button): a bigger reel with a silhouette moment,
+    then a centred reveal where the pet rises large with its name, exact
+    chance and power counting up. About 1 full hatch in 30 is a **flex
+    roll**: a Huge or Titanic slides past ("Huge Dragon?!"); the reel still
+    stops on what you actually rolled.
   - **Huge and Titanic: the bush cutscene.** The camera glides onto a bush
     a little ahead of you, the bush rustles harder and harder for about 2
     seconds, then your pet jumps out towards the screen with light and
@@ -60,6 +63,21 @@ chase Huge and Titanic pets.**
 
   The Roll, Auto and hatch mode buttons sit on their own layer above
   everything, so they always work. Every 10th roll has 2x luck.
+- **Pet stats:** every animal has its own five multipliers (its `Stats` in
+  `Config.PETS`), shown on its Inventory card: **Speed** (how fast it
+  moves), **Luck**, **Coins**, **Damage** (its own hits) and **EXP**. Every
+  animal has a baseline that grows with rarity plus one specialty (Fox,
+  Bunny, Kitsune: luck; Piglet, Hamster, Tanuki: coins; Wolf, Tiger,
+  Dragon: damage; Owl, Sphinx, Crane: EXP; Cheetah, Falcon: speed). Huge
+  doubles a pet's bonuses and Titanic quadruples them (not Speed). Luck,
+  Coins and EXP bonuses of the equipped pets **add up** first:
+
+      pet luck   = 1 + sum of (each equipped pet's Luck - 1)
+      final luck = existing luck x pet luck
+
+  where existing luck = Luck upgrade x rebirths x world x 10th-roll bonus x
+  luck boost. A 1.1x and a 1.3x pet make 1.4x; with existing luck x5 that
+  is x7. Coins and EXP work the same way (team bonus x everything else).
 - **Upgrade tree** (the tree button): Coins, Damage, Luck, Roll Speed, Rolls
   at Once, Auto Hatch (auto roll → quick reveals → auto-equip best), Size
   Luck and Pet Slots. Some branches unlock after others.
@@ -160,9 +178,9 @@ accents (realistic materials are swapped out automatically in `Build.part`).
 | Area | What's there | Breakable | Unlock |
 | --- | --- | --- | --- |
 | 1 Forest | Dirt path through the grass, oaks, birches, fruit trees and poplars (root flares, bent trunks, branches, toon-shaded leaves), flower patches (daisies, tulips, bluebells, sunflowers), berry bushes, mushrooms, fallen logs, mossy rocks, two tiered fountains with water streams, hills with a cottage and a windmill, the 3 leaderboards side by side | Hopping fruit trees (5K HP, 20 coins) | Free |
-| 2 Sahara | Oasis with palms and reeds, pyramids with gold capstones and a sphinx, Cleopatra's temple (pylon gate with a winged sun disk, lotus columns, painted friezes, obelisks, fire braziers, guardian sphinxes, her statue), the fusion machine (spinning rings, glowing pipes, hopper, output pad, console with a screen), a camel, pottery, Western Wall-style walls with raised stone faces | Saguaro, barrel and prickly pear cactuses (120M HP, 600 coins) | 20K |
-| 3 Frozen Peaks | Snow with ice patches, a frozen sea (cracks, fishing holes, pressure ridges, floes, icebergs, penguins), a snow-brick igloo, a snowman and a sled, an ice arch with icicles, ice walls, crystal clusters, snow-laden pines, snowy rocks, snowfall | Ice cubes: clear, with a fish, with a gem, stacked (30B HP, 40K coins) | 6M |
-| 4 Sakura Jungle | Twisted and weeping cherry trees with falling petals, red maples, bamboo, ferns, hydrangeas and azaleas, stepping-stone path, torii gates, stone lanterns, koi pond with a red arched bridge and a bamboo spout, a five-tier pagoda, Japanese walls with tile roofs and round windows | Sushi with happy faces: salmon, tuna, egg, maki (12T HP, 3M coins) | 30B |
+| 2 Sahara | Oasis with palms and reeds, pyramids with gold capstones and a sphinx, Cleopatra's temple (pylon gate with a winged sun disk, lotus columns, painted friezes, obelisks, fire braziers, guardian sphinxes, her statue), the fusion machine (spinning rings, glowing pipes, hopper, output pad, console with a screen), a camel, pottery, Western Wall-style walls with raised stone faces | Saguaro, barrel and prickly pear cactuses (120M HP, 600 coins) | 25K |
+| 3 Frozen Peaks | Snow with ice patches, a frozen sea (cracks, fishing holes, pressure ridges, floes, icebergs, penguins), a snow-brick igloo, a snowman and a sled, an ice arch with icicles, ice walls, crystal clusters, snow-laden pines, snowy rocks, snowfall | Ice cubes: clear, with a fish, with a gem, stacked (30B HP, 40K coins) | 12M |
+| 4 Sakura Jungle | Twisted and weeping cherry trees with falling petals, red maples, bamboo, ferns, hydrangeas and azaleas, stepping-stone path, torii gates, stone lanterns, koi pond with a red arched bridge and a bamboo spout, a five-tier pagoda, Japanese walls with tile roofs and round windows | Sushi with happy faces: salmon, tuna, egg, maki (12T HP, 3M coins) | 130B |
 
 The fusion machine shows its state: slow rings when idle, fast rings and
 lots of sparkles while fusing (the orb takes the pet's colour and grows), and

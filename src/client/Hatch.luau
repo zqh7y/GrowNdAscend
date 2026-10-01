@@ -2,19 +2,19 @@
 -- first (pet, size, the exact luck it used); this module only shows it and
 -- never changes it.
 --
---   THE SPINNER  always at the bottom of the screen, by hand and on auto,
---                over a faint pill (10% opacity) so the game stays visible.
---                Pets glide in from the right, the middle one larger, and
---                ease to a stop on your pet. Every pet carries its exact
---                chance for this roll ("1 in 12.5K", Config.chanceOf with the
---                server's luck, size luck and world), and a clover chip
---                shows the luck chain multiplier of this spin ("🍀 x4 LUCK";
---                a new one for the next spin pops on it in gold).
---   FULL MODE    a bigger spinner with a silhouette moment, then the
+--   THE REEL     vertical, always at the bottom of the screen (by hand and
+--                on auto), over a faint panel (10% opacity) so the game
+--                stays visible. Pets AND luck boosts fall from the top to
+--                the bottom and ease to a stop on the result in the middle
+--                slot. Every item shows its complete, exact chance for this
+--                roll ("1 in 12.5K", Config.chanceOf with the server's luck,
+--                size luck and world). A chip above it shows the luck boost
+--                ("THIS ROLL: x4 LUCK", then "NEXT ROLL: x8 LUCK" in gold).
+--   FULL MODE    a bigger reel with a silhouette moment, then the
 --                centred reveal: the pet rises large with its name, exact
 --                chance and power counting up; effects grow with rarity.
 --                Now and then a flex roll slips a Huge or Titanic past the
---                middle ("Huge Dragon?!"); the spinner still stops on the
+--                middle ("Huge Dragon?!"); the reel still stops on the
 --                pet you actually rolled.
 --   HUGE/TITANIC the bush cutscene: the camera glides onto a bush ahead of
 --                you, it rustles for about 2 seconds, then your pet jumps
@@ -77,6 +77,9 @@ end
 -- A really crazy pull: a Mythic or Secret animal (1 in 1M+), a Titanic of
 -- a 1 in 1,000+ animal, or a Huge of a 1 in 100,000+ one
 function Hatch.isCrazy(result)
+	if result.Kind == "Boost" then
+		return false
+	end
 	local odds = Config.PETS_BY_NAME[result.Pet].Odds
 	return odds >= 1e6 or (result.Size >= 3 and odds >= 1000) or (result.Size == 2 and odds >= 1e5)
 end
@@ -84,7 +87,9 @@ end
 -- How big a moment a result is: 0 common .. 3 legendary+, 4 huge, 5 titanic,
 -- 6 a crazy pull (its own very special show)
 function Hatch.tier(result)
-	if Hatch.isCrazy(result) then
+	if result.Kind == "Boost" then
+		return 1
+	elseif Hatch.isCrazy(result) then
 		return 6
 	elseif result.Size >= 3 then
 		return 5
@@ -116,16 +121,24 @@ local function clear(container)
 	end
 end
 
--- THE SPINNER (bottom of the screen) ------------------------------------------------------------
--- Every roll spins here, by hand and on auto, so the game stays visible.
--- Each pet carries its exact chance ("1 in 12.5K"), worked out by
--- Config.chanceOf from the very luck, size luck and world the server rolled
--- with. A small clover chip shows the luck chain multiplier of this spin.
+-- THE REEL (bottom of the screen) ---------------------------------------------------------------
+-- Every roll spins here, by hand and on auto: a vertical reel where pets
+-- and luck boosts fall from the top to the bottom and ease to a stop on the
+-- result in the middle slot. Each item carries its complete, exact chance
+-- for this roll ("1 in 12.5K"), worked out by Config.chanceOf from the very
+-- luck, size luck and world the server rolled with. A chip above the reel
+-- shows the luck boost ("THIS ROLL: x4 LUCK", then "NEXT ROLL: x8 LUCK").
+
+local BOOST = Config.BOOST.Name
+
+local function isBoost(result)
+	return result.Kind == "Boost"
+end
 
 -- the luck, size luck and world a result was rolled with (the server sends
 -- them with every result); results from elsewhere fall back to plain odds
 local function rollContext(result)
-	local pet = Config.PETS_BY_NAME[result.Pet]
+	local pet = result.Pet and Config.PETS_BY_NAME[result.Pet]
 	return {
 		Luck = result.Luck or 1,
 		SizeLuck = result.SizeLuck or 1,
@@ -139,11 +152,11 @@ local function chanceText(name, ctx)
 end
 Hatch.chanceText = chanceText
 
--- The pets that pass by: mostly common ones, now and then a rarer one (and
--- one right after the result, a near miss). Only pets that can really come
--- out of this roll are used. A flex roll adds a few showstoppers a little
--- before the result.
-local function carouselNames(ctx, flex)
+-- What passes by: mostly common pets, now and then a rarer one (and one
+-- right after the result, a near miss), and luck boosts about as often as
+-- they really come. Only things that can really come out of this roll are
+-- used. A flex roll adds a few showstoppers a little before the result.
+local function reelNames(ctx, flex)
 	local chances = Config.petChances(ctx.Luck, ctx.World)
 	local pool = {}
 	for _, pet in ipairs(Config.PETS) do
@@ -160,11 +173,15 @@ local function carouselNames(ctx, flex)
 	end
 	local names, flexAt = {}, {}
 	for i = 1, COUNT do
-		local r = math.random() ^ 2.4
-		if i == LANDING + 1 or math.random() < 0.06 then
-			r = 0.7 + math.random() * 0.3
+		if math.random() < Config.BOOST_CHANCE * 1.5 then
+			names[i] = BOOST
+		else
+			local r = math.random() ^ 2.4
+			if i == LANDING + 1 or math.random() < 0.06 then
+				r = 0.7 + math.random() * 0.3
+			end
+			names[i] = pool[math.clamp(math.floor(r * #pool) + 1, 1, #pool)].Name
 		end
-		names[i] = pool[math.clamp(math.floor(r * #pool) + 1, 1, #pool)].Name
 	end
 	if flex then
 		local best = { "Glitch", "Galaxy Whale", "Void Serpent", "Celestial Lion", "Kraken", "Phoenix", "Dragon", "Frost Dragon" }
@@ -181,122 +198,188 @@ local function carouselNames(ctx, flex)
 	return names, flexAt
 end
 
--- One pet in the row: a soft shadow, the pet in 3D and its chance under it
-local function rowPet(parent, name, size, silhouette, ctx)
+-- the luck boost's card: a green rounded tile with a clover and "x2"
+local function boostTile(parent, size)
+	local tile = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(size * 0.8, size * 0.8),
+		BackgroundColor3 = Ui.SUCCESS,
+		ZIndex = 54,
+		Parent = parent,
+	}, {
+		Ui.corner(12),
+		Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(110, 220, 140), Color3.fromRGB(40, 170, 100)) }),
+	})
+	Ui.new("TextLabel", {
+		Size = UDim2.fromScale(1, 0.55),
+		Font = Ui.FONT_DISPLAY,
+		TextScaled = false,
+		TextSize = math.floor(size * 0.3),
+		TextColor3 = Ui.WHITE,
+		Text = "🍀",
+		ZIndex = 55,
+		Parent = tile,
+	})
+	Ui.new("TextLabel", {
+		Position = UDim2.fromScale(0, 0.48),
+		Size = UDim2.fromScale(1, 0.45),
+		Font = Ui.FONT_DISPLAY,
+		TextScaled = false,
+		TextSize = math.floor(size * 0.26),
+		TextColor3 = Ui.WHITE,
+		Text = "x" .. Config.BOOST.Multiplier .. " LUCK",
+		ZIndex = 55,
+		Parent = tile,
+	})
+	return tile
+end
+
+-- One item on the reel: the pet in 3D (or the boost tile) on the left, and
+-- its complete chance on the right, in a label wide enough to never clip
+local function reelItem(parent, name, look, silhouette, ctx)
 	local item = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(size, size),
+		Size = UDim2.new(1, -16, 0, look.Item),
 		BackgroundTransparency = 1,
 		ZIndex = 53,
 		Parent = parent,
 	})
 	local scale = Ui.new("UIScale", { Parent = item })
-	local shadow = Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.8),
-		Size = UDim2.fromScale(0.6, 0.1),
-		BackgroundColor3 = Color3.fromRGB(10, 14, 30),
-		BackgroundTransparency = 0.75,
+	local icon = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 6, 0.5, 0),
+		Size = UDim2.fromOffset(look.Item, look.Item),
+		BackgroundTransparency = 1,
 		ZIndex = 53,
 		Parent = item,
-	}, { Ui.corner(0.5) })
-	local view = PetView.take(name, silhouette)
-	view.AnchorPoint = Vector2.new(0.5, 0.5)
-	view.Position = UDim2.fromScale(0.5, 0.38)
-	view.Size = UDim2.fromScale(0.86, 0.86)
-	view.ZIndex = 54
-	view.Parent = item
+	})
+	local view
+	if name == BOOST then
+		view = boostTile(icon, look.Item)
+	else
+		view = PetView.take(name, silhouette)
+		view.Size = UDim2.fromScale(1, 1)
+		view.ZIndex = 54
+		view.Parent = icon
+	end
 	local text = chanceText(name, ctx)
 	local chip = Ui.new("TextLabel", {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, 0),
-		Size = UDim2.fromOffset(0, math.floor(size * 0.2)),
-		AutomaticSize = Enum.AutomaticSize.X,
+		Name = "Chance",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, look.Item + 14, 0.5, 0),
+		Size = UDim2.fromOffset(look.Chip, look.ChipHeight),
 		BackgroundColor3 = Ui.WHITE,
-		BackgroundTransparency = 0.1,
+		BackgroundTransparency = 0.08,
 		Font = Ui.FONT,
 		TextScaled = false,
-		TextSize = math.max(11, math.floor(size * 0.15)),
+		TextWrapped = false,
+		TextSize = look.Text,
 		TextColor3 = Ui.INK,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = text,
 		ZIndex = 56,
 		Parent = item,
-	}, { Ui.corner(8), Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }) })
-	local pet = Config.petInfo(name)
-	return { Frame = item, Scale = scale, Shadow = shadow, View = view, Chip = chip, Chance = text, Name = name, Odds = pet.Odds }
+	}, { Ui.corner(look.ChipHeight // 2) })
+	local pet = name ~= BOOST and Config.petInfo(name)
+	return {
+		Frame = item,
+		Scale = scale,
+		View = view,
+		Chip = chip,
+		Chance = text,
+		Name = name,
+		Odds = if pet then pet.Odds else 1,
+		Boost = name == BOOST,
+	}
 end
 
--- Places a row of pets for an offset (in slots): the middle one is at full
--- size, the others smaller and fainter the further away they are
-local function layoutRow(items, offset, spacing, reach, centreScale)
+-- Places the reel for an offset (in slots). Item i sits ABOVE the middle
+-- until the offset reaches it, so as the offset grows everything moves
+-- DOWN: things fall from the top and pass out at the bottom. The middle
+-- slot is full size, the others smaller and fainter.
+local function layoutReel(items, offset, height, reach)
 	for i, item in ipairs(items) do
 		local slot = (i - 1) - offset
-		local x = slot * spacing
 		local away = math.abs(slot) / reach
 		local visible = away < 1
 		item.Frame.Visible = visible
+		item.Frame.Position = UDim2.new(0.5, 0, 0.5, -slot * height)
 		if visible then
-			item.Frame.Position = UDim2.new(0.5, x, 0.5, 0)
 			local near = 1 - math.min(math.abs(slot), 1)
-			item.Scale.Scale = (0.62 + (1 - away) * 0.28) + near * (centreScale - 0.9)
-			local fade = math.clamp((away - 0.45) / 0.55, 0, 1)
-			item.View.ImageTransparency = fade
-			item.Shadow.BackgroundTransparency = 0.75 + fade * 0.25
+			item.Scale.Scale = 0.78 + (1 - away) * 0.14 + near * 0.12
+			local fade = math.clamp((away - 0.4) / 0.6, 0, 1)
+			if item.Boost then
+				item.View.BackgroundTransparency = fade
+			else
+				item.View.ImageTransparency = fade
+			end
 			item.Chip.TextTransparency = fade
-			item.Chip.BackgroundTransparency = 0.1 + fade * 0.9
+			item.Chip.BackgroundTransparency = 0.08 + fade * 0.92
 		end
 	end
 end
 
-local SPIN_SIZES = {
-	compact = { Width = 540, Height = 120, Pet = 84, Spacing = 86, Reach = 3.2 },
-	full = { Width = 720, Height = 170, Pet = 124, Spacing = 124, Reach = 3.1 },
+local REEL_SIZES = {
+	compact = { Width = 250, Height = 216, Item = 60, Slot = 70, Reach = 1.8, Chip = 120, ChipHeight = 26, Text = 15 },
+	full = { Width = 310, Height = 300, Item = 84, Slot = 96, Reach = 1.8, Chip = 150, ChipHeight = 32, Text = 19 },
 }
 
 local spinner = Ui.new("Frame", {
-	Name = "HatchSpinner",
+	Name = "HatchReel",
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -18),
-	Size = UDim2.fromOffset(540, 120),
+	Position = UDim2.new(0.5, 0, 1, -14),
+	Size = UDim2.fromOffset(250, 216),
 	BackgroundColor3 = Ui.WHITE,
-	BackgroundTransparency = 0.9, -- a faint pill: 10% opacity, the game stays visible
+	BackgroundTransparency = 0.9, -- a faint panel: 10% opacity, the game stays visible
 	Visible = false,
 	ZIndex = 44,
 	Parent = gui,
-}, { Ui.corner(26) })
+}, { Ui.corner(22) })
 Hatch.Spinner = spinner -- (for the simulator)
+-- a soft band marks the middle slot
+local band = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.5),
+	Size = UDim2.new(1, -8, 0, 70),
+	BackgroundColor3 = Ui.WHITE,
+	BackgroundTransparency = 0.72,
+	ZIndex = 45,
+	Parent = spinner,
+}, { Ui.corner(16) })
 local spinRow = Ui.new("Frame", {
 	Size = UDim2.fromScale(1, 1),
 	BackgroundTransparency = 1,
 	ClipsDescendants = true,
-	ZIndex = 45,
+	ZIndex = 46,
 	Parent = spinner,
-}, { Ui.corner(26) })
--- the luck chain chip, just above the pill's left end (never over a pet)
+}, { Ui.corner(22) })
+-- the luck boost chip, just above the reel (never over an item)
 local luckChip = Ui.new("TextLabel", {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 14, 0, -6),
-	Size = UDim2.fromOffset(0, 24),
-	AutomaticSize = Enum.AutomaticSize.X,
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 0, -6),
+	Size = UDim2.fromOffset(210, 26), -- fixed and wide enough for "THIS ROLL: x1024 LUCK"
 	BackgroundColor3 = Ui.SUCCESS,
 	Font = Ui.FONT,
 	TextScaled = false,
+	TextWrapped = false,
 	TextSize = 14,
 	TextColor3 = Ui.WHITE,
 	Text = "",
 	ZIndex = 47,
 	Parent = spinner,
-}, { Ui.corner(12), Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
+}, { Ui.corner(13) })
 local luckScale = Ui.new("UIScale", { Parent = luckChip })
--- the result's name and exact chance, above the middle of the pill
+-- the result's name, above the chip
 local spinName = Ui.new("TextLabel", {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 0, -32),
-	Size = UDim2.fromOffset(420, 26),
+	Position = UDim2.new(0.5, 0, 0, -36),
+	Size = UDim2.fromOffset(420, 28),
 	Font = Ui.FONT_DISPLAY,
 	TextScaled = false,
-	TextSize = 22,
+	TextWrapped = false,
+	TextSize = 24,
 	TextColor3 = Ui.WHITE,
 	TextStrokeTransparency = 0.5,
 	TextStrokeColor3 = Color3.fromRGB(20, 24, 40),
@@ -304,22 +387,6 @@ local spinName = Ui.new("TextLabel", {
 	ZIndex = 46,
 	Parent = spinner,
 })
-local spinChance = Ui.new("TextLabel", {
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 0, -6),
-	Size = UDim2.fromOffset(0, 22),
-	AutomaticSize = Enum.AutomaticSize.X,
-	BackgroundColor3 = Ui.WHITE,
-	BackgroundTransparency = 0.05,
-	Font = Ui.FONT,
-	TextScaled = false,
-	TextSize = 13,
-	TextColor3 = Ui.INK,
-	Text = "",
-	Visible = false,
-	ZIndex = 46,
-	Parent = spinner,
-}, { Ui.corner(11), Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
 local flexLabel = Ui.new("TextLabel", {
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 0, -36),
@@ -335,37 +402,42 @@ local flexLabel = Ui.new("TextLabel", {
 	Parent = spinner,
 })
 
-local function setLuckChip(multiplier, upcoming)
-	luckChip.Text = string.format("🍀 x%d LUCK", multiplier) .. (if upcoming then " next spin!" else "")
-	luckChip.BackgroundColor3 = if upcoming then Ui.GOLD elseif multiplier > 1 then Ui.SUCCESS else Color3.fromRGB(150, 158, 178)
+local function setLuckChip(text, multiplier, highlight)
+	luckChip.Text = string.format("%s: x%d LUCK", text, multiplier)
+	luckChip.BackgroundColor3 = if highlight then Ui.GOLD elseif multiplier > 1 then Ui.SUCCESS else Color3.fromRGB(150, 158, 178)
 end
 
--- Spins the row onto `best` (a result already decided by the server).
+-- Spins the reel onto `best` (a result already decided by the server).
 -- Returns what happened (for the simulator and the reveal).
 local function spin(results, best, fast, full)
 	local ctx = rollContext(best)
 	local tier = Hatch.tier(best)
-	local resultName = Config.petName(best.Pet, best.Size)
-	local look = SPIN_SIZES[if full then "full" else "compact"]
+	local resultName = if isBoost(best) then BOOST else Config.petName(best.Pet, best.Size)
+	local look = REEL_SIZES[if full then "full" else "compact"]
 	plays += 1
 	local first = plays <= 3
-	local flex = full and (Hatch.ForceFlex or (not fast and math.random() < Hatch.FLEX_CHANCE))
+	local flex = full and not isBoost(best) and (Hatch.ForceFlex or (not fast and math.random() < Hatch.FLEX_CHANCE))
 	Hatch.ForceFlex = false
 
 	clear(spinRow)
-	local names, flexAt = carouselNames(ctx, flex)
+	local names, flexAt = reelNames(ctx, flex)
 	local items = {}
 	for i = 1, COUNT do
-		local silhouette = full and i == LANDING
-		items[i] = rowPet(spinRow, if i == LANDING then resultName else names[i], look.Pet, silhouette, ctx)
+		local silhouette = full and i == LANDING and not isBoost(best)
+		items[i] = reelItem(spinRow, if i == LANDING then resultName else names[i], look, silhouette, ctx)
 		items[i].Flex = flexAt[i]
 	end
 	spinner.Size = UDim2.fromOffset(look.Width, look.Height)
+	band.Size = UDim2.new(1, -8, 0, look.Slot)
 	spinner.BackgroundTransparency = 0.9
 	spinName.Text = ""
-	spinChance.Visible = false
 	flexLabel.Visible = false
-	setLuckChip(best.Multiplier or 1, false)
+	local multiplier = best.Multiplier or 1
+	if multiplier > 1 then
+		setLuckChip("THIS ROLL", multiplier, false)
+	else
+		setLuckChip("NEXT ROLL", 1, false)
+	end
 	local luckShown = luckChip.Text
 	luckScale.Scale = 1
 	spinner.Visible = true
@@ -377,6 +449,8 @@ local function spin(results, best, fast, full)
 	local lastOffset, lastIndex = nil, -1
 	local speedEarly, speedLate = 0, math.huge
 	local flexShown, flexNames = 0, {}
+	local watch = items[LANDING]
+	local xs, ys = {}, {}
 	while true do
 		local now = os.clock()
 		local dt = now - previous
@@ -407,7 +481,7 @@ local function spin(results, best, fast, full)
 		local u = math.clamp(progress, 0, 1)
 		local offset = startOffset + (finalOffset - startOffset) * (1 - (1 - u) ^ 3.2)
 		if lastOffset then
-			local speed = math.abs(offset - lastOffset) * look.Spacing
+			local speed = math.abs(offset - lastOffset) * look.Slot
 			if u < 0.25 then
 				speedEarly = math.max(speedEarly, speed)
 			elseif u > 0.85 and u < 1 then
@@ -415,7 +489,10 @@ local function spin(results, best, fast, full)
 			end
 		end
 		lastOffset = offset
-		layoutRow(items, offset, look.Spacing, look.Reach, 1.22)
+		layoutReel(items, offset, look.Slot, look.Reach)
+		-- (for the simulator) how the result's item moves on screen
+		table.insert(xs, watch.Frame.Position.X.Offset)
+		table.insert(ys, watch.Frame.Position.Y.Offset)
 		local index = math.floor(offset + 0.5)
 		if index ~= lastIndex then
 			lastIndex = index
@@ -429,23 +506,24 @@ local function spin(results, best, fast, full)
 	end
 	flexLabel.Visible = false
 
-	-- the result pops, with its name and exact chance above the row
+	-- the result pops, with its name above the reel
 	local landed = items[LANDING]
-	landed.Scale.Scale = 1.5
-	TweenService:Create(landed.Scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1.25 }):Play()
-	spinName.Text = if full then "" else resultName .. (if #results > 1 then "  +" .. (#results - 1) else "")
-	spinName.TextColor3 = if best.Size > 1 then Config.SIZES[best.Size].Color else Ui.WHITE
-	spinChance.Text = landed.Chance .. (if best.First then "  ·  NEW" else "")
-	spinChance.Visible = not full
-	-- the luck chain: a new multiplier for the next spin pops on the chip
+	landed.Scale.Scale = 1.25
+	TweenService:Create(landed.Scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1.06 }):Play()
+	local extra = #results - 1
+	spinName.Text = if full and not isBoost(best) then "" else resultName .. (if extra > 0 then "  +" .. extra else "")
+	spinName.TextColor3 = if isBoost(best) then Color3.fromRGB(140, 235, 160) elseif best.Size > 1 then Config.SIZES[best.Size].Color else Ui.WHITE
+	-- the boost waiting for the next roll
 	local nextMultiplier = best.NextMultiplier or 1
+	setLuckChip("NEXT ROLL", nextMultiplier, nextMultiplier > 1)
 	if nextMultiplier > 1 then
-		setLuckChip(nextMultiplier, true)
 		luckScale.Scale = 1.35
 		TweenService:Create(luckScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 		Effects.play("Coin", 1.6)
 	end
-	if not full then
+	if isBoost(best) then
+		Effects.jingle(3)
+	elseif not full then
 		if tier >= 2 and tier < 4 then
 			Effects.jingle(2)
 		elseif tier < 2 then
@@ -453,9 +531,27 @@ local function spin(results, best, fast, full)
 		end
 	end
 
+	-- (for the simulator) the reel only moved down, never sideways
+	local sideways, down, up = 0, 0, 0
+	for k = 2, #ys do
+		sideways = math.max(sideways, math.abs(xs[k] - xs[1]))
+		if ys[k] > ys[k - 1] + 1e-6 then
+			down += 1
+		elseif ys[k] < ys[k - 1] - 1e-6 then
+			up += 1
+		end
+	end
 	local shown = {}
 	for _, item in ipairs(items) do
-		table.insert(shown, { Name = item.Name, Text = item.Chance })
+		table.insert(shown, {
+			Name = item.Name,
+			Text = item.Chance,
+			Label = item.Chip.Text,
+			Width = item.Chip.Size.X.Offset,
+			TextSize = item.Chip.TextSize,
+			Wrapped = item.Chip.TextWrapped,
+			Scaled = item.Chip.TextScaled,
+		})
 	end
 	return {
 		Items = items,
@@ -471,8 +567,10 @@ local function spin(results, best, fast, full)
 		ResultChance = landed.Chance,
 		Context = ctx,
 		LuckChip = luckShown,
+		NextChip = luckChip.Text,
 		First = first,
 		Tier = tier,
+		Motion = { Sideways = sideways, Down = down, Up = up },
 	}
 end
 
@@ -1200,16 +1298,17 @@ local function finish()
 end
 
 local function show(results, fast, mode, auto)
-	local best, bestScore = results[1], -1
+	-- the reel lands on the best pet; on a boost if the spin only gave boosts
+	local best, bestScore = results[1], -math.huge
 	for _, r in ipairs(results) do
-		local score = Hatch.tier(r) * 10 + Config.PETS_BY_NAME[r.Pet].Odds / 1e8
+		local score = if r.Kind == "Boost" then -1 else Hatch.tier(r) * 10 + Config.PETS_BY_NAME[r.Pet].Odds / 1e8
 		if score > bestScore then
 			best, bestScore = r, score
 		end
 	end
 	local others = {}
 	for _, r in ipairs(results) do
-		if r ~= best then
+		if r ~= best and r.Kind ~= "Boost" then
 			table.insert(others, r)
 		end
 	end
@@ -1235,12 +1334,21 @@ local function show(results, fast, mode, auto)
 		ResultChance = spun.ResultChance,
 		Context = spun.Context,
 		LuckChip = spun.LuckChip,
+		NextChip = spun.NextChip,
+		Motion = spun.Motion,
+		Kinds = (function()
+			local kinds = {}
+			for _, r in ipairs(results) do
+				table.insert(kinds, r.Kind or "Pet")
+			end
+			return kinds
+		end)(),
 		Multiplier = best.Multiplier or 1,
 		NextMultiplier = best.NextMultiplier or 1,
 		Bottom = spinner.AnchorPoint.Y == 1 and spinner.Position.Y.Scale == 1,
 		Backdrop = spinner.BackgroundTransparency,
 	}
-	if full then
+	if full and not isBoost(best) then
 		-- a short silhouette moment, longer for rarer pets
 		record.Silhouette = if fast then 0.12 else (if spun.First then 0.4 else 0.25) + math.min(tier, 5) * 0.15
 		skipRequested = false
@@ -1256,7 +1364,10 @@ local function show(results, fast, mode, auto)
 	hideSpinner()
 
 	skipRequested = false
-	if best.Size >= 2 or tier >= 6 then
+	if isBoost(best) then
+		Hatch.Last = record
+		pause(if fast then 0.3 else 0.5)
+	elseif best.Size >= 2 or tier >= 6 then
 		special(best, others, fast, auto)
 	elseif full then
 		openShade(0.55)

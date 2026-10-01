@@ -724,7 +724,7 @@ if ok then
 		local feed = Hatch.LastFeed or {}
 		local controlsGui, gameGui = player.PlayerGui:FindFirstChild("ControlsGui"), player.PlayerGui:FindFirstChild("GameGui")
 		STATS.Controls = controlsGui ~= nil and controlsGui:FindFirstChild("Controls") ~= nil and (controlsGui.DisplayOrder or 0) > (gameGui.DisplayOrder or 0)
-		STATS.Chain8 = { Expected = math.min(baseLuck * 8, __cache["Shared/Config"].MAX_LUCK), Luck = feed.Context and feed.Context.Luck, Multiplier = feed.Multiplier, Chip = feed.LuckChip, Chances = feed.Chances, Context = feed.Context, Result = feed.Landed, ResultChance = feed.ResultChance }
+		STATS.Chain8 = { Motion = feed.Motion, Expected = math.min(baseLuck * 8, __cache["Shared/Config"].MAX_LUCK), Luck = feed.Context and feed.Context.Luck, Multiplier = feed.Multiplier, Chip = feed.LuckChip, Chances = feed.Chances, Context = feed.Context, Result = feed.Landed, ResultChance = feed.ResultChance }
 		STATS.AutoHide = { AutoBottom = autoBottom, TopAfter = feed.Bottom == true, AutoRolls = autoRolls, HiddenRolls = data.Rolls - hiddenBefore, EverShaded = everShaded, Landed = feed.LandedName, Names = feed.Names, Backdrop = feed.Backdrop }
 		print(string.format("auto roll with no upgrades: %d rolls in 15s | compact hatch: %d roll, landed %s (shown %s), backdrop transparency %s, full screen dim %s",
 			autoRolls, STATS.AutoHide.HiddenRolls, tostring(feed.LandedName), tostring(feed.Names and feed.Names[1]), tostring(feed.Backdrop), tostring(everShaded)))
@@ -812,6 +812,12 @@ if ok then
 	end
 	data.Pets = {}
 	local results2 = remotes.Roll.OnServerInvoke(player)
+	for _ = 1, 8 do
+		-- (a roll can also be a luck boost; roll again for this check)
+		if not (results2 and results2[1] and results2[1].Kind == "Boost") then break end
+		STEP(2)
+		results2 = remotes.Roll.OnServerInvoke(player)
+	end
 	item(2, "rolling gives pets", type(results2) == "table" and #results2 == 1 and data.Pets[results2[1].Name] == 1, results2 and results2[1] and results2[1].Name)
 
 	-- 3 + 8. pets attack by themselves, for their power x Damage
@@ -830,7 +836,7 @@ if ok then
 	for _ = 1, 100 do
 		STEP(0.1)
 	end
-	local expected = Config.PETS_BY_NAME.Tiger.Power * 1.35 ^ 4
+	local expected = Config.PETS_BY_NAME.Tiger.Power * 1.35 ^ 4 * Config.PETS_BY_NAME.Tiger.Stats.Damage
 	local onlyExpected = next(seen) ~= nil
 	for damage in pairs(seen) do
 		if math.abs(damage - expected) > 1 then
@@ -838,7 +844,7 @@ if ok then
 		end
 	end
 	item(3, "pets attack coins on their own", data.Coins > coinsBefore, "+" .. Config.formatNumber(data.Coins - coinsBefore) .. " coins in 10s")
-	item(8, "damage = pet power x Damage", onlyExpected, "each hit " .. Config.formatNumber(expected))
+	item(8, "damage = pet power x Damage x its Damage stat", onlyExpected, "each hit " .. Config.formatNumber(expected))
 
 	-- 4, 5, 6. jumping with rests, landing on the ground, respawning spread out
 	local jumps, lastStart, counted = 0, {}, 0
@@ -881,7 +887,7 @@ if ok then
 	local before = data.Coins
 	Breakables.damage(target, math.huge, player)
 	local reward = data.Coins - before
-	local expectedReward = math.floor(Config.AREAS[2].Breakable.Coins * Config.coinMultiplier(1) * 1.35 ^ 3)
+	local expectedReward = math.floor(Config.AREAS[2].Breakable.Coins * Config.coinMultiplier(1) * 1.35 ^ 3 * Config.teamStat(data, "Coins"))
 	item(7, "coin rewards", reward == expectedReward, Config.formatNumber(reward) .. " for a World 2 cactus")
 	data.Rebirths = 0
 
@@ -1079,7 +1085,7 @@ if ok then
 	end
 	local before2 = data.Coins
 	Breakables.damage(target2, math.huge, player)
-	item(39, "rebirth bonuses apply in play", data.Coins - before2 == Config.AREAS[1].Breakable.Coins * 5, "a tree pays " .. (data.Coins - before2) .. " at rebirth 2")
+	item(39, "rebirth bonuses apply in play", data.Coins - before2 == math.floor(Config.AREAS[1].Breakable.Coins * 5 * Config.teamStat(data, "Coins")), "a tree pays " .. (data.Coins - before2) .. " at rebirth 2")
 	Config.REBIRTH_FREE_FOR_TESTING = wasFree
 
 	-- 40-44. worlds: 5 targets drawn in each, attacked, destroyed, paid, respawned
@@ -1173,8 +1179,8 @@ if ok then
 		local luck, sizeLuck, world = 6.3, 3, 2
 		local counts, n = {}, 1000000
 		for _ = 1, n do
-			local pet = Config.roll(luck, rng, world)
-			local name = Config.petName(pet.Name, Config.rollSize(sizeLuck, rng))
+			local outcome = Config.rollResult(luck, sizeLuck, world, rng)
+			local name = if outcome.Kind == "Boost" then Config.BOOST.Name else Config.petName(outcome.Pet.Name, outcome.Size)
 			counts[name] = (counts[name] or 0) + 1
 		end
 		local worst, checked, impossible = 0, 0, 0
@@ -1187,8 +1193,12 @@ if ok then
 				worst = math.max(worst, math.abs(count / n - p) / p)
 			end
 		end
-		local total = 0
-		for _, p in pairs(Config.petChances(luck, world)) do total += p end
+		local total = Config.chanceOf(Config.BOOST.Name, luck, sizeLuck, world)
+		for name in pairs(Config.PETS_BY_NAME) do
+			for sizeIndex = 1, #Config.SIZES do
+				total += Config.chanceOf(Config.petName(name, sizeIndex), luck, sizeLuck, world)
+			end
+		end
 		local sizeTotal = 0
 		for _, p in pairs(Config.sizeChances(sizeLuck)) do sizeTotal += p end
 		local valid = true
@@ -1202,7 +1212,7 @@ if ok then
 		end
 		local glitch = Config.chanceOf("Glitch", Config.MAX_LUCK, 1, 4)
 		item(67, "shown odds = real odds", checked >= 8 and worst < 0.05 and impossible == 0 and math.abs(total - 1) < 1e-9 and math.abs(sizeTotal - 1) < 1e-9 and valid and glitch < 1,
-			string.format("%d pets checked over 1M rolls, worst error %.1f%%; chances add up to 1; max luck still leaves the rarest at %s", checked, worst * 100, Config.formatChance(glitch)))
+			string.format("%d results (pets and boosts) checked over 1M real rolls, worst error %.1f%%; all chances add up to 1; max luck still leaves the rarest at %s", checked, worst * 100, Config.formatChance(glitch)))
 	end
 
 	-- 68. every spinning pet (and the result) shows its exact chance for that roll
@@ -1213,32 +1223,36 @@ if ok then
 		for _, shown in ipairs(c8.Chances or {}) do
 			labels += 1
 			local expected = Config.formatChance(Config.chanceOf(shown.Name, ctx.Luck or 0, ctx.SizeLuck or 0, ctx.World or 1))
-			if shown.Text ~= expected or not string.match(shown.Text, "^1 in [%d%.]+%a*$") then
+			-- the label holds the whole text, unwrapped, in a box wide enough for it
+			local fits = shown.Label == shown.Text and shown.Wrapped == false and shown.Scaled == false and (shown.Width or 0) >= #shown.Text * (shown.TextSize or 99) * 0.62 + 8
+			if shown.Text ~= expected or not string.match(shown.Text, "^1 in [%d%.]+%a*$") or not fits then
 				wrong += 1
 			end
 		end
 		local commonH = (STATS.Hatch or {}).common or {}
-		item(68, "every spinning pet shows its exact chance", labels >= 20 and wrong == 0 and c8.ResultChance ~= nil and commonH.RevealChance == commonH.ResultChance,
+		item(68, "every reel item shows its complete, exact chance", labels >= 20 and wrong == 0 and c8.ResultChance ~= nil and commonH.RevealChance == commonH.ResultChance,
 			string.format("%d labels, %d wrong; result %s; e.g. '%s'", labels, wrong, tostring(c8.ResultChance), tostring(c8.Chances and c8.Chances[1] and c8.Chances[1].Text)))
 	end
 
 	-- 69. the luck chain: x2 multiplies, up to x1024, used by the real roll
 	do
 		local c8 = STATS.Chain8 or {}
-		local always = { NextNumber = function() return 0 end }
-		local never = { NextNumber = function() return 0.99 end }
-		local rules = Config.nextChain(1, always) == 2 and Config.nextChain(4, always) == 8 and Config.nextChain(512, always) == 1024
-			and Config.nextChain(1024, always) == 1024 and Config.nextChain(64, never) == 1
+		local rules = Config.nextChain(1, 1) == 2 and Config.nextChain(2, 1) == 4 and Config.nextChain(4, 1) == 8 and Config.nextChain(2, 2) == 8
+			and Config.nextChain(512, 1) == 1024 and Config.nextChain(1024, 1) == 1024 and Config.nextChain(64, 0) == 1
 			and Config.luckMultiplier({ LuckChain = 3 }) == 2 and Config.luckMultiplier({}) == 1 and Config.luckMultiplier({ LuckChain = 1e9 }) == 1024
 		local chainOk, steps = true, 0
 		local feeds = STATS.ChainFeeds or {}
 		for i, f in ipairs(feeds) do
-			if not (f.Next == 1 or f.Next == math.min((f.Multiplier or 1) * 2, 1024)) then chainOk = false end
+			local m, ok = f.Multiplier or 1, f.Next == 1
+			for k = 1, 5 do
+				if f.Next == math.min(m * 2 ^ k, 1024) then ok = true end
+			end
+			if not ok then chainOk = false end
 			if i > 1 and feeds[i - 1].Next ~= f.Multiplier then chainOk = false end
 			if (f.Multiplier or 1) > 1 then steps += 1 end
 		end
 		local usedLuck = c8.Luck and c8.Expected and math.abs(c8.Luck - c8.Expected) < 1e-6 * c8.Expected
-		item(69, "luck chain x2 -> x1024, used by the roll", rules and chainOk and usedLuck == true and c8.Multiplier == 8 and c8.Chip == "🍀 x8 LUCK",
+		item(69, "luck boosts x2 -> x1024, used by the roll", rules and chainOk and usedLuck == true and c8.Multiplier == 8 and c8.Chip == "THIS ROLL: x8 LUCK",
 			string.format("x8 spin rolled with luck %s (expected %s), chip '%s'; %d auto spins followed the chain (%d boosted)", tostring(c8.Luck), tostring(c8.Expected), tostring(c8.Chip), #feeds, steps))
 	end
 
@@ -1259,6 +1273,143 @@ if ok then
 		local first, second = a[1] or {}, a[2] or {}
 		item(72, "auto: one cutscene, then short reveals", first.Bush == true and second.Abbreviated == true and (second.Seconds or 99) < (first.Seconds or 0),
 			string.format("first %.1fs with the bush, next %.1fs (cooldown %ds)", first.Seconds or 0, second.Seconds or 0, 90))
+	end
+
+	-- 73. the reel is vertical: items only fall from top to bottom
+	do
+		local hh = STATS.Hatch or {}
+		local fm = ((hh.common or {}).Motion) or {}
+		local cm = (STATS.Chain8 or {}).Motion or {}
+		item(73, "vertical reel, top to bottom", fm.Sideways == 0 and (fm.Down or 0) > 5 and fm.Up == 0 and cm.Sideways == 0 and (cm.Down or 0) > 5 and cm.Up == 0,
+			string.format("full: %d frames down, %d up, %s px sideways; compact: %d down, %d up, %s px sideways", fm.Down or 0, fm.Up or 0, tostring(fm.Sideways), cm.Down or 0, cm.Up or 0, tostring(cm.Sideways)))
+	end
+
+	-- 74, 75. luck boosts are real server results: they stack and are used up
+	do
+		local Rolling = __cache["Rolling"]
+		local function scripted(first)
+			local n = 0
+			return { NextNumber = function()
+				n += 1
+				return if n == 1 then first else 0.999
+			end }
+		end
+		local function petCount()
+			local total = 0
+			for _, c in pairs(data.Pets) do total += c end
+			return total
+		end
+		data.Upgrades, data.Equipped, data.LuckChain = {}, {}, 1
+		PlayerData.sync(player)
+		local seen, petsBefore = {}, petCount()
+		for k = 1, 4 do
+			Rolling.setRandom(scripted(0)) -- a boost
+			STEP(3)
+			local r = remotes.Roll.OnServerInvoke(player)
+			table.insert(seen, r and r[1] and { Kind = r[1].Kind, M = r[1].Multiplier, N = r[1].NextMultiplier } or {})
+		end
+		local afterBoosts, petsAfterBoosts = data.LuckChain, petCount()
+		Rolling.setRandom(scripted(0.999)) -- a pet
+		STEP(3)
+		local rp = remotes.Roll.OnServerInvoke(player)
+		local pet = rp and rp[1] or {}
+		local expectedLuck = math.min(Config.luck(data, pet.Bonus, pet.World, 1) * 16, Config.MAX_LUCK)
+		local afterPet = data.LuckChain
+		local stackOk = true
+		for k, r in ipairs(seen) do
+			if r.Kind ~= "Boost" or r.M ~= 2 ^ (k - 1) or r.N ~= 2 ^ k then stackOk = false end
+		end
+		item(74, "luck boosts: real results, stack, used up", stackOk and afterBoosts == 16 and petsAfterBoosts == petsBefore and pet.Kind == "Pet" and pet.Multiplier == 16
+			and math.abs((pet.Luck or 0) - expectedLuck) < 1e-6 * expectedLuck and afterPet == 1 and petCount() == petsBefore + 1,
+			string.format("4 boosts -> x2, x4, x8, x16 waiting (no pets given); the next roll used x16 (luck %s) and gave 1 pet; boost now x%d", Config.formatNumber(pet.Luck or 0), afterPet))
+		-- rapid presses inside the cooldown are refused: the boost is neither used nor doubled
+		data.LuckChain = 4
+		Rolling.setRandom(scripted(0))
+		local rapid = remotes.Roll.OnServerInvoke(player)
+		local kept = rapid == nil and data.LuckChain == 4
+		STEP(3)
+		local okRoll = remotes.Roll.OnServerInvoke(player) -- a boost on top of x4
+		local stacked = okRoll and okRoll[1] and okRoll[1].Kind == "Boost" and okRoll[1].Multiplier == 4 and data.LuckChain == 8
+		Rolling.setRandom(nil)
+		item(75, "boosts can't be lost or doubled", kept and stacked == true and type(data.LuckChain) == "number",
+			"a press inside the cooldown was refused and kept x4; the next real roll stacked it to x8 (saved with the player's data)")
+		data.LuckChain = 1
+	end
+
+	-- 76. pet luck: equipped pets' bonuses ADD UP, then multiply the existing luck
+	do
+		data.Upgrades, data.Rebirths = { Luck = 5 }, 1
+		data.Pets = { Fox = 1, Glitch = 1, ["Huge Fox"] = 1 }
+		data.Equipped = {}
+		data.LuckChain = 1
+		local base = Config.luck(data, false, 2)
+		remotes.Equip.OnServerInvoke(player, "Fox")
+		local withFox = Config.luck(data, false, 2)
+		remotes.Equip.OnServerInvoke(player, "Glitch")
+		local withBoth = Config.luck(data, false, 2)
+		remotes.Equip.OnServerInvoke(player, "Fox", true)
+		local glitchOnly = Config.luck(data, false, 2)
+		remotes.Equip.OnServerInvoke(player, "Huge Fox")
+		local fox, glitch = Config.PETS_BY_NAME.Fox.Stats.Luck, Config.PETS_BY_NAME.Glitch.Stats.Luck
+		local function near(a, b) return math.abs(a - b) <= 1e-9 * math.max(1, math.abs(b)) end
+		local additive = near(withFox, base * fox) and near(withBoth, base * (1 + (fox - 1) + (glitch - 1)))
+			and near(glitchOnly, base * glitch) and not near(withBoth, base * fox * glitch)
+			and near(Config.petStat("Huge Fox", "Luck"), 1 + (fox - 1) * 2)
+			and near(Config.luck(data, false, 2), base * (1 + (glitch - 1) + (fox - 1) * 2))
+		item(76, "pet luck adds up, then multiplies", additive,
+			string.format("existing x%.2f; Fox %.2fx + Glitch %.2fx -> pets %.2fx -> x%.2f (multiplying them would be x%.2f); unequipping updates it", base, fox, glitch, 1 + (fox - 1) + (glitch - 1), withBoth, base * fox * glitch))
+		data.Upgrades, data.Rebirths, data.Equipped = {}, 0, {}
+	end
+
+	-- 77. every pet has its five multipliers, and each one does its job
+	do
+		local valid = 0
+		for _, pet in ipairs(Config.PETS) do
+			local ok = true
+			for _, stat in ipairs(Config.STATS) do
+				local v = pet.Stats[stat]
+				if type(v) ~= "number" or v < (if stat == "Speed" then 0.25 else 1) or v > 100 then ok = false end
+			end
+			if ok then valid += 1 end
+		end
+		local distinct = {}
+		for _, pet in ipairs(Config.PETS) do
+			distinct[string.format("%.2f/%.2f/%.2f/%.2f/%.2f", pet.Stats.Speed, pet.Stats.Luck, pet.Stats.Coins, pet.Stats.Damage, pet.Stats.Exp)] = true
+		end
+		local kinds = 0
+		for _ in pairs(distinct) do kinds += 1 end
+		-- damage: a pet's hit uses its own Damage stat
+		data.Upgrades = {}
+		local hitOk = math.abs(Config.hitDamage(data, "Tiger") - Config.petPower("Tiger") * Config.PETS_BY_NAME.Tiger.Stats.Damage) < 1e-6 * Config.petPower("Tiger")
+		-- coins and EXP: a real kill pays the team's Coins and EXP bonuses
+		data.Pets = { Owl = 1, Piglet = 1 }
+		data.Equipped = { "Owl", "Piglet" }
+		local coinTeam, expTeam = Config.teamStat(data, "Coins"), Config.teamStat(data, "Exp")
+		local function kill()
+			local t
+			for _, target in pairs(Breakables.Targets) do
+				if target.Area == 1 then t = target break end
+			end
+			if not t then return nil end
+			local coins0, exp0, level0 = data.Coins, data.Exp, data.Level
+			data.Level = 1000 -- keep EXP from spilling into a level-up while measuring
+			exp0 = data.Exp
+			Breakables.damage(t, math.huge, player)
+			local gotCoins, gotExp = data.Coins - coins0, data.Exp - exp0
+			data.Level = level0
+			return gotCoins, gotExp
+		end
+		local coinsWith, expWith = kill()
+		STEP(6)
+		data.Equipped = {}
+		local coinsWithout, expWithout = kill()
+		local paysOk = coinsWith and coinsWithout and expWith and expWithout and coinsWithout > 0
+			and math.abs(coinsWith - math.floor(coinsWithout * coinTeam)) <= 1 and math.abs(expWith / expWithout - expTeam) < 1e-6 * expTeam
+		-- speed: an equipped pet moves at its species speed x its Speed stat
+		local speedOk = Config.petStat("Cheetah", "Speed") == Config.PETS_BY_NAME.Cheetah.Stats.Speed and Config.petStat("Titanic Cheetah", "Speed") == Config.PETS_BY_NAME.Cheetah.Stats.Speed
+		item(77, "five multipliers per pet, all working", valid == #Config.PETS and kinds >= 40 and hitOk and paysOk == true and speedOk,
+			string.format("%d/%d pets valid, %d different stat sets; Owl+Piglet: coins x%.3f (got x%.3f), EXP x%.3f (got x%.3f); Tiger hits x%.2f; Cheetah speed x%.2f",
+				valid, #Config.PETS, kinds, coinTeam, (coinsWith or 0) / math.max(coinsWithout or 1, 1), expTeam, (expWith or 0) / math.max(expWithout or 1, 1e-9), Config.PETS_BY_NAME.Tiger.Stats.Damage, Config.PETS_BY_NAME.Cheetah.Stats.Speed))
 	end
 
 	local passed = 0

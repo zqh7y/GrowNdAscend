@@ -12,7 +12,7 @@ for how it plays and where the code lives.
   required level and the max of 8 still apply); the real costs are in
   `Config.REBIRTHS`.
 - **BEFORE THE FINAL VERSION: All areas are currently free and their gates
-  are open for testing. Restore the normal area costs (20K / 6M / 30B
+  are open for testing. Restore the normal area costs (25K / 12M / 130B
   coins) before releasing the final version of the game.** Set
   `Config.AREAS_FREE_FOR_TESTING = false` in `src/shared/Config.luau`.
   Saves made while testing keep every area unlocked, so also reset player
@@ -32,13 +32,13 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 72-point player checklist (spawning, rolling, pets
+- The sim ends with a 77-point player checklist (spawning, rolling, pets
   fighting, levels and EXP, rebirth keeping worlds, the full and compact hatches, flex
   rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
-  hatch show step by step). It must say "checklist: 72/72 passed". It takes
+  hatch show step by step). It must say "checklist: 77/77 passed". It takes
   a few minutes; run it in the background.
 - Economy: `python3 tools/economy/simulate.py 3 --hours 10` simulates an
   active player (it reads worlds, rebirths, levels and animals from
@@ -111,13 +111,21 @@ for how it plays and where the code lives.
 - The hatch (`Hatch.luau`) must never get stuck: it runs protected and
   always cleans up (camera, bush, spinner). Pressing Roll during a hatch
   skips; it never stacks. The server decides every result first and sends
-  the exact luck/size luck/world it used; the client only shows it. The
-  spinner is always at the bottom (`Hatch.play(results, fast, world, mode,
+  the exact luck/size luck/world it used; the client only shows it. Each
+  roll is a pet or a luck boost (`Config.rollResult`); boosts multiply
+  into `data.LuckChain` (`Config.nextChain`), are used up by the next spin,
+  and Rolling.luau does it all in one go (no yields). The reel is VERTICAL
+  (items fall top to bottom, tested) and always at the bottom (`Hatch.play(results, fast, world, mode,
   auto)`, mode "compact" or "full"). The odds on the pets come from
-  `Config.chanceOf`, which follows `Config.roll`/`Config.rollSize` step by
-  step: change one, change the other (the sim checks them against 1M real
-  rolls). The luck chain (`Config.nextChain`, `data.LuckChain`) is applied
-  inside `Config.luck`. Huge/Titanic get the bush cutscene (once per
+  `Config.chanceOf`, which follows `Config.rollResult` step by step: change
+  one, change the other (the sim checks them against 1M real rolls). The
+  boost is applied inside `Config.luck`.
+- Pet stats: every row in `Config.PETS` has `Stats` (Speed, Luck, Coins,
+  Damage, Exp). Read them with `Config.petStat(name, stat)` (sizes scale
+  the bonus) and `Config.teamStat(data, stat)` (equipped bonuses added up:
+  1 + sum of (stat - 1)). Luck = existing luck x teamStat Luck; coins via
+  `Config.coinGain`, EXP via `Config.expGain`, damage via
+  `Config.hitDamage`, speed in Pets.luau. New pets need a Stats table. Huge/Titanic get the bush cutscene (once per
   `Hatch.CUTSCENE_COOLDOWN` on auto). Flex rolls are visual only.
   The Roll/Auto/mode buttons live in `Screen.Controls`, a ScreenGui above
   everything; keep them there.

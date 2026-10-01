@@ -207,7 +207,7 @@ function Breakables.damage(target, amount, player)
 		coins = math.floor(area.Breakable.Coins * Config.coinGain(data))
 		data.Coins += coins
 		-- and EXP: stronger enemies in later worlds give more
-		if Config.addExp(data, area.Breakable.Exp) > 0 then
+		if Config.addExp(data, area.Breakable.Exp * Config.expGain(data)) > 0 then
 			levelEvent:FireClient(player, data.Level)
 		end
 		PlayerData.sync(player)

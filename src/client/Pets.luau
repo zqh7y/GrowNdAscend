@@ -30,6 +30,8 @@ local function build(name)
 	local pet, size = Config.petInfo(name)
 	local rarity = Config.rarity(pet.Odds)
 	local model, animated, rig, head = PetModels.build(name)
+	-- this pet's own Speed stat
+	rig.Speed *= Config.petStat(name, "Speed")
 
 	-- name tag: the size in its colour, then the name in the rarity colour
 	local tag = Instance.new("BillboardGui")

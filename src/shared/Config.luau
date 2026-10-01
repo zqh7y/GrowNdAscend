@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 11 (bottom spin, exact odds, luck chain, bush cutscene)"
+Config.BUILD = "build 12 (vertical reel, luck boosts, pet stats)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -13,79 +13,79 @@ Config.BUILD = "build 11 (bottom spin, exact odds, luck chain, bush cutscene)"
 -- of rarity (and so of power), which is what the progression is built on.
 Config.PETS = {
 	-- World 1: Forest
-	{ Name = "Dog", Odds = 2, World = 1, Color = Color3.fromRGB(200, 150, 100) },
-	{ Name = "Cat", Odds = 3, World = 1, Color = Color3.fromRGB(255, 170, 80) },
-	{ Name = "Bunny", Odds = 4, World = 1, Color = Color3.fromRGB(245, 240, 240) },
-	{ Name = "Chick", Odds = 5, World = 1, Color = Color3.fromRGB(255, 225, 70) },
-	{ Name = "Mouse", Odds = 7, World = 1, Color = Color3.fromRGB(170, 170, 180) },
-	{ Name = "Hamster", Odds = 9, World = 1, Color = Color3.fromRGB(240, 190, 120) },
-	{ Name = "Duck", Odds = 12, World = 1, Color = Color3.fromRGB(255, 235, 120) },
-	{ Name = "Frog", Odds = 16, World = 1, Color = Color3.fromRGB(110, 210, 90) },
-	{ Name = "Piglet", Odds = 21, World = 1, Color = Color3.fromRGB(255, 170, 190) },
-	{ Name = "Lamb", Odds = 28, World = 1, Color = Color3.fromRGB(250, 248, 240) },
-	{ Name = "Squirrel", Odds = 38, World = 1, Color = Color3.fromRGB(205, 120, 60) },
-	{ Name = "Hedgehog", Odds = 50, World = 1, Color = Color3.fromRGB(170, 130, 100) },
-	{ Name = "Fox", Odds = 70, World = 1, Color = Color3.fromRGB(240, 110, 40) },
-	{ Name = "Raccoon", Odds = 90, World = 1, Color = Color3.fromRGB(150, 150, 160) },
-	{ Name = "Deer", Odds = 125, World = 1, Color = Color3.fromRGB(200, 140, 90) },
-	{ Name = "Owl", Odds = 170, World = 1, Color = Color3.fromRGB(140, 100, 70) },
-	{ Name = "Bear", Odds = 225, World = 1, Color = Color3.fromRGB(150, 95, 60) },
-	{ Name = "Wolf", Odds = 300, World = 1, Color = Color3.fromRGB(120, 130, 160) },
-	{ Name = "Parrot", Odds = 400, World = 1, Color = Color3.fromRGB(70, 200, 110) },
-	{ Name = "Moose", Odds = 550, World = 1, Color = Color3.fromRGB(130, 90, 60) },
-	{ Name = "Unicorn", Odds = 750, World = 1, Color = Color3.fromRGB(255, 170, 230) },
-	{ Name = "Forest Guardian", Odds = 1000, World = 1, Color = Color3.fromRGB(90, 220, 140) },
+	{ Name = "Dog", Odds = 2, World = 1, Color = Color3.fromRGB(200, 150, 100), Stats = { Speed = 1, Luck = 1.02, Coins = 1, Damage = 1, Exp = 1 } },
+	{ Name = "Cat", Odds = 3, World = 1, Color = Color3.fromRGB(255, 170, 80), Stats = { Speed = 0.9, Luck = 1.02, Coins = 1, Damage = 1, Exp = 1.01 } },
+	{ Name = "Bunny", Odds = 4, World = 1, Color = Color3.fromRGB(245, 240, 240), Stats = { Speed = 0.8, Luck = 1.1, Coins = 1.01, Damage = 1, Exp = 1.01 } },
+	{ Name = "Chick", Odds = 5, World = 1, Color = Color3.fromRGB(255, 225, 70), Stats = { Speed = 0.55, Luck = 1.03, Coins = 1.01, Damage = 1.01, Exp = 1.01 } },
+	{ Name = "Mouse", Odds = 7, World = 1, Color = Color3.fromRGB(170, 170, 180), Stats = { Speed = 0.9, Luck = 1.04, Coins = 1.01, Damage = 1.01, Exp = 1.01 } },
+	{ Name = "Hamster", Odds = 9, World = 1, Color = Color3.fromRGB(240, 190, 120), Stats = { Speed = 0.7, Luck = 1.05, Coins = 1.09, Damage = 1.01, Exp = 1.01 } },
+	{ Name = "Duck", Odds = 12, World = 1, Color = Color3.fromRGB(255, 235, 120), Stats = { Speed = 0.55, Luck = 1.05, Coins = 1.01, Damage = 1.01, Exp = 1.1 } },
+	{ Name = "Frog", Odds = 16, World = 1, Color = Color3.fromRGB(110, 210, 90), Stats = { Speed = 0.8, Luck = 1.06, Coins = 1.01, Damage = 1.01, Exp = 1.02 } },
+	{ Name = "Piglet", Odds = 21, World = 1, Color = Color3.fromRGB(255, 170, 190), Stats = { Speed = 0.75, Luck = 1.07, Coins = 1.1, Damage = 1.01, Exp = 1.02 } },
+	{ Name = "Lamb", Odds = 28, World = 1, Color = Color3.fromRGB(250, 248, 240), Stats = { Speed = 0.75, Luck = 1.07, Coins = 1.01, Damage = 1.01, Exp = 1.11 } },
+	{ Name = "Squirrel", Odds = 38, World = 1, Color = Color3.fromRGB(205, 120, 60), Stats = { Speed = 0.9, Luck = 1.08, Coins = 1.11, Damage = 1.01, Exp = 1.02 } },
+	{ Name = "Hedgehog", Odds = 50, World = 1, Color = Color3.fromRGB(170, 130, 100), Stats = { Speed = 0.6, Luck = 1.08, Coins = 1.02, Damage = 1.01, Exp = 1.03 } },
+	{ Name = "Fox", Odds = 70, World = 1, Color = Color3.fromRGB(240, 110, 40), Stats = { Speed = 1.1, Luck = 1.19, Coins = 1.02, Damage = 1.01, Exp = 1.03 } },
+	{ Name = "Raccoon", Odds = 90, World = 1, Color = Color3.fromRGB(150, 150, 160), Stats = { Speed = 0.9, Luck = 1.1, Coins = 1.12, Damage = 1.02, Exp = 1.03 } },
+	{ Name = "Deer", Odds = 125, World = 1, Color = Color3.fromRGB(200, 140, 90), Stats = { Speed = 1.1, Luck = 1.1, Coins = 1.02, Damage = 1.02, Exp = 1.03 } },
+	{ Name = "Owl", Odds = 170, World = 1, Color = Color3.fromRGB(140, 100, 70), Stats = { Speed = 0.9, Luck = 1.11, Coins = 1.02, Damage = 1.02, Exp = 1.14 } },
+	{ Name = "Bear", Odds = 225, World = 1, Color = Color3.fromRGB(150, 95, 60), Stats = { Speed = 0.85, Luck = 1.12, Coins = 1.02, Damage = 1.13, Exp = 1.04 } },
+	{ Name = "Wolf", Odds = 300, World = 1, Color = Color3.fromRGB(120, 130, 160), Stats = { Speed = 1.2, Luck = 1.12, Coins = 1.02, Damage = 1.13, Exp = 1.04 } },
+	{ Name = "Parrot", Odds = 400, World = 1, Color = Color3.fromRGB(70, 200, 110), Stats = { Speed = 1, Luck = 1.24, Coins = 1.03, Damage = 1.02, Exp = 1.04 } },
+	{ Name = "Moose", Odds = 550, World = 1, Color = Color3.fromRGB(130, 90, 60), Stats = { Speed = 0.9, Luck = 1.14, Coins = 1.03, Damage = 1.14, Exp = 1.04 } },
+	{ Name = "Unicorn", Odds = 750, World = 1, Color = Color3.fromRGB(255, 170, 230), Stats = { Speed = 1.1, Luck = 1.26, Coins = 1.03, Damage = 1.02, Exp = 1.04 } },
+	{ Name = "Forest Guardian", Odds = 1000, World = 1, Color = Color3.fromRGB(90, 220, 140), Stats = { Speed = 1.1, Luck = 1.27, Coins = 1.03, Damage = 1.02, Exp = 1.04 } },
 	-- World 2: Sahara
-	{ Name = "Camel", Odds = 1250, World = 2, Color = Color3.fromRGB(230, 180, 115) },
-	{ Name = "Meerkat", Odds = 1500, World = 2, Color = Color3.fromRGB(215, 170, 110) },
-	{ Name = "Fennec Fox", Odds = 1800, World = 2, Color = Color3.fromRGB(250, 210, 150) },
-	{ Name = "Lizard", Odds = 2200, World = 2, Color = Color3.fromRGB(120, 200, 90) },
-	{ Name = "Tortoise", Odds = 2600, World = 2, Color = Color3.fromRGB(130, 170, 90) },
-	{ Name = "Scorpion", Odds = 3200, World = 2, Color = Color3.fromRGB(230, 110, 60) },
-	{ Name = "Cobra", Odds = 3800, World = 2, Color = Color3.fromRGB(200, 170, 60) },
-	{ Name = "Vulture", Odds = 4500, World = 2, Color = Color3.fromRGB(120, 100, 110) },
-	{ Name = "Hyena", Odds = 5500, World = 2, Color = Color3.fromRGB(200, 170, 120) },
-	{ Name = "Cheetah", Odds = 6500, World = 2, Color = Color3.fromRGB(250, 195, 90) },
-	{ Name = "Lion", Odds = 8000, World = 2, Color = Color3.fromRGB(240, 175, 70) },
-	{ Name = "Falcon", Odds = 9500, World = 2, Color = Color3.fromRGB(150, 120, 100) },
-	{ Name = "Golden Scarab", Odds = 11500, World = 2, Color = Color3.fromRGB(255, 200, 50) },
-	{ Name = "Anubis Jackal", Odds = 14000, World = 2, Color = Color3.fromRGB(50, 55, 80) },
-	{ Name = "Griffin", Odds = 17000, World = 2, Color = Color3.fromRGB(230, 200, 120) },
-	{ Name = "Sphinx", Odds = 20000, World = 2, Color = Color3.fromRGB(245, 210, 140) },
+	{ Name = "Camel", Odds = 1250, World = 2, Color = Color3.fromRGB(230, 180, 115), Stats = { Speed = 0.8, Luck = 1.15, Coins = 1.15, Damage = 1.02, Exp = 1.05 } },
+	{ Name = "Meerkat", Odds = 1500, World = 2, Color = Color3.fromRGB(215, 170, 110), Stats = { Speed = 1, Luck = 1.16, Coins = 1.16, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Fennec Fox", Odds = 1800, World = 2, Color = Color3.fromRGB(250, 210, 150), Stats = { Speed = 1.1, Luck = 1.16, Coins = 1.03, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Lizard", Odds = 2200, World = 2, Color = Color3.fromRGB(120, 200, 90), Stats = { Speed = 1, Luck = 1.17, Coins = 1.03, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Tortoise", Odds = 2600, World = 2, Color = Color3.fromRGB(130, 170, 90), Stats = { Speed = 0.4, Luck = 1.17, Coins = 1.03, Damage = 1.03, Exp = 1.18 } },
+	{ Name = "Scorpion", Odds = 3200, World = 2, Color = Color3.fromRGB(230, 110, 60), Stats = { Speed = 0.9, Luck = 1.18, Coins = 1.04, Damage = 1.16, Exp = 1.05 } },
+	{ Name = "Cobra", Odds = 3800, World = 2, Color = Color3.fromRGB(200, 170, 60), Stats = { Speed = 0.7, Luck = 1.18, Coins = 1.04, Damage = 1.16, Exp = 1.05 } },
+	{ Name = "Vulture", Odds = 4500, World = 2, Color = Color3.fromRGB(120, 100, 110), Stats = { Speed = 0.9, Luck = 1.18, Coins = 1.04, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Hyena", Odds = 5500, World = 2, Color = Color3.fromRGB(200, 170, 120), Stats = { Speed = 1.1, Luck = 1.19, Coins = 1.04, Damage = 1.16, Exp = 1.06 } },
+	{ Name = "Cheetah", Odds = 6500, World = 2, Color = Color3.fromRGB(250, 195, 90), Stats = { Speed = 1.5, Luck = 1.19, Coins = 1.04, Damage = 1.03, Exp = 1.06 } },
+	{ Name = "Lion", Odds = 8000, World = 2, Color = Color3.fromRGB(240, 175, 70), Stats = { Speed = 1.1, Luck = 1.2, Coins = 1.18, Damage = 1.03, Exp = 1.06 } },
+	{ Name = "Falcon", Odds = 9500, World = 2, Color = Color3.fromRGB(150, 120, 100), Stats = { Speed = 1.3, Luck = 1.2, Coins = 1.04, Damage = 1.03, Exp = 1.06 } },
+	{ Name = "Golden Scarab", Odds = 11500, World = 2, Color = Color3.fromRGB(255, 200, 50), Stats = { Speed = 0.8, Luck = 1.34, Coins = 1.04, Damage = 1.03, Exp = 1.06 } },
+	{ Name = "Anubis Jackal", Odds = 14000, World = 2, Color = Color3.fromRGB(50, 55, 80), Stats = { Speed = 1.2, Luck = 1.21, Coins = 1.04, Damage = 1.03, Exp = 1.21 } },
+	{ Name = "Griffin", Odds = 17000, World = 2, Color = Color3.fromRGB(230, 200, 120), Stats = { Speed = 1.1, Luck = 1.21, Coins = 1.04, Damage = 1.03, Exp = 1.21 } },
+	{ Name = "Sphinx", Odds = 20000, World = 2, Color = Color3.fromRGB(245, 210, 140), Stats = { Speed = 0.9, Luck = 1.22, Coins = 1.04, Damage = 1.03, Exp = 1.21 } },
 	-- World 3: Frozen Peaks
-	{ Name = "Penguin", Odds = 25000, World = 3, Color = Color3.fromRGB(60, 80, 120) },
-	{ Name = "Snow Hare", Odds = 30000, World = 3, Color = Color3.fromRGB(245, 248, 255) },
-	{ Name = "Arctic Fox", Odds = 37000, World = 3, Color = Color3.fromRGB(235, 240, 250) },
-	{ Name = "Seal", Odds = 45000, World = 3, Color = Color3.fromRGB(170, 180, 200) },
-	{ Name = "Husky", Odds = 55000, World = 3, Color = Color3.fromRGB(150, 160, 180) },
-	{ Name = "Snowy Owl", Odds = 67000, World = 3, Color = Color3.fromRGB(248, 250, 255) },
-	{ Name = "Walrus", Odds = 82000, World = 3, Color = Color3.fromRGB(180, 130, 100) },
-	{ Name = "Reindeer", Odds = 100000, World = 3, Color = Color3.fromRGB(170, 120, 80) },
-	{ Name = "Polar Bear", Odds = 120000, World = 3, Color = Color3.fromRGB(250, 250, 245) },
-	{ Name = "Snow Leopard", Odds = 150000, World = 3, Color = Color3.fromRGB(230, 232, 240) },
-	{ Name = "Orca", Odds = 180000, World = 3, Color = Color3.fromRGB(40, 45, 70) },
-	{ Name = "Narwhal", Odds = 220000, World = 3, Color = Color3.fromRGB(150, 180, 220) },
-	{ Name = "Yeti", Odds = 270000, World = 3, Color = Color3.fromRGB(235, 245, 255) },
-	{ Name = "Mammoth", Odds = 330000, World = 3, Color = Color3.fromRGB(150, 105, 75) },
-	{ Name = "Ice Phoenix", Odds = 400000, World = 3, Color = Color3.fromRGB(140, 220, 255) },
-	{ Name = "Frost Dragon", Odds = 500000, World = 3, Color = Color3.fromRGB(120, 200, 255) },
+	{ Name = "Penguin", Odds = 25000, World = 3, Color = Color3.fromRGB(60, 80, 120), Stats = { Speed = 0.5, Luck = 1.22, Coins = 1.04, Damage = 1.04, Exp = 1.07 } },
+	{ Name = "Snow Hare", Odds = 30000, World = 3, Color = Color3.fromRGB(245, 248, 255), Stats = { Speed = 0.9, Luck = 1.37, Coins = 1.04, Damage = 1.04, Exp = 1.07 } },
+	{ Name = "Arctic Fox", Odds = 37000, World = 3, Color = Color3.fromRGB(235, 240, 250), Stats = { Speed = 1.1, Luck = 1.23, Coins = 1.05, Damage = 1.04, Exp = 1.07 } },
+	{ Name = "Seal", Odds = 45000, World = 3, Color = Color3.fromRGB(170, 180, 200), Stats = { Speed = 0.45, Luck = 1.23, Coins = 1.05, Damage = 1.04, Exp = 1.22 } },
+	{ Name = "Husky", Odds = 55000, World = 3, Color = Color3.fromRGB(150, 160, 180), Stats = { Speed = 1.2, Luck = 1.24, Coins = 1.05, Damage = 1.04, Exp = 1.07 } },
+	{ Name = "Snowy Owl", Odds = 67000, World = 3, Color = Color3.fromRGB(248, 250, 255), Stats = { Speed = 0.9, Luck = 1.24, Coins = 1.05, Damage = 1.04, Exp = 1.23 } },
+	{ Name = "Walrus", Odds = 82000, World = 3, Color = Color3.fromRGB(180, 130, 100), Stats = { Speed = 0.4, Luck = 1.25, Coins = 1.05, Damage = 1.2, Exp = 1.07 } },
+	{ Name = "Reindeer", Odds = 100000, World = 3, Color = Color3.fromRGB(170, 120, 80), Stats = { Speed = 1.1, Luck = 1.25, Coins = 1.05, Damage = 1.04, Exp = 1.23 } },
+	{ Name = "Polar Bear", Odds = 120000, World = 3, Color = Color3.fromRGB(250, 250, 245), Stats = { Speed = 0.85, Luck = 1.25, Coins = 1.05, Damage = 1.2, Exp = 1.08 } },
+	{ Name = "Snow Leopard", Odds = 150000, World = 3, Color = Color3.fromRGB(230, 232, 240), Stats = { Speed = 1.3, Luck = 1.26, Coins = 1.05, Damage = 1.04, Exp = 1.08 } },
+	{ Name = "Orca", Odds = 180000, World = 3, Color = Color3.fromRGB(40, 45, 70), Stats = { Speed = 1, Luck = 1.26, Coins = 1.05, Damage = 1.21, Exp = 1.08 } },
+	{ Name = "Narwhal", Odds = 220000, World = 3, Color = Color3.fromRGB(150, 180, 220), Stats = { Speed = 0.9, Luck = 1.27, Coins = 1.05, Damage = 1.04, Exp = 1.25 } },
+	{ Name = "Yeti", Odds = 270000, World = 3, Color = Color3.fromRGB(235, 245, 255), Stats = { Speed = 0.8, Luck = 1.27, Coins = 1.05, Damage = 1.21, Exp = 1.08 } },
+	{ Name = "Mammoth", Odds = 330000, World = 3, Color = Color3.fromRGB(150, 105, 75), Stats = { Speed = 0.7, Luck = 1.28, Coins = 1.23, Damage = 1.04, Exp = 1.08 } },
+	{ Name = "Ice Phoenix", Odds = 400000, World = 3, Color = Color3.fromRGB(140, 220, 255), Stats = { Speed = 1.2, Luck = 1.28, Coins = 1.06, Damage = 1.04, Exp = 1.08 } },
+	{ Name = "Frost Dragon", Odds = 500000, World = 3, Color = Color3.fromRGB(120, 200, 255), Stats = { Speed = 1.2, Luck = 1.28, Coins = 1.06, Damage = 1.22, Exp = 1.09 } },
 	-- World 4: Sakura Jungle
-	{ Name = "Shiba", Odds = 600000, World = 4, Color = Color3.fromRGB(235, 160, 90) },
-	{ Name = "Red Panda", Odds = 720000, World = 4, Color = Color3.fromRGB(215, 90, 50) },
-	{ Name = "Koi", Odds = 870000, World = 4, Color = Color3.fromRGB(255, 140, 60) },
-	{ Name = "Crane", Odds = 1050000, World = 4, Color = Color3.fromRGB(250, 250, 250) },
-	{ Name = "Tanuki", Odds = 1270000, World = 4, Color = Color3.fromRGB(140, 110, 90) },
-	{ Name = "Panda", Odds = 1500000, World = 4, Color = Color3.fromRGB(40, 40, 45) },
-	{ Name = "Kitsune", Odds = 1850000, World = 4, Color = Color3.fromRGB(255, 245, 235) },
-	{ Name = "Tiger", Odds = 2200000, World = 4, Color = Color3.fromRGB(255, 140, 20) },
-	{ Name = "Kirin", Odds = 2700000, World = 4, Color = Color3.fromRGB(255, 210, 120) },
-	{ Name = "Dragon", Odds = 3250000, World = 4, Color = Color3.fromRGB(220, 40, 40) },
-	{ Name = "Phoenix", Odds = 3900000, World = 4, Color = Color3.fromRGB(255, 120, 20) },
-	{ Name = "Kraken", Odds = 4700000, World = 4, Color = Color3.fromRGB(80, 40, 140) },
-	{ Name = "Celestial Lion", Odds = 5700000, World = 4, Color = Color3.fromRGB(255, 240, 150) },
-	{ Name = "Void Serpent", Odds = 6900000, World = 4, Color = Color3.fromRGB(60, 30, 110) },
-	{ Name = "Galaxy Whale", Odds = 8300000, World = 4, Color = Color3.fromRGB(70, 60, 200) },
-	{ Name = "Glitch", Odds = 10000000, World = 4, Color = Color3.fromRGB(0, 255, 140) },
+	{ Name = "Shiba", Odds = 600000, World = 4, Color = Color3.fromRGB(235, 160, 90), Stats = { Speed = 1.1, Luck = 1.29, Coins = 1.06, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Red Panda", Odds = 720000, World = 4, Color = Color3.fromRGB(215, 90, 50), Stats = { Speed = 0.9, Luck = 1.29, Coins = 1.24, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Koi", Odds = 870000, World = 4, Color = Color3.fromRGB(255, 140, 60), Stats = { Speed = 0.8, Luck = 1.48, Coins = 1.06, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Crane", Odds = 1050000, World = 4, Color = Color3.fromRGB(250, 250, 250), Stats = { Speed = 1, Luck = 1.3, Coins = 1.06, Damage = 1.05, Exp = 1.27 } },
+	{ Name = "Tanuki", Odds = 1270000, World = 4, Color = Color3.fromRGB(140, 110, 90), Stats = { Speed = 0.85, Luck = 1.31, Coins = 1.24, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Panda", Odds = 1500000, World = 4, Color = Color3.fromRGB(40, 40, 45), Stats = { Speed = 0.75, Luck = 1.31, Coins = 1.06, Damage = 1.05, Exp = 1.28 } },
+	{ Name = "Kitsune", Odds = 1850000, World = 4, Color = Color3.fromRGB(255, 245, 235), Stats = { Speed = 1.2, Luck = 1.5, Coins = 1.06, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Tiger", Odds = 2200000, World = 4, Color = Color3.fromRGB(255, 140, 20), Stats = { Speed = 1.2, Luck = 1.32, Coins = 1.06, Damage = 1.24, Exp = 1.1 } },
+	{ Name = "Kirin", Odds = 2700000, World = 4, Color = Color3.fromRGB(255, 210, 120), Stats = { Speed = 1.3, Luck = 1.32, Coins = 1.06, Damage = 1.05, Exp = 1.1 } },
+	{ Name = "Dragon", Odds = 3250000, World = 4, Color = Color3.fromRGB(220, 40, 40), Stats = { Speed = 1.3, Luck = 1.33, Coins = 1.07, Damage = 1.24, Exp = 1.1 } },
+	{ Name = "Phoenix", Odds = 3900000, World = 4, Color = Color3.fromRGB(255, 120, 20), Stats = { Speed = 1.3, Luck = 1.52, Coins = 1.07, Damage = 1.05, Exp = 1.1 } },
+	{ Name = "Kraken", Odds = 4700000, World = 4, Color = Color3.fromRGB(80, 40, 140), Stats = { Speed = 0.7, Luck = 1.33, Coins = 1.07, Damage = 1.25, Exp = 1.1 } },
+	{ Name = "Celestial Lion", Odds = 5700000, World = 4, Color = Color3.fromRGB(255, 240, 150), Stats = { Speed = 1.3, Luck = 1.53, Coins = 1.07, Damage = 1.05, Exp = 1.1 } },
+	{ Name = "Void Serpent", Odds = 6900000, World = 4, Color = Color3.fromRGB(60, 30, 110), Stats = { Speed = 0.8, Luck = 1.34, Coins = 1.07, Damage = 1.25, Exp = 1.1 } },
+	{ Name = "Galaxy Whale", Odds = 8300000, World = 4, Color = Color3.fromRGB(70, 60, 200), Stats = { Speed = 0.9, Luck = 1.35, Coins = 1.27, Damage = 1.06, Exp = 1.1 } },
+	{ Name = "Glitch", Odds = 10000000, World = 4, Color = Color3.fromRGB(0, 255, 140), Stats = { Speed = 1.1, Luck = 1.55, Coins = 1.07, Damage = 1.06, Exp = 1.1 } },
 }
 -- Power grows a little faster than rarity: power = 1M x (odds / 1000)^1.17,
 -- so a Dog is ~700, a Tiger 1M, a Galaxy Whale ~3.2B and a Glitch ~48B.
@@ -185,14 +185,57 @@ function Config.petPower(name)
 	return pet.Power * size.Power
 end
 
--- Equipped pets add a little luck on top of the Luck upgrade: rarer pets
--- add more (a 1 in 1000 pet is +15%), bigger sizes multiply it
-function Config.petLuck(name)
+-- Pet stats -------------------------------------------------------------------------
+-- Every pet has its own five multipliers (its row in PETS, `Stats`):
+--   Speed   how fast that pet moves
+--   Luck    adds to the team's pet luck (see Config.luck)
+--   Coins   adds to the team's coin bonus
+--   Damage  multiplies that pet's own hits
+--   Exp     adds to the team's EXP bonus
+-- Huge and Titanic sizes multiply the bonus part (x2 / x4 of `value - 1`),
+-- except Speed. Team bonuses ADD UP before multiplying:
+--   team stat = 1 + sum over equipped pets of (pet stat - 1)
+-- so a 1.1x and a 1.3x pet make 1.4x, not 1.43x.
+Config.STATS = { "Speed", "Luck", "Coins", "Damage", "Exp" }
+Config.STAT_LABELS = { Speed = "Speed", Luck = "Luck", Coins = "Coins", Damage = "Damage", Exp = "EXP" }
+
+-- make sure every pet has every stat, as a sensible number
+for _, pet: any in ipairs(Config.PETS :: { any }) do
+	pet.Stats = pet.Stats or {}
+	for _, stat in ipairs(Config.STATS) do
+		local value = pet.Stats[stat]
+		if type(value) ~= "number" or value ~= value then
+			value = 1
+		end
+		pet.Stats[stat] = math.clamp(value, if stat == "Speed" then 0.25 else 1, 100)
+	end
+end
+
+-- One pet's multiplier for a stat ("Huge Fox", "Luck" -> 1.54)
+function Config.petStat(name, stat)
 	local pet, size = Config.petInfo(name)
 	if not pet then
-		return 0
+		return 1
 	end
-	return math.log10(pet.Odds) * 0.05 * size.Luck
+	local value = pet.Stats[stat] or 1
+	if stat == "Speed" then
+		return value
+	end
+	return 1 + (value - 1) * size.Luck
+end
+
+-- The team's multiplier for a stat: 1 + the bonuses of the EQUIPPED pets added up
+function Config.teamStat(data, stat)
+	local total = 1
+	for _, name in ipairs(data.Equipped or {}) do
+		total += Config.petStat(name, stat) - 1
+	end
+	return total
+end
+
+-- (kept for older callers) the luck bonus one pet adds
+function Config.petLuck(name)
+	return Config.petStat(name, "Luck") - 1
 end
 
 -- Rolling --------------------------------------------------------------------------
@@ -202,12 +245,17 @@ Config.BONUS_LUCK = 2
 Config.BIG_ROLL = 1000 -- rolls this rare (1 in 1000+), or any big size, get the big reveal
 Config.FUSE_COPIES = 5 -- the fusion machine turns 5 of a pet into 1 of the next size
 
--- The luck chain: after every spin there's a 1 in 6 chance of a x2 luck
--- multiplier for the NEXT spin. Another x2 multiplies the one you have
--- (x2 -> x4 -> x8 ... up to x1024); a spin without one resets it to x1.
--- The server keeps it in data.LuckChain and Config.luck applies it, so the
--- roll, the odds shown on the pets and the luck chip all use the same value.
-Config.CHAIN_CHANCE = 1 / 6
+-- Luck boosts: every roll can come out as a "x2 LUCK" instead of a pet
+-- (BOOST_CHANCE, not changed by luck). A boost applies to the NEXT roll
+-- (spin) and is used up by it. Boosts stack by multiplying: hatch x2 -> the
+-- next roll has x2; hatch another x2 during that roll -> the next has x4,
+-- then x8 ... up to x1024. A roll without a boost leaves nothing waiting.
+-- The server keeps the waiting boost in data.LuckChain (saved, so it
+-- survives a rejoin) and Config.luck applies it, so the roll, the odds shown
+-- in the spin and the luck chip all use the same value.
+Config.BOOST_CHANCE = 1 / 12
+Config.BOOST = { Name = "x2 LUCK", Multiplier = 2 }
+Config.CHAIN_CHANCE = Config.BOOST_CHANCE
 Config.CHAIN_MAX = 1024
 -- Total luck never goes above this, so no pet is ever certain (the rarest
 -- animal stays at 1 in 10 or worse even with every multiplier stacked)
@@ -222,30 +270,39 @@ function Config.luckMultiplier(data)
 	return math.min(2 ^ math.floor(math.log(chain, 2) + 1e-9), Config.CHAIN_MAX)
 end
 
--- The multiplier after a spin made with `current`: doubled (capped) on a
--- x2, otherwise back to 1
-function Config.nextChain(current, random)
-	if random:NextNumber() < Config.CHAIN_CHANCE then
-		return math.min(current * 2, Config.CHAIN_MAX)
+-- The boost waiting after a spin that used `current` and hatched `boosts`
+-- x2 boosts: current x 2^boosts (capped), or 1 if it hatched none
+function Config.nextChain(current, boosts)
+	if type(boosts) ~= "number" then
+		-- (old form: a random source) one try at a boost
+		boosts = if boosts:NextNumber() < Config.BOOST_CHANCE then 1 else 0
 	end
-	return 1
+	if boosts <= 0 then
+		return 1
+	end
+	return math.min(current * Config.BOOST.Multiplier ^ boosts, Config.CHAIN_MAX)
 end
 
--- Total luck: the Luck upgrade (the big one), times a bonus from the
--- equipped pets, times x1.5 per rebirth, times the world you roll in, times
--- 2 on every 10th roll, times the luck chain. `world` is the area the player
--- stands in (nil = 1). Capped at MAX_LUCK.
-function Config.luck(data, isBonus, world)
-	local fromPets = 1
-	for _, name in ipairs(data.Equipped) do
-		fromPets += Config.petLuck(name)
-	end
+-- Total luck:
+--   existing luck = Luck upgrade x rebirths (x1.5 each) x the world you roll
+--                   in x 2 on every 10th roll x the luck boost for this roll
+--   final luck    = existing luck x pet luck, where
+--   pet luck      = 1 + sum over equipped pets of (pet Luck - 1)
+-- e.g. pets of 1.1x and 1.3x -> 1.4x; with existing luck x5 -> x7.
+-- `world` is the area the player stands in (nil = 1); `multiplier` is the
+-- luck boost (nil = the one waiting in data.LuckChain). Capped at MAX_LUCK.
+function Config.petLuckTotal(data)
+	return Config.teamStat(data, "Luck")
+end
+
+function Config.luck(data, isBonus, world, multiplier)
+	local fromPets = Config.petLuckTotal(data)
 	local luck = Config.upgradeValue(data, "Luck") * fromPets * Config.rebirthLuck(data.Rebirths or 0)
 	luck *= Config.AREAS[math.clamp(world or 1, 1, #Config.AREAS)].Luck
 	if isBonus then
 		luck *= Config.BONUS_LUCK
 	end
-	luck *= Config.luckMultiplier(data)
+	luck *= multiplier or Config.luckMultiplier(data)
 	return math.min(luck, Config.MAX_LUCK)
 end
 
@@ -314,14 +371,18 @@ function Config.sizeChances(sizeLuck)
 	return chances
 end
 
--- The exact chance of getting exactly this pet in this size ("Huge Tiger")
--- on one roll with this luck, size luck and world
+-- The exact chance of getting exactly this pet in this size ("Huge Tiger"),
+-- or the luck boost (Config.BOOST.Name), on one roll with this luck, size
+-- luck and world (following Config.rollResult step by step)
 function Config.chanceOf(name, luck, sizeLuck, world)
+	if name == Config.BOOST.Name then
+		return Config.BOOST_CHANCE
+	end
 	local pet, size = Config.petInfo(name)
 	if not pet then
 		return 0
 	end
-	return Config.petChances(luck, world)[pet.Name] * Config.sizeChances(sizeLuck)[size.Index]
+	return (1 - Config.BOOST_CHANCE) * Config.petChances(luck, world)[pet.Name] * Config.sizeChances(sizeLuck)[size.Index]
 end
 
 -- A chance as "1 in N" ("1 in 2.5", "1 in 500", "1 in 12.5K", "1 in 1.1M")
@@ -335,6 +396,17 @@ function Config.formatChance(chance)
 		return "1 in " .. text
 	end
 	return "1 in " .. Config.formatNumber(math.floor(odds + 0.5))
+end
+
+-- One roll, the way the server does it: first a chance at a luck boost,
+-- otherwise a pet (Config.roll) and its size (Config.rollSize). Returns
+-- { Kind = "Boost" } or { Kind = "Pet", Pet = <pet row>, Size = <index> }.
+function Config.rollResult(luck, sizeLuck, world, random)
+	if random:NextNumber() < Config.BOOST_CHANCE then
+		return { Kind = "Boost" }
+	end
+	local pet = Config.roll(luck, random, world)
+	return { Kind = "Pet", Pet = pet, Size = Config.rollSize(sizeLuck, random) }
 end
 
 -- Seconds the fusion machine takes: rarer pets and bigger sizes take longer
@@ -564,8 +636,9 @@ Config.PET_HIT_EVERY = 0.6 -- seconds between a pet's hits
 Config.PET_SPEED = 45 -- studs per second a pet runs to its target
 Config.FIGHT_RADIUS = 40 -- pets go after coins this close to the player
 
+-- One hit of a pet: its power x the Damage upgrade x its own Damage stat
 function Config.hitDamage(data, name)
-	return Config.petPower(name) * Config.upgradeValue(data, "Damage")
+	return Config.petPower(name) * Config.upgradeValue(data, "Damage") * Config.petStat(name, "Damage")
 end
 
 -- Everything the team deals per second (shown on the team bar)
@@ -599,21 +672,21 @@ Config.AREAS = {
 	{
 		Name = "Sahara",
 		Luck = 1.2, -- rolling here multiplies luck
-		Cost = 2e4,
+		Cost = 2.5e4,
 		Color = Color3.fromRGB(240, 190, 90),
 		Breakable = { Name = "Cactus", Health = 1.2e8, Coins = 600, Exp = 4 },
 	},
 	{
 		Name = "Frozen Peaks",
 		Luck = 1.45, -- rolling here multiplies luck
-		Cost = 6e6,
+		Cost = 1.2e7,
 		Color = Color3.fromRGB(140, 215, 255),
 		Breakable = { Name = "Ice Cube", Health = 3e10, Coins = 4e4, Exp = 15 },
 	},
 	{
 		Name = "Sakura Jungle",
 		Luck = 1.75, -- rolling here multiplies luck
-		Cost = 3e10,
+		Cost = 1.3e11,
 		Color = Color3.fromRGB(255, 150, 200),
 		Breakable = { Name = "Sushi", Health = 1.2e13, Coins = 3e6, Exp = 50 },
 	},
@@ -658,14 +731,14 @@ end
 Config.REBIRTH_LUCK = 1.5 -- luck is multiplied by this per rebirth
 Config.REBIRTH_COINS = 2 -- +200% coins per rebirth
 Config.REBIRTHS = {
-	{ Cost = 5e7, Level = 50 },
-	{ Cost = 3e10, Level = 75 },
-	{ Cost = 1e12, Level = 110 },
-	{ Cost = 3e13, Level = 160 },
-	{ Cost = 2e14, Level = 225 },
-	{ Cost = 4e14, Level = 310 },
-	{ Cost = 7e14, Level = 425 },
-	{ Cost = 1.2e15, Level = 575 },
+	{ Cost = 1.5e8, Level = 50 },
+	{ Cost = 1e11, Level = 75 },
+	{ Cost = 3e12, Level = 110 },
+	{ Cost = 1e14, Level = 160 },
+	{ Cost = 6e14, Level = 225 },
+	{ Cost = 1.2e15, Level = 310 },
+	{ Cost = 2e15, Level = 425 },
+	{ Cost = 3.5e15, Level = 575 },
 }
 Config.MAX_REBIRTHS = #Config.REBIRTHS
 
@@ -743,9 +816,15 @@ function Config.rebirthLuck(rebirths)
 	return Config.REBIRTH_LUCK ^ rebirths
 end
 
--- All coin bonuses together: rebirths and the Coins upgrade
+-- All coin bonuses together: rebirths, the Coins upgrade and the equipped
+-- pets' Coins stats (added up)
 function Config.coinGain(data)
-	return Config.coinMultiplier(data.Rebirths) * Config.upgradeValue(data, "Coins")
+	return Config.coinMultiplier(data.Rebirths) * Config.upgradeValue(data, "Coins") * Config.teamStat(data, "Coins")
+end
+
+-- EXP bonus: the equipped pets' EXP stats (added up)
+function Config.expGain(data)
+	return Config.teamStat(data, "Exp")
 end
 
 -- Formatting -------------------------------------------------------------------
@@ -768,6 +847,16 @@ function Config.formatNumber(n)
 	local text = if scaled < 100 then string.format("%.2f", scaled) else string.format("%.1f", scaled)
 	text = text:gsub("%.?0+$", "")
 	return text .. SUFFIXES[tier + 1]
+end
+
+-- A multiplier as "1.25x" (up to two decimals, no trailing zeros)
+function Config.formatStat(value)
+	if value >= 1000 then
+		return Config.formatNumber(value) .. "x"
+	end
+	local text = string.format(if value >= 100 then "%.0f" elseif value >= 10 then "%.1f" else "%.2f", value)
+	text = text:gsub("(%..-)0+$", "%1"):gsub("%.$", "")
+	return text .. "x"
 end
 
 -- "1 in 1,000,000"
