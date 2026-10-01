@@ -1,4 +1,4 @@
-# Hatch Incremental
+# Roll Pets RNG
 
 A solo pet RNG game on Roblox. Hit **ROLL**, see what pet you get, chase the
 rare ones and climb the global **Most Rolls** leaderboard.
