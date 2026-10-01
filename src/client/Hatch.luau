@@ -1383,7 +1383,7 @@ local resultsRow = Ui.new("Frame", {
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 18),
+		Padding = UDim.new(0, 4),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
@@ -1396,7 +1396,7 @@ local function makeSlot(order)
 	local holder = Ui.new("Frame", {
 		Name = "Slot" .. order,
 		LayoutOrder = order,
-		Size = UDim2.fromOffset(170, 200),
+		Size = UDim2.fromOffset(160, 200),
 		BackgroundTransparency = 1,
 		ZIndex = 20,
 		Parent = resultsRow,
@@ -1435,9 +1435,17 @@ local function makeSlot(order)
 	return { Holder = holder, View = viewHolder, Pop = pop, Odds = odds, Name = label, Shows = nil }
 end
 
--- Puts a pet (or the boost) in a slot with its odds text; `big` pops it harder
-local function setSlot(slot, name, oddsText, big)
-	if slot.Shows ~= name then
+-- Puts a name and its odds text in a slot. While cycling (`landed` false)
+-- only the text changes, no picture; when it lands (`landed` true) the pet
+-- (or the boost tile) grows in above the text.
+local function setSlot(slot, name, oddsText, landed)
+	if not landed then
+		if slot.Shows then
+			PetView.releaseAll(slot.View)
+			clear(slot.View)
+			slot.Shows = nil
+		end
+	elseif slot.Shows ~= name then
 		PetView.releaseAll(slot.View)
 		clear(slot.View)
 		if name == BOOST then
@@ -1460,9 +1468,10 @@ local function setSlot(slot, name, oddsText, big)
 	end
 	slot.Odds.Text = oddsText
 	slot.Odds.Tint.Color = ColorSequence.new(color:Lerp(Ui.WHITE, 0.45), color)
-	if not Ui.reduced() then
-		slot.Pop.Scale = if big then 1.35 else 0.72
-		TweenService:Create(slot.Pop, TweenInfo.new(if big then 0.35 else 0.14, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	if landed and not Ui.reduced() then
+		-- the pet grows in from small
+		slot.Pop.Scale = 0.25
+		TweenService:Create(slot.Pop, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	end
 end
 
@@ -1484,22 +1493,11 @@ local function resultName(r)
 	return if isBoost(r) then BOOST else Config.petName(r.Pet, r.Size or 1)
 end
 
--- the row stays a moment, then rises and fades (unless a new roll took it)
+-- the result stays until the next roll starts (or a few seconds), then
+-- simply disappears
 local function fadeResultsLater(id, fast)
 	resultsRow.Position = UDim2.new(0.5, 0, 0, 205)
-	task.delay(if fast then 1.4 else 2.2, function()
-		if resultsId ~= id then
-			return
-		end
-		if not Ui.reduced() then
-			TweenService:Create(resultsRow, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { Position = UDim2.new(0.5, 0, 0, 170) }):Play()
-			for _, d in ipairs(resultsRow:GetDescendants()) do
-				if d:IsA("UIScale") then
-					TweenService:Create(d, TweenInfo.new(0.35), { Scale = 0.6 }):Play()
-				end
-			end
-			task.wait(0.35)
-		end
+	task.delay(if fast then 2.5 else 4, function()
 		if resultsId == id then
 			resultsRow.Visible = false
 			PetView.releaseAll(resultsRow)
