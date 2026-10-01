@@ -1,6 +1,6 @@
 -- The Pet Aura Machine in the Sahara (it stands where the fusion machine
 -- was). Put in Config.AURA_COPIES (3) of the same pet, any size, without an
--- aura, and get 1 of it back holding a random aura weapon (Config.AURAS:
+-- aura, and get 1 of it back with a random aura: mini bees (Config.AURAS:
 -- chances by weight, each boosts that pet's Damage, Coins and/or Luck).
 -- Instant: the client plays the reveal.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

@@ -3,8 +3,8 @@
 --           many you have; tap one to pick it.
 --   RIGHT   the pet you picked, "2 / 3", the FUSE button and every aura's
 --           chance and what it boosts.
--- Fusing turns 3 of the pet into 1 of it holding a random aura weapon (the
--- server picks it); a reveal shows the pet with its weapon and the aura.
+-- Fusing turns 3 of the pet into 1 of it with a random aura (the server
+-- picks it): mini bees flying around it. A reveal shows the pet with its bees.
 local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
@@ -25,7 +25,7 @@ local LIST_W = WIDTH - 48 - SIDE_W - 16
 local modal, box = Screen.modal(WIDTH, HEIGHT, "Aura")
 AuraMachine.Modal = modal
 Screen.title(box, "Pet Aura Machine")
-Screen.subtitle(box, Config.AURA_COPIES .. " of the same pet → 1 with a random aura weapon")
+Screen.subtitle(box, Config.AURA_COPIES .. " of the same pet → 1 with a random aura (mini bees!)")
 
 AuraMachine.Selected = nil
 AuraMachine.LastResult = nil -- for the simulator: the server's answer

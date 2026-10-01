@@ -174,18 +174,19 @@ chase Huge and Titanic pets.**
   alternate with lively ones, everything is capped, and only the world you're
   in is alive (`Ambient.luau`).
 - **Pet Aura Machine** (Sahara, where the fusion machine was): put in 3 of
-  the same pet (any size, no aura yet) and get 1 of it back holding a random
-  **aura weapon** (a chunky blaster at its mouth, glowing in the aura's
-  colour). Each aura multiplies that pet's stats:
+  the same pet (any size, no aura yet) and get 1 of it back with a random
+  **aura: mini bees** flying in circles around it in the aura's colour
+  (rarer auras: more bees, rainbow or glowing bees). Each aura multiplies
+  that pet's stats:
 
   | Aura | Chance | Boosts |
   | --- | --- | --- |
-  | Blaster | 45% | Damage x1.3 |
-  | Coin Cannon | 25% | Coins x1.4 |
-  | Clover Launcher | 15% | Luck x1.4 |
-  | Plasma Rifle | 9% | Damage x1.8, Coins x1.2 |
-  | Rainbow Railgun | 5% | Damage, Coins, Luck x1.6 |
-  | Cosmic Annihilator | 1% | Damage x3, Coins x2.5, Luck x2.5 |
+  | Worker Bees (2 bees) | 45% | Damage x1.3 |
+  | Honey Bees (2) | 25% | Coins x1.4 |
+  | Clover Bees (2) | 15% | Luck x1.4 |
+  | Plasma Bees (3, glowing) | 9% | Damage x1.8, Coins x1.2 |
+  | Rainbow Bees (3, sparkling) | 5% | Damage, Coins, Luck x1.6 |
+  | Cosmic Bees (4, big) | 1% | Damage x3, Coins x2.5, Luck x2.5 |
 
   Aura pets show the aura's name on their tile and over their head, and are
   saved as "Huge Tiger|plasma" (`Config.AURAS`, `Config.petAura`).

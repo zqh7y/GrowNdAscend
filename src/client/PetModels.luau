@@ -1201,65 +1201,83 @@ end
 
 -- plain = true builds a wild animal (no accessories, no sparkles) for the
 -- ambient life and the hatch silhouettes
--- The aura weapon (Pet Aura Machine): a chunky blaster held at the mouth,
--- pointing forward (-Z), in the aura's colour with a glowing core. Rarer
--- auras get a second barrel, rainbow stripes or a bigger, brighter build.
-local function auraGun(model, head, aura)
+-- The aura (Pet Aura Machine): mini bees flying in a circle around the pet
+-- in the aura's colour (rarer auras: more bees, rainbow bees, glowing
+-- bees). Each bee's parts are "orbit" pieces, so Creature circles them
+-- around the pet while it moves.
+local BEE_COUNT = { 2, 2, 2, 3, 3, 4 } -- by aura rank (Config.AURAS order)
+local RAINBOW = { Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 200, 60), Color3.fromRGB(90, 220, 120), Color3.fromRGB(90, 160, 255) }
+local function auraBees(ctx, head, aura)
+	local model = ctx.Model
 	local rank = table.find(Config.AURAS, aura) or 1
-	local scale = if rank >= 6 then 1.3 elseif rank >= 4 then 1.12 else 1
-	local c = head + V(0.3, -0.42, -1.05) * scale
-	local dark = aura.Color:Lerp(INK, 0.5)
-	local function at(x, y, z)
-		return c + V(x, y, z) * scale
-	end
-	local function cylinder(center, length, diameter, color, material)
-		return part(model, {
-			Name = "AuraGun",
-			Shape = Enum.PartType.Cylinder,
-			Size = V(length, diameter, diameter) * scale,
-			CFrame = CFrame.new(center) * CFrame.Angles(0, math.rad(90), 0),
-			Color = color,
-			Material = material or SMOOTH,
-		})
-	end
-	chunk(model, c, V(0.5, 0.42, 1.0) * scale, dark, 0.08, { Name = "AuraGun" })
-	box(model, at(0, 0.27, 0.05), V(0.2, 0.12, 0.78) * scale, aura.Color, { Name = "AuraGun", Material = NEON })
-	box(model, at(0, -0.34, 0.22), V(0.18, 0.4, 0.24) * scale, dark, { Name = "AuraGun" })
-	local barrels = if rank >= 4 then { -0.13, 0.13 } else { 0 }
-	for _, x in ipairs(barrels) do
-		cylinder(at(x, 0.04, -0.82), 0.9, if #barrels > 1 then 0.18 else 0.26, Color3.fromRGB(150, 156, 176))
-		cylinder(at(x, 0.04, -1.3), 0.12, if #barrels > 1 then 0.26 else 0.36, aura.Color, NEON)
-	end
-	if aura.Id == "rainbow" then
-		local colours = { Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 210, 70), Color3.fromRGB(90, 220, 120), Color3.fromRGB(90, 160, 255) }
-		for k, colour in ipairs(colours) do
-			box(model, at(0.26, 0, 0.4 - k * 0.2), V(0.04, 0.3, 0.12) * scale, colour, { Name = "AuraGun", Material = NEON })
+	local count = BEE_COUNT[rank] or 2
+	local s = if rank >= 6 then 1.3 elseif rank >= 4 then 1.12 else 1
+	local radius = 1.5 + math.abs(head.Y) * 0.35 + math.abs(head.Z) * 0.3
+	for k = 1, count do
+		local phi = (k - 1) / count * math.pi * 2
+		local centre = V(math.cos(phi) * radius, head.Y + 0.15 + (k % 2) * 0.35, -math.sin(phi) * radius)
+		-- facing the way the orbit carries it
+		local forward = V(-math.sin(phi), 0, -math.cos(phi))
+		local cf = CFrame.lookAt(centre, centre + forward)
+		local colour = if aura.Id == "rainbow" then RAINBOW[(k - 1) % #RAINBOW + 1] else aura.Color
+		local glow = rank >= 4
+		local pieces = {}
+		local function ball(offset, diameter, color, material)
+			local p = part(model, {
+				Name = "AuraBee",
+				Shape = Enum.PartType.Ball,
+				Size = V(diameter, diameter, diameter) * s,
+				CFrame = cf * CFrame.new(offset * s),
+				Color = color,
+				Material = material or SMOOTH,
+			})
+			table.insert(pieces, p)
+			return p
 		end
-	end
-	local core = part(model, {
-		Name = "AuraCore",
-		Shape = Enum.PartType.Ball,
-		Size = V(0.34, 0.34, 0.34) * scale,
-		CFrame = CFrame.new(at(0, 0.05, 0.42)),
-		Color = aura.Color,
-		Material = NEON,
-	})
-	local light = Instance.new("PointLight")
-	light.Color = aura.Color
-	light.Range = 6 + rank
-	light.Brightness = 1.2
-	light.Parent = core
-	if rank >= 4 then
-		local sparks = Instance.new("ParticleEmitter")
-		sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-		sparks.Color = ColorSequence.new(aura.Color, WHITE)
-		sparks.Rate = 4 + rank * 2
-		sparks.Lifetime = NumberRange.new(0.4, 0.8)
-		sparks.Speed = NumberRange.new(0.5, 1.5)
-		sparks.SpreadAngle = Vector2.new(180, 180)
-		sparks.Size = NumberSequence.new(0.2, 0)
-		sparks.LightEmission = 0.8
-		sparks.Parent = core
+		local body = ball(V(0, 0, 0), 0.38, colour, if glow then NEON else SMOOTH)
+		ball(V(0, 0, 0.26), 0.34, colour) -- the striped back half
+		ball(V(0, 0.02, -0.26), 0.26, INK) -- the head
+		for _, z in ipairs({ 0.2, 0.32 }) do
+			local band = part(model, {
+				Name = "AuraBee",
+				Shape = Enum.PartType.Cylinder,
+				Size = V(0.05, 0.35, 0.35) * s,
+				CFrame = cf * CFrame.new(V(0, 0, z) * s) * CFrame.Angles(0, math.rad(90), 0),
+				Color = INK,
+			})
+			table.insert(pieces, band)
+		end
+		for _, side in ipairs({ -1, 1 }) do
+			local wing = part(model, {
+				Name = "AuraBee",
+				Size = V(0.32, 0.03, 0.2) * s,
+				CFrame = cf * CFrame.new(V(side * 0.2, 0.22, 0.02) * s) * CFrame.Angles(0, 0, side * 0.45),
+				Color = WHITE,
+				Transparency = 0.35,
+			})
+			table.insert(pieces, wing)
+		end
+		for _, piece in ipairs(pieces) do
+			table.insert(ctx.Animated, { Part = piece, Kind = "orbit", Speed = 2.4 })
+		end
+		if glow then
+			local light = Instance.new("PointLight")
+			light.Color = colour
+			light.Range = 5
+			light.Brightness = 1
+			light.Parent = body
+		end
+		if rank >= 5 then
+			local sparks = Instance.new("ParticleEmitter")
+			sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			sparks.Color = ColorSequence.new(colour, WHITE)
+			sparks.Rate = 6
+			sparks.Lifetime = NumberRange.new(0.3, 0.6)
+			sparks.Speed = NumberRange.new(0.2, 0.6)
+			sparks.Size = NumberSequence.new(0.15, 0)
+			sparks.LightEmission = 0.8
+			sparks.Parent = body
+		end
 	end
 end
 
@@ -1289,7 +1307,7 @@ function PetModels.build(name, plain)
 		dress(ctx, where, level, size.Index)
 		local aura = Config.petAura(name)
 		if aura then
-			auraGun(model, head, aura)
+			auraBees(ctx, head, aura)
 		end
 	end
 

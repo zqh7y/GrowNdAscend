@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 28 (Pet Aura Machine, 1s on the hatched pet)"
+Config.BUILD = "build 29 (aura bees instead of weapons)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -152,18 +152,19 @@ end
 
 -- Auras (the Pet Aura Machine in the Sahara) ---------------------------------------
 -- Put in 3 of the same pet (any size, no aura yet) and get 1 of it back
--- holding a random aura weapon: a big blaster held in its mouth/paw. Each
+-- with a random aura: mini bees flying around it in the aura's colour. Each
 -- aura multiplies that pet's Damage, Coins and/or Luck stats. Weight is the
 -- chance out of 100. An aura pet's saved name is "<pet name>|<aura id>"
--- ("Huge Tiger|plasma"); Config.petInfo ignores the aura part.
+-- ("Huge Tiger|plasma"); Config.petInfo ignores the aura part. (The ids
+-- are from when auras were weapons; they stay so saves keep working.)
 Config.AURA_COPIES = 3
 Config.AURAS = {
-	{ Id = "blaster", Name = "Blaster", Weight = 45, Color = Color3.fromRGB(90, 170, 255), Boosts = { Damage = 1.3 } },
-	{ Id = "coin", Name = "Coin Cannon", Weight = 25, Color = Color3.fromRGB(255, 196, 40), Boosts = { Coins = 1.4 } },
-	{ Id = "clover", Name = "Clover Launcher", Weight = 15, Color = Color3.fromRGB(70, 210, 110), Boosts = { Luck = 1.4 } },
-	{ Id = "plasma", Name = "Plasma Rifle", Weight = 9, Color = Color3.fromRGB(170, 90, 255), Boosts = { Damage = 1.8, Coins = 1.2 } },
-	{ Id = "rainbow", Name = "Rainbow Railgun", Weight = 5, Color = Color3.fromRGB(255, 90, 170), Boosts = { Damage = 1.6, Coins = 1.6, Luck = 1.6 } },
-	{ Id = "cosmic", Name = "Cosmic Annihilator", Weight = 1, Color = Color3.fromRGB(40, 240, 230), Boosts = { Damage = 3, Coins = 2.5, Luck = 2.5 } },
+	{ Id = "blaster", Name = "Worker Bees", Weight = 45, Color = Color3.fromRGB(90, 170, 255), Boosts = { Damage = 1.3 } },
+	{ Id = "coin", Name = "Honey Bees", Weight = 25, Color = Color3.fromRGB(255, 196, 40), Boosts = { Coins = 1.4 } },
+	{ Id = "clover", Name = "Clover Bees", Weight = 15, Color = Color3.fromRGB(70, 210, 110), Boosts = { Luck = 1.4 } },
+	{ Id = "plasma", Name = "Plasma Bees", Weight = 9, Color = Color3.fromRGB(170, 90, 255), Boosts = { Damage = 1.8, Coins = 1.2 } },
+	{ Id = "rainbow", Name = "Rainbow Bees", Weight = 5, Color = Color3.fromRGB(255, 90, 170), Boosts = { Damage = 1.6, Coins = 1.6, Luck = 1.6 } },
+	{ Id = "cosmic", Name = "Cosmic Bees", Weight = 1, Color = Color3.fromRGB(40, 240, 230), Boosts = { Damage = 3, Coins = 2.5, Luck = 2.5 } },
 }
 Config.AURAS_BY_ID = {}
 for _, aura in ipairs(Config.AURAS) do

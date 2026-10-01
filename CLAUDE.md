@@ -168,7 +168,9 @@ for how it plays and where the code lives.
   Damage/Coins/Luck in `Config.petStat`). An aura pet's name is
   "<pet name>|<aura id>"; `Config.petInfo` ignores the aura part, show names
   with `Config.displayName`/`fullName`. Server: `Aura.luau` (AuraFuse);
-  client: `AuraMachine.luau`; the weapon model is `auraGun` in PetModels.
+  client: `AuraMachine.luau`; the bees are `auraBees` in PetModels (orbit parts that
+  Creature circles around the pet). The user found a weapon in the mouth
+  silly; keep auras as bees.
   The economy sim doesn't model auras.
 - Rolls hold on the hatched pet for `Hatch.HOLD` (landing + ~1s) before the
   next roll (the user asked for time to recognise the pet).

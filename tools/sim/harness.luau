@@ -458,13 +458,19 @@ if ok then
 				RevealName = AuraMachine.Reveal.AuraName.Text,
 				WantName = res and Config.AURAS_BY_ID[res.Aura].Name,
 			}
-			-- the aura pet's model holds the weapon
+			-- the aura pet has its mini bees, circling it (orbit parts)
 			local hasGun = false
 			if res then
-				local model = C("PetModels").build(res.Pet)
+				local model, animated = C("PetModels").build(res.Pet)
+				local beeParts, orbiting = 0, 0
 				for _, d in ipairs(model:GetDescendants()) do
-					if d.Name == "AuraGun" or d.Name == "AuraCore" then hasGun = true end
+					if d.Name == "AuraBee" then beeParts += 1 end
 				end
+				for _, entry in ipairs(animated) do
+					if entry.Part.Name == "AuraBee" and entry.Kind == "orbit" then orbiting += 1 end
+				end
+				hasGun = beeParts >= 14 and orbiting == beeParts
+				STATS.AuraClient.Bees = beeParts .. " bee parts, " .. orbiting .. " circling"
 				-- and its inventory tile says which aura
 				data.Equipped = {}
 				PlayerData.sync(player)
@@ -2122,9 +2128,9 @@ if ok then
 			and au.HugeInfo == true and au.Total == 100 and au.AllSeen == true and au.Odds == true,
 			string.format("2 Cats refused; 3 Dogs -> %s (no Dogs left); an aura pet can't go in again; 3 Huge Dogs -> %s; chances add up to 100%%, all %d auras come out", tostring(au.Got), tostring(au.Huge), #Config.AURAS))
 		local ac = STATS.AuraClient or {}
-		item(104, "aura boosts its pet; weapon, reveal and tag shown", au.Boost ~= nil and math.abs(au.Boost - (au.WantBoost or 0)) < 1e-9 and ac.Gun == true and ac.Reveal == true and ac.RevealName == ac.WantName
+		item(104, "aura boosts its pet; bees, reveal and tag shown", au.Boost ~= nil and math.abs(au.Boost - (au.WantBoost or 0)) < 1e-9 and ac.Gun == true and ac.Reveal == true and ac.RevealName == ac.WantName
 			and ac.Tag == (ac.WantName and string.upper(ac.WantName)),
-			string.format("damage x%s from the aura; %s holds its weapon, the reveal says '%s', its tile says '%s'", tostring(au.WantBoost), tostring(ac.Result), tostring(ac.RevealName), tostring(ac.Tag)))
+			string.format("damage x%s from the aura; %s has mini bees (%s), the reveal says '%s', its tile says '%s'", tostring(au.WantBoost), tostring(ac.Result), tostring(ac.Bees), tostring(ac.RevealName), tostring(ac.Tag)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))
