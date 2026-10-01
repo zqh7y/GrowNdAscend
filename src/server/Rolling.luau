@@ -78,11 +78,17 @@ rollFunction.OnServerInvoke = function(player)
 	local world = PlayerData.worldOf(player)
 	local results = {}
 	local sizeLuck = Config.sizeLuck(data)
+	-- the luck chain multiplier earned by the last spin applies to this one
+	-- (Config.luck reads it); the exact luck of every roll goes back to the
+	-- client, so the odds it shows are computed from the very same numbers
+	local multiplier = Config.luckMultiplier(data)
 	for _ = 1, Config.rollsAtOnce(data) do
 		data.Rolls += 1
 		local isBonus = data.Rolls % Config.BONUS_EVERY == 0
-		local pet = Config.roll(Config.luck(data, isBonus, world), random, world)
-		local sizeIndex = Config.rollSize(sizeLuck * (if isBonus then Config.BONUS_LUCK else 1), random)
+		local luck = Config.luck(data, isBonus, world)
+		local rollSizeLuck = sizeLuck * (if isBonus then Config.BONUS_LUCK else 1)
+		local pet = Config.roll(luck, random, world)
+		local sizeIndex = Config.rollSize(rollSizeLuck, random)
 		local name = Config.petName(pet.Name, sizeIndex)
 
 		local isFirst = not data.Discovered[pet.Name]
@@ -93,7 +99,23 @@ rollFunction.OnServerInvoke = function(player)
 		if not best or pet.Odds > best.Odds then
 			data.Best = pet.Name
 		end
-		table.insert(results, { Pet = pet.Name, Size = sizeIndex, Name = name, Bonus = isBonus, First = isFirst, FirstOfSize = isFirstOfSize, World = world })
+		table.insert(results, {
+			Pet = pet.Name,
+			Size = sizeIndex,
+			Name = name,
+			Bonus = isBonus,
+			First = isFirst,
+			FirstOfSize = isFirstOfSize,
+			World = world,
+			Luck = luck,
+			SizeLuck = rollSizeLuck,
+			Multiplier = multiplier,
+		})
+	end
+	-- then this spin decides the next spin's multiplier
+	data.LuckChain = Config.nextChain(multiplier, random)
+	for _, result in ipairs(results) do
+		result.NextMultiplier = data.LuckChain
 	end
 
 	-- Auto Hatch level 2 keeps the strongest team equipped

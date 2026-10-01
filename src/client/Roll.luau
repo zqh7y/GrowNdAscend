@@ -83,8 +83,9 @@ local function refreshLuck()
 	local world = currentWorld(data)
 	shownWorld = world
 	local luck = Config.luck(data, nextIsBonus, world)
-	luckText.Text = string.format("Luck x%.2f", luck)
-	bonusText.Text = if nextIsBonus then "· 2x bonus roll!" else "· 2x in " .. untilBonus
+	luckText.Text = if luck < 1000 then string.format("Luck x%.2f", luck) else "Luck x" .. Config.formatNumber(luck)
+	local chain = Config.luckMultiplier(data)
+	bonusText.Text = if chain > 1 then string.format("· 🍀 x%d next spin", chain) elseif nextIsBonus then "· 2x bonus roll!" else "· 2x in " .. untilBonus
 	bonusText.TextColor3 = if nextIsBonus then Ui.GOLD else Ui.MUTED
 	meter.Edge.Color = if nextIsBonus then Ui.GOLD else Ui.LINE
 	meter.Edge.Thickness = if nextIsBonus then 2 else 1
@@ -122,33 +123,19 @@ function Roll.roll()
 	local ok, results = pcall(rollFunction.InvokeServer, rollFunction)
 	if ok and type(results) == "table" and #results > 0 then
 		-- the full hatch the first time and when rolling by hand; a quicker
-		-- one when grinding (auto roll, Auto Hatch 1, or the setting off);
-		-- the compact row at the top unless the big hatch is switched on
-		-- (a Huge or Titanic always gets its big reveal afterwards)
+		-- one when grinding (auto roll, Auto Hatch 1, or the setting off)
 		local fast = hatchedOnce and (not State.Settings.Reveals or autoRoll or Config.upgradeLevel(data, "AutoHatch") >= 1)
 		hatchedOnce = true
 		meterScale.Scale = 1.06
 		task.delay(0.12, function()
 			meterScale.Scale = 1
 		end)
-		-- auto rolls always show in the compact row at the bottom; by hand,
-		-- the compact row at the top unless the full hatch is switched on.
-		-- A Huge, Titanic or crazy pull always gets its big reveal after it
-		if autoRoll or not State.Settings.FullHatch then
-			Hatch.compact(results, fast, autoRoll)
-			local best, bestTier = nil, 3
-			for _, result in ipairs(results) do
-				local tier = Hatch.tier(result)
-				if tier > bestTier then
-					best, bestTier = result, tier
-				end
-			end
-			if best then
-				Hatch.reveal(best.Pet, best.Size)
-			end
-		else
-			Hatch.play(results, fast, results[1].World or world)
-		end
+		-- the spinner is always at the bottom of the screen (by hand and on
+		-- auto); the full mode adds the big reveal. A Huge or Titanic gets the
+		-- bush cutscene and a crazy pull its own show (Hatch decides, from the
+		-- results the server already rolled; the animation never changes them)
+		local mode = if State.Settings.FullHatch and not autoRoll then "full" else "compact"
+		Hatch.play(results, fast, results[1].World or world, mode, autoRoll)
 		local discovered = discoveredBefore
 		for _, result in ipairs(results) do
 			if result.First and not discovered[result.Pet] then

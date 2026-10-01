@@ -32,13 +32,13 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 66-point player checklist (spawning, rolling, pets
+- The sim ends with a 72-point player checklist (spawning, rolling, pets
   fighting, levels and EXP, rebirth keeping worlds, the full and compact hatches, flex
   rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
-  hatch show step by step). It must say "checklist: 66/66 passed". It takes
+  hatch show step by step). It must say "checklist: 72/72 passed". It takes
   a few minutes; run it in the background.
 - Economy: `python3 tools/economy/simulate.py 3 --hours 10` simulates an
   active player (it reads worlds, rebirths, levels and animals from
@@ -103,19 +103,24 @@ for how it plays and where the code lives.
 - Rebirths: `Config.REBIRTHS` (cost + level per rebirth, 8 of them). A
   rebirth resets coins only: never worlds, pets, upgrades, Index or level.
   Levels: EXP per enemy is `AREAS[i].Breakable.Exp`, the curve is
-  `LEVEL_BASE x level ^ LEVEL_POWER` (`Config.addExp`). Luck
+  `LEVEL_BASE x LEVEL_GROWTH ^ (level - 1)` (10 EXP for level 1 -> 2,
+  then 1.1x per level; `Config.addExp`). Luck
   x1.5 and coins +200% per rebirth are computed from the rebirth count
   (`rebirthLuck`, `coinMultiplier`), so they always stack. Rerun
   `simulate.py 0 --rebirth 70` after changing them.
 - The hatch (`Hatch.luau`) must never get stuck: it runs protected and
-  always cleans up. Pressing Roll during a hatch skips; it never stacks.
-  Two modes: `Hatch.compact` (default, a small row at the top, at most a
-  10% backdrop; at the bottom while auto rolling) and `Hatch.play` (full,
-  `State.Settings.FullHatch`). Crazy pulls (`Hatch.isCrazy`, tier 6) get
-  their own show. The Roll/Auto/mode buttons live in `Screen.Controls`, a
-  ScreenGui above everything; keep them there. No
-  panels or windows behind the pets (tested). Flex rolls are visual only:
-  the carousel always lands on and reveals the real result (tested).
+  always cleans up (camera, bush, spinner). Pressing Roll during a hatch
+  skips; it never stacks. The server decides every result first and sends
+  the exact luck/size luck/world it used; the client only shows it. The
+  spinner is always at the bottom (`Hatch.play(results, fast, world, mode,
+  auto)`, mode "compact" or "full"). The odds on the pets come from
+  `Config.chanceOf`, which follows `Config.roll`/`Config.rollSize` step by
+  step: change one, change the other (the sim checks them against 1M real
+  rolls). The luck chain (`Config.nextChain`, `data.LuckChain`) is applied
+  inside `Config.luck`. Huge/Titanic get the bush cutscene (once per
+  `Hatch.CUTSCENE_COOLDOWN` on auto). Flex rolls are visual only.
+  The Roll/Auto/mode buttons live in `Screen.Controls`, a ScreenGui above
+  everything; keep them there.
 - UI style lives in `Ui.luau` (fonts, button styles incl. colours) and
   `Screen.modal(width, height, theme)` (ribbon, border, shadow, blur); new
   screens use those so everything looks the same.

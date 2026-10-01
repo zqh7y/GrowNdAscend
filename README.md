@@ -29,38 +29,37 @@ chase Huge and Titanic pets.**
   world**, but animals from worlds ahead of the one you stand in are 25x
   rarer per world (a World 4 animal in World 1: 15,625x rarer), and each
   world adds luck (x1 / x1.2 / x1.45 / x1.75), so later worlds hatch better.
-- **The hatch** has two modes (the eye button switches them):
-  - **Compact** (the default): a small row at the top of the screen, under
-    your coins. Pets glide in from the right, the middle one larger, and
-    ease to a stop on your pet, which pops with its name and a rarity chip.
-    Only a faint pill (10% opacity) sits behind it; the game stays fully
-    visible and playable underneath. A Huge or Titanic still gets its big
-    reveal.
-  - **Full**: the same idea, bigger and centred over a soft dim. A carousel
-    of large pets (smaller and fainter towards the sides, soft shadows
-    under each) slows down onto your pet, holds a short silhouette, then
-    your pet rises large with its name, rarity, odds and its power counting
-    up. No windows or boxes: the pets are the show. Effects stay calm and
-    grow with rarity: soft sparkles, gentle light rays, a gold glow and
-    confetti for Huge, a slow rise with a rainbow glow for Titanic. About 1
-    full hatch in 30 is a **flex roll**: a Huge or Titanic slides past the
-    middle with a small "Huge Dragon?!" label; it's only a show, the
-    carousel always stops on what you actually rolled.
-
-  - **Auto rolls** always show in the compact row at the **bottom** of the
-    screen, so the top stays clear while you grind.
-  - **Crazy pulls** (a Mythic or Secret animal, a Titanic of a 1 in 1,000+
-    animal, or a Huge of a 1 in 100,000+ one) get a very special show, even
-    while auto rolling: the screen goes dark, three heartbeats with rings
-    of light ("... wait... NO WAY..."), the screen trembles and cracks open
-    with rainbow light, a white flash and a confetti storm, then the pet
-    rises under "INSANE SECRET!" with spinning rainbow rays, a shimmering
-    name and fireworks.
+- **The hatch:** the server rolls first (pet, size and the exact luck it
+  used); the screen only shows that result.
+  - **The spinner** is always at the bottom of the screen, by hand and on
+    auto, over a faint pill (10% opacity), so the game stays visible and
+    the Roll/Auto buttons stay free. Every pet carries its **exact chance**
+    for this roll ("1 in 12.5K"), worked out from the same luck, size luck
+    and world the server rolled with (`Config.chanceOf`), never a rarity
+    label. It eases to a stop on your pet and shows its name and chance.
+  - **Luck chain:** after every spin there's a 1 in 6 chance of a **x2
+    luck** multiplier for the next spin; another x2 multiplies it (x2 → x4
+    → x8 … up to x1024), a spin without one resets it. A clover chip on the
+    spinner shows it ("🍀 x4 LUCK"; "🍀 x8 LUCK next spin!" in gold when you
+    win one). It multiplies the real luck of the roll (total luck is capped
+    at 1M, so no pet is ever certain).
+  - **Full mode** (the eye button): a bigger spinner with a silhouette
+    moment, then a centred reveal where the pet rises large with its name,
+    exact chance and power counting up. About 1 full hatch in 30 is a
+    **flex roll**: a Huge or Titanic slides past ("Huge Dragon?!"); the
+    spinner still stops on what you actually rolled.
+  - **Huge and Titanic: the bush cutscene.** The camera glides onto a bush
+    a little ahead of you, the bush rustles harder and harder for about 2
+    seconds, then your pet jumps out towards the screen with light and
+    sound, and the reveal shows it with its exact chance. Only for a pet
+    you really rolled; click (or press Roll) to skip. On auto it plays at
+    most once every 90 seconds; in between, a short reveal.
+  - **Crazy pulls** (a Mythic or Secret animal) get their own show: dark
+    screen, heartbeats with rings of light, rainbow cracks, a flash, then
+    "INSANE PULL!".
 
   The Roll, Auto and hatch mode buttons sit on their own layer above
-  everything (panels and the hatch included), so they always work. Click
-  (or press Roll) to skip; hatches get quicker after the first few and when
-  auto rolling. Every 10th roll has 2x luck.
+  everything, so they always work. Every 10th roll has 2x luck.
 - **Upgrade tree** (the tree button): Coins, Damage, Luck, Roll Speed, Rolls
   at Once, Auto Hatch (auto roll → quick reveals → auto-equip best), Size
   Luck and Pet Slots. Some branches unlock after others.

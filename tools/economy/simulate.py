@@ -31,10 +31,10 @@ for block in re.findall(r'Name = "[^"]+",\s*Luck = ([\d.]+).*?Cost = ([\d.e]+),.
     WORLDS.append((hp, coins, exp, cost, luck))
 REBIRTHS = [(float(c), int(l)) for c, l in re.findall(r'\{ Cost = ([\d.e]+), Level = (\d+) \}', _config)]
 REBIRTH_LUCK, REBIRTH_COINS = num(r'REBIRTH_LUCK = ([\d.]+)'), num(r'REBIRTH_COINS = ([\d.]+)')
-LEVEL_BASE, LEVEL_POWER = num(r'LEVEL_BASE = ([\d.]+)'), num(r'LEVEL_POWER = ([\d.]+)')
+LEVEL_BASE, LEVEL_GROWTH = num(r'LEVEL_BASE = ([\d.]+)'), num(r'LEVEL_GROWTH = ([\d.]+)')
 
 def exp_to_next(level):  # Config.expToNext
-    return math.floor(LEVEL_BASE * level ** LEVEL_POWER)
+    return math.floor(LEVEL_BASE * LEVEL_GROWTH ** (level - 1) + 0.5)
 
 def base_power(odds):  # Config pet power
     return 1e6 * (odds / 1000) ** 1.17
@@ -54,6 +54,8 @@ UP = {  # id: (value(level), cost(level), max)  -- mirrors Config.UPGRADES
 HIT_EVERY = 0.6
 OVERHEAD = 1.6  # seconds per enemy: running over, retargeting, its hops
 BONUS_EVERY, BONUS_LUCK = 10, 2
+CHAIN_CHANCE, CHAIN_MAX = 1 / 6, 1024  # the luck chain (Config.nextChain)
+MAX_LUCK = num(r'MAX_LUCK = ([\d.e]+)')
 
 def pet_luck(odds, size):  # Config.petLuck (added up, then 1 + sum)
     return math.log10(odds) * 0.05 * [1, 2, 4][size]
@@ -76,6 +78,7 @@ def run(hours=8, seed=1, verbose=False):
     pets, team = [], []
     log = {}
     roll_clock = 0.0
+    chain = 1
     def refresh_team():
         nonlocal team
         team = sorted(pets, key=lambda p: -p[0])[: int(val("Slots"))]
@@ -88,11 +91,13 @@ def run(hours=8, seed=1, verbose=False):
         roll_clock += 1.0
         while roll_clock >= cycle:
             roll_clock -= cycle
+            multiplier = chain
+            chain = min(chain * 2, CHAIN_MAX) if rng.random() < CHAIN_CHANCE else 1
             for _ in range(int(val("Rolls"))):
                 rolls += 1
                 bonus = BONUS_LUCK if rolls % BONUS_EVERY == 0 else 1
                 luck = val("Luck") * (1 + sum(pet_luck(o, s) for _, o, s in team)) * bonus
-                luck *= REBIRTH_LUCK ** rebirths * world_luck
+                luck = min(luck * REBIRTH_LUCK ** rebirths * world_luck * multiplier, MAX_LUCK)
                 odds = 2
                 for o, w in reversed(PETS[1:]):
                     if rng.random() < luck / (o * WORLD_PENALTY ** max(0, w - world)):

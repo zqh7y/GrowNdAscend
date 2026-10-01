@@ -602,6 +602,7 @@ if ok then
 			try("hatch " .. case.Key, Hatch.play, { case.Result, { Pet = "Cat", Size = 1 } }, false, 1)
 			local last = table.clone(Hatch.Last or {})
 			last.Seconds = CLOCK - startClock
+			last.Cutscene = Hatch.LastCutscene and table.clone(Hatch.LastCutscene)
 			hatchReport[case.Key] = last
 			if case.Key == "common" then
 				-- no window: nothing big and solid behind the pets, only the soft dim
@@ -625,6 +626,27 @@ if ok then
 			frames(1)
 		end
 		hatchReport.SkipSeconds = CLOCK - skipStart
+		hatchReport.SkipCutscene = Hatch.LastCutscene and table.clone(Hatch.LastCutscene)
+		-- AUTO: the bush cutscene plays once, then a short reveal during the cooldown
+		local camera = workspace.CurrentCamera
+		local autoA, autoB = {}, {}
+		local t0 = CLOCK
+		try("hatch auto huge 1", Hatch.play, { { Pet = "Lion", Size = 2 } }, true, 1, "compact", true)
+		autoA = table.clone(Hatch.LastCutscene or {})
+		autoA.Seconds = CLOCK - t0
+		t0 = CLOCK
+		try("hatch auto huge 2", Hatch.play, { { Pet = "Lion", Size = 2 } }, true, 1, "compact", true)
+		autoB = table.clone(Hatch.LastCutscene or {})
+		autoB.Seconds = CLOCK - t0
+		hatchReport.AutoCutscenes = { autoA, autoB }
+		hatchReport.CameraBack = camera.CameraType ~= Enum.CameraType.Scriptable
+		local bushes = 0
+		for _, d in ipairs(workspace:GetChildren()) do
+			if d.Name == "HatchBush" then bushes += 1 end
+		end
+		hatchReport.BushesLeft = bushes
+		print(string.format("auto cutscenes: first %s (%.1fs), second %s (%.1fs); camera back %s, bushes left %d",
+			tostring(autoA.Bush), autoA.Seconds, tostring(autoB.Abbreviated), autoB.Seconds, tostring(hatchReport.CameraBack), bushes))
 		-- rapid rolling: hammering Roll never starts a second show or breaks it
 		data.Upgrades = { AutoHatch = 0 }
 		local rollsBefore = data.Rolls
@@ -665,11 +687,16 @@ if ok then
 		if not C("Roll").autoOn() then
 			C("Roll").toggleAuto()
 		end
-		local autoBottom = false
+		local autoBottom, chainFeeds, lastFeed = false, {}, nil
 		for _ = 1, 900 do
 			frames(1)
-			if Hatch.LastFeed and Hatch.LastFeed.Bottom then autoBottom = true end
+			if Hatch.LastFeed and Hatch.LastFeed ~= lastFeed then
+				lastFeed = Hatch.LastFeed
+				table.insert(chainFeeds, { Multiplier = lastFeed.Multiplier, Next = lastFeed.NextMultiplier })
+				if lastFeed.Bottom then autoBottom = true end
+			end
 		end
+		STATS.ChainFeeds = chainFeeds
 		local autoRolls = data.Rolls - autoBefore
 		C("Roll").toggleAuto()
 		for _ = 1, 900 do
@@ -682,6 +709,13 @@ if ok then
 		State.Settings.FullHatch = false
 		local hiddenBefore, everShaded = data.Rolls, false
 		Hatch.LastFeed = nil
+		local nextIsBonus = (data.Rolls + 1) % __cache["Shared/Config"].BONUS_EVERY == 0
+		local rollWorld = PlayerData.worldOf(player)
+		data.LuckChain = 1
+		local baseLuck = __cache["Shared/Config"].luck(data, nextIsBonus, rollWorld)
+		data.LuckChain = 8
+		PlayerData.sync(player)
+		frames(2)
 		task.spawn(C("Roll").roll)
 		for _ = 1, 240 do
 			frames(1)
@@ -690,9 +724,10 @@ if ok then
 		local feed = Hatch.LastFeed or {}
 		local controlsGui, gameGui = player.PlayerGui:FindFirstChild("ControlsGui"), player.PlayerGui:FindFirstChild("GameGui")
 		STATS.Controls = controlsGui ~= nil and controlsGui:FindFirstChild("Controls") ~= nil and (controlsGui.DisplayOrder or 0) > (gameGui.DisplayOrder or 0)
-		STATS.AutoHide = { AutoBottom = autoBottom, TopAfter = feed.Bottom == false, AutoRolls = autoRolls, HiddenRolls = data.Rolls - hiddenBefore, EverShaded = everShaded, Landed = feed.Landed, Names = feed.Names, Backdrop = feed.Backdrop }
+		STATS.Chain8 = { Expected = math.min(baseLuck * 8, __cache["Shared/Config"].MAX_LUCK), Luck = feed.Context and feed.Context.Luck, Multiplier = feed.Multiplier, Chip = feed.LuckChip, Chances = feed.Chances, Context = feed.Context, Result = feed.Landed, ResultChance = feed.ResultChance }
+		STATS.AutoHide = { AutoBottom = autoBottom, TopAfter = feed.Bottom == true, AutoRolls = autoRolls, HiddenRolls = data.Rolls - hiddenBefore, EverShaded = everShaded, Landed = feed.LandedName, Names = feed.Names, Backdrop = feed.Backdrop }
 		print(string.format("auto roll with no upgrades: %d rolls in 15s | compact hatch: %d roll, landed %s (shown %s), backdrop transparency %s, full screen dim %s",
-			autoRolls, STATS.AutoHide.HiddenRolls, tostring(feed.Landed), tostring(feed.Names and feed.Names[1]), tostring(feed.Backdrop), tostring(everShaded)))
+			autoRolls, STATS.AutoHide.HiddenRolls, tostring(feed.LandedName), tostring(feed.Names and feed.Names[1]), tostring(feed.Backdrop), tostring(everShaded)))
 
 		-- LEVEL: the HUD shows level and EXP; a level-up shows the celebration
 		local Hud = C("Hud")
@@ -1129,7 +1164,102 @@ if ok then
 	item(64, "crazy pulls get a very special show", crazy.Tier == 6 and crazy.Crazy == true and string.find(crazy.Banner or "", "INSANE") ~= nil and (crazy.Seconds or 0) > (titanic.Seconds or 0) and crazy.Revealed == "Glitch",
 		string.format("'%s', %.1fs vs %.1fs for a Titanic", tostring(crazy.Banner), crazy.Seconds or 0, titanic.Seconds or 0))
 	item(65, "Roll / Auto / mode buttons always reachable", STATS.Controls == true, "own layer above panels and the hatch")
-	item(66, "auto rolls show at the bottom", ah.AutoBottom == true and ah.TopAfter == true, "compact row at the bottom while auto rolling, top by hand")
+	item(66, "spins show at the bottom (by hand and auto)", ah.AutoBottom == true and ah.TopAfter == true, "spinner at the bottom both ways")
+
+	-- 67. the odds shown are the real odds: a million rolls with the real
+	-- roll function land on each pet as often as Config.chanceOf says
+	do
+		local rng = Random.new(7)
+		local luck, sizeLuck, world = 6.3, 3, 2
+		local counts, n = {}, 1000000
+		for _ = 1, n do
+			local pet = Config.roll(luck, rng, world)
+			local name = Config.petName(pet.Name, Config.rollSize(sizeLuck, rng))
+			counts[name] = (counts[name] or 0) + 1
+		end
+		local worst, checked, impossible = 0, 0, 0
+		for name, count in pairs(counts) do
+			local p = Config.chanceOf(name, luck, sizeLuck, world)
+			if p <= 0 then
+				impossible += 1
+			elseif count >= 4000 then
+				checked += 1
+				worst = math.max(worst, math.abs(count / n - p) / p)
+			end
+		end
+		local total = 0
+		for _, p in pairs(Config.petChances(luck, world)) do total += p end
+		local sizeTotal = 0
+		for _, p in pairs(Config.sizeChances(sizeLuck)) do sizeTotal += p end
+		local valid = true
+		for _, l in ipairs({ 0.5, 1, 37, 1e5, 1e12 }) do
+			local sum = 0
+			for _, p in pairs(Config.petChances(math.min(l, Config.MAX_LUCK), 4)) do
+				if p < 0 or p > 1 or p ~= p then valid = false end
+				sum += p
+			end
+			if math.abs(sum - 1) > 1e-9 then valid = false end
+		end
+		local glitch = Config.chanceOf("Glitch", Config.MAX_LUCK, 1, 4)
+		item(67, "shown odds = real odds", checked >= 8 and worst < 0.05 and impossible == 0 and math.abs(total - 1) < 1e-9 and math.abs(sizeTotal - 1) < 1e-9 and valid and glitch < 1,
+			string.format("%d pets checked over 1M rolls, worst error %.1f%%; chances add up to 1; max luck still leaves the rarest at %s", checked, worst * 100, Config.formatChance(glitch)))
+	end
+
+	-- 68. every spinning pet (and the result) shows its exact chance for that roll
+	do
+		local c8 = STATS.Chain8 or {}
+		local ctx = c8.Context or {}
+		local wrong, labels = 0, 0
+		for _, shown in ipairs(c8.Chances or {}) do
+			labels += 1
+			local expected = Config.formatChance(Config.chanceOf(shown.Name, ctx.Luck or 0, ctx.SizeLuck or 0, ctx.World or 1))
+			if shown.Text ~= expected or not string.match(shown.Text, "^1 in [%d%.]+%a*$") then
+				wrong += 1
+			end
+		end
+		local commonH = (STATS.Hatch or {}).common or {}
+		item(68, "every spinning pet shows its exact chance", labels >= 20 and wrong == 0 and c8.ResultChance ~= nil and commonH.RevealChance == commonH.ResultChance,
+			string.format("%d labels, %d wrong; result %s; e.g. '%s'", labels, wrong, tostring(c8.ResultChance), tostring(c8.Chances and c8.Chances[1] and c8.Chances[1].Text)))
+	end
+
+	-- 69. the luck chain: x2 multiplies, up to x1024, used by the real roll
+	do
+		local c8 = STATS.Chain8 or {}
+		local always = { NextNumber = function() return 0 end }
+		local never = { NextNumber = function() return 0.99 end }
+		local rules = Config.nextChain(1, always) == 2 and Config.nextChain(4, always) == 8 and Config.nextChain(512, always) == 1024
+			and Config.nextChain(1024, always) == 1024 and Config.nextChain(64, never) == 1
+			and Config.luckMultiplier({ LuckChain = 3 }) == 2 and Config.luckMultiplier({}) == 1 and Config.luckMultiplier({ LuckChain = 1e9 }) == 1024
+		local chainOk, steps = true, 0
+		local feeds = STATS.ChainFeeds or {}
+		for i, f in ipairs(feeds) do
+			if not (f.Next == 1 or f.Next == math.min((f.Multiplier or 1) * 2, 1024)) then chainOk = false end
+			if i > 1 and feeds[i - 1].Next ~= f.Multiplier then chainOk = false end
+			if (f.Multiplier or 1) > 1 then steps += 1 end
+		end
+		local usedLuck = c8.Luck and c8.Expected and math.abs(c8.Luck - c8.Expected) < 1e-6 * c8.Expected
+		item(69, "luck chain x2 -> x1024, used by the roll", rules and chainOk and usedLuck == true and c8.Multiplier == 8 and c8.Chip == "🍀 x8 LUCK",
+			string.format("x8 spin rolled with luck %s (expected %s), chip '%s'; %d auto spins followed the chain (%d boosted)", tostring(c8.Luck), tostring(c8.Expected), tostring(c8.Chip), #feeds, steps))
+	end
+
+	-- 70-72. the bush cutscene: only for a real Huge/Titanic, skippable, rare on auto
+	do
+		local hh = STATS.Hatch or {}
+		local hugeC = (hh.huge or {}).Cutscene or {}
+		local titanC = (hh.titanic or {}).Cutscene or {}
+		local commonC = (hh.common or {}).Cutscene
+		local rareC = (hh.rare or {}).Cutscene
+		item(70, "bush cutscene for a real Huge/Titanic", hugeC.Name == "Huge Lion" and hugeC.Bush == true and hugeC.Jumped == true and (hugeC.Shake or 0) >= 1.8 and (hugeC.Shake or 0) <= 2.3
+			and titanC.Name == "Titanic Cat" and titanC.Jumped == true and commonC == nil and rareC == nil and (hh.huge or {}).Revealed == "Huge Lion",
+			string.format("Huge Lion: shook %.1fs, jumped out, revealed %s at %s; none for normal pets", hugeC.Shake or 0, tostring((hh.huge or {}).Revealed), tostring((hh.huge or {}).RevealChance)))
+		local sk = hh.SkipCutscene or {}
+		item(71, "cutscene can be skipped, camera comes back", sk.Skipped == true and (hh.SkipSeconds or 99) < 3 and hh.CameraBack == true and hh.BushesLeft == 0,
+			string.format("skipped in %.1fs, camera restored, %s bushes left", hh.SkipSeconds or 0, tostring(hh.BushesLeft)))
+		local a = hh.AutoCutscenes or {}
+		local first, second = a[1] or {}, a[2] or {}
+		item(72, "auto: one cutscene, then short reveals", first.Bush == true and second.Abbreviated == true and (second.Seconds or 99) < (first.Seconds or 0),
+			string.format("first %.1fs with the bush, next %.1fs (cooldown %ds)", first.Seconds or 0, second.Seconds or 0, 90))
+	end
 
 	local passed = 0
 	for _, r in ipairs(results) do

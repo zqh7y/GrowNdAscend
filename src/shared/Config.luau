@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 10 (auto rolls at the bottom, crazy pull show)"
+Config.BUILD = "build 11 (bottom spin, exact odds, luck chain, bush cutscene)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -202,9 +202,39 @@ Config.BONUS_LUCK = 2
 Config.BIG_ROLL = 1000 -- rolls this rare (1 in 1000+), or any big size, get the big reveal
 Config.FUSE_COPIES = 5 -- the fusion machine turns 5 of a pet into 1 of the next size
 
+-- The luck chain: after every spin there's a 1 in 6 chance of a x2 luck
+-- multiplier for the NEXT spin. Another x2 multiplies the one you have
+-- (x2 -> x4 -> x8 ... up to x1024); a spin without one resets it to x1.
+-- The server keeps it in data.LuckChain and Config.luck applies it, so the
+-- roll, the odds shown on the pets and the luck chip all use the same value.
+Config.CHAIN_CHANCE = 1 / 6
+Config.CHAIN_MAX = 1024
+-- Total luck never goes above this, so no pet is ever certain (the rarest
+-- animal stays at 1 in 10 or worse even with every multiplier stacked)
+Config.MAX_LUCK = 1e6
+
+-- The multiplier for the coming spin (always a power of two, 1..1024)
+function Config.luckMultiplier(data)
+	local chain = data.LuckChain
+	if type(chain) ~= "number" or chain < 1 or chain ~= chain then
+		return 1
+	end
+	return math.min(2 ^ math.floor(math.log(chain, 2) + 1e-9), Config.CHAIN_MAX)
+end
+
+-- The multiplier after a spin made with `current`: doubled (capped) on a
+-- x2, otherwise back to 1
+function Config.nextChain(current, random)
+	if random:NextNumber() < Config.CHAIN_CHANCE then
+		return math.min(current * 2, Config.CHAIN_MAX)
+	end
+	return 1
+end
+
 -- Total luck: the Luck upgrade (the big one), times a bonus from the
 -- equipped pets, times x1.5 per rebirth, times the world you roll in, times
--- 2 on every 10th roll. `world` is the area the player stands in (nil = 1).
+-- 2 on every 10th roll, times the luck chain. `world` is the area the player
+-- stands in (nil = 1). Capped at MAX_LUCK.
 function Config.luck(data, isBonus, world)
 	local fromPets = 1
 	for _, name in ipairs(data.Equipped) do
@@ -215,7 +245,8 @@ function Config.luck(data, isBonus, world)
 	if isBonus then
 		luck *= Config.BONUS_LUCK
 	end
-	return luck
+	luck *= Config.luckMultiplier(data)
+	return math.min(luck, Config.MAX_LUCK)
 end
 
 -- Every animal can be hatched in every world, but animals from worlds ahead
@@ -240,6 +271,70 @@ function Config.roll(luck, random, world)
 		end
 	end
 	return Config.PETS[1]
+end
+
+-- The exact chance (0..1) of every animal on one roll with this luck in this
+-- world. It follows Config.roll step by step: the rarest animal is tried
+-- first, and each one only gets its turn if every rarer one missed. These
+-- are the numbers shown on the pets while hatching, so they always match
+-- what the server actually rolls.
+local chanceCache, cached = {}, 0
+function Config.petChances(luck, world)
+	local key = string.format("%.9g|%d", luck, world or 0)
+	local known = chanceCache[key]
+	if known then
+		return known
+	end
+	local chances, remaining = {}, 1
+	for i = #Config.PETS, 2, -1 do
+		local pet = Config.PETS[i]
+		local hit = math.clamp(luck / Config.worldOdds(pet, world), 0, 1)
+		chances[pet.Name] = remaining * hit
+		remaining *= 1 - hit
+	end
+	chances[Config.PETS[1].Name] = remaining
+	cached += 1
+	if cached > 200 then
+		table.clear(chanceCache)
+		cached = 1
+	end
+	chanceCache[key] = chances
+	return chances
+end
+
+-- The exact chance of each size (index -> 0..1), following Config.rollSize
+function Config.sizeChances(sizeLuck)
+	local chances, remaining = {}, 1
+	for i = #Config.SIZES, 2, -1 do
+		local hit = math.clamp(sizeLuck / Config.SIZES[i].Chance, 0, 1)
+		chances[i] = remaining * hit
+		remaining *= 1 - hit
+	end
+	chances[1] = remaining
+	return chances
+end
+
+-- The exact chance of getting exactly this pet in this size ("Huge Tiger")
+-- on one roll with this luck, size luck and world
+function Config.chanceOf(name, luck, sizeLuck, world)
+	local pet, size = Config.petInfo(name)
+	if not pet then
+		return 0
+	end
+	return Config.petChances(luck, world)[pet.Name] * Config.sizeChances(sizeLuck)[size.Index]
+end
+
+-- A chance as "1 in N" ("1 in 2.5", "1 in 500", "1 in 12.5K", "1 in 1.1M")
+function Config.formatChance(chance)
+	if not chance or chance <= 0 or chance ~= chance then
+		return "not possible"
+	end
+	local odds = 1 / chance
+	if odds < 100 then
+		local text = string.format("%.1f", odds):gsub("%.0$", "")
+		return "1 in " .. text
+	end
+	return "1 in " .. Config.formatNumber(math.floor(odds + 0.5))
 end
 
 -- Seconds the fusion machine takes: rarer pets and bigger sizes take longer
@@ -614,14 +709,15 @@ end
 
 -- Every enemy you defeat gives EXP (Config.AREAS[i].Breakable.Exp, more in
 -- later worlds). EXP fills your level; each level needs more than the last:
--- LEVEL_BASE x level ^ LEVEL_POWER (level 1 -> 2 needs 8, level 50 -> 51
--- ~2.8K, level 500 -> 501 ~89K). Levels never reset.
-Config.LEVEL_BASE = 8
-Config.LEVEL_POWER = 1.5
+-- Level 1 -> 2 needs LEVEL_BASE (10) EXP, and every level needs
+-- LEVEL_GROWTH (1.1x) as much as the one before: 10, 11, 12.1, 13.3, ...
+-- (level 50 -> 51 ~1.07K, level 100 -> 101 ~125K). Levels never reset.
+Config.LEVEL_BASE = 10
+Config.LEVEL_GROWTH = 1.1
 
--- EXP needed to go from `level` to the next
+-- EXP needed to go from `level` to the next (rounded to a whole number)
 function Config.expToNext(level)
-	return math.floor(Config.LEVEL_BASE * level ^ Config.LEVEL_POWER)
+	return math.floor(Config.LEVEL_BASE * Config.LEVEL_GROWTH ^ (level - 1) + 0.5)
 end
 
 -- Adds EXP to a player's data; returns how many levels they went up

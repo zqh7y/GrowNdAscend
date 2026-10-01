@@ -155,6 +155,7 @@ function PlayerData.sync(player)
 		Upgrades = data.Upgrades,
 		Discovered = data.Discovered,
 		Fusion = data.Fusion,
+		LuckChain = data.LuckChain or 1,
 		ServerTime = os.time(),
 	})
 end
