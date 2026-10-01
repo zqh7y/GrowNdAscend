@@ -6,7 +6,14 @@
 -- of effects.
 local TweenService = game:GetService("TweenService")
 
+local State = require(script.Parent.State)
+
 local Ui = {}
+
+-- true when the player asked for calmer animations (Settings)
+function Ui.reduced()
+	return State.Settings.ReducedMotion == true
+end
 
 -- Theme --------------------------------------------------------------------------
 
@@ -516,12 +523,12 @@ function Ui.button(props, onClick, styleName)
 		TweenService:Create(edge, TweenInfo.new(0.2), { Transparency = style.EdgeT }):Play()
 	end
 	button.MouseEnter:Connect(function()
-		TweenService:Create(scaler, TweenInfo.new(0.15), { Scale = 1.04 }):Play()
+		TweenService:Create(scaler, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = if Ui.reduced() then 1 else 1.04 }):Play()
 		TweenService:Create(edge, TweenInfo.new(0.15), { Transparency = 0.25 }):Play()
 	end)
 	button.MouseLeave:Connect(settle)
 	button.MouseButton1Down:Connect(function()
-		TweenService:Create(scaler, TweenInfo.new(0.06), { Scale = 0.94 }):Play()
+		TweenService:Create(scaler, TweenInfo.new(0.06), { Scale = if Ui.reduced() then 1 else 0.94 }):Play()
 	end)
 	button.MouseButton1Up:Connect(settle)
 	button.Activated:Connect(onClick)
@@ -563,13 +570,35 @@ function Ui.dockButton(props, onClick)
 	return holder, button
 end
 
+-- A card arriving in a list: it grows in, a few milliseconds after the one
+-- before it (capped, so long lists stay quick)
+function Ui.appear(frame, order)
+	if Ui.reduced() then
+		return
+	end
+	local scaler = frame:FindFirstChildOfClass("UIScale") or Ui.new("UIScale", { Parent = frame })
+	scaler.Scale = 0.9
+	local delay = math.min((order or 0) * 0.015, 0.25)
+	TweenService:Create(scaler, TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, 0, false, delay), { Scale = 1 }):Play()
+end
+
+-- A quick "this changed" pop (equipping, claiming)
+function Ui.pop(frame, amount)
+	if Ui.reduced() then
+		return
+	end
+	local scaler = frame:FindFirstChildOfClass("UIScale") or Ui.new("UIScale", { Parent = frame })
+	scaler.Scale = amount or 1.08
+	TweenService:Create(scaler, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+end
+
 -- Shows a panel (or a modal's dark background) and eases its box in
 function Ui.popIn(frame)
 	local target = frame:FindFirstChild("Box") or frame
 	local scaler = target:FindFirstChildOfClass("UIScale") or Ui.new("UIScale", { Parent = target })
-	scaler.Scale = 0.88
+	scaler.Scale = if Ui.reduced() then 1 else 0.9
 	frame.Visible = true
-	TweenService:Create(scaler, TweenInfo.new(0.22, Enum.EasingStyle.Quint), { Scale = 1 }):Play()
+	TweenService:Create(scaler, TweenInfo.new(0.24, Enum.EasingStyle.Quint), { Scale = 1 }):Play()
 end
 
 return Ui

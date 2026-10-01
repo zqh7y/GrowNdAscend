@@ -322,6 +322,7 @@ function Rebirth.rebirth()
 	if done then
 		Effects.jingle(6)
 		Effects.confetti(80)
+		Effects.flash(Ui.WHITE, 0.45)
 		Screen.close(modal)
 	end
 	return done

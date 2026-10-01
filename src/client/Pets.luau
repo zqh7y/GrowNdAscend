@@ -13,6 +13,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Creature = require(script.Parent.Creature)
+local Effects = require(script.Parent.Effects)
 local Living = require(script.Parent.Living)
 local PetModels = require(script.Parent.PetModels)
 
@@ -69,6 +70,8 @@ function Pets.update(equipped)
 	for slot = #followers, 1, -1 do
 		local f = followers[slot]
 		if f and equipped[slot] ~= f.Name then
+			local pet = Config.petInfo(f.Name)
+			Effects.burst(f.Creature.Position + Vector3.new(0, 1.5 * f.Size.Scale, 0), if pet then pet.Color else Color3.new(1, 1, 1))
 			f.Model:Destroy()
 			followers[slot] = nil
 		end
@@ -82,6 +85,10 @@ function Pets.update(equipped)
 				creature:teleport((r.CFrame * CFrame.new((slot % 3 - 1) * 3, -3, 4)).Position)
 			end
 			followers[slot] = { Name = name, Model = model, Size = size, Creature = creature }
+			if r then
+				-- a soft poof as it joins
+				Effects.burst(creature.Position + Vector3.new(0, 1.5 * size.Scale, 0), Config.petInfo(name).Color)
+			end
 		end
 	end
 end

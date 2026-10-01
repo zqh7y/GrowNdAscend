@@ -14,6 +14,32 @@ local rebirthFunction = Instance.new("RemoteFunction")
 rebirthFunction.Name = "Rebirth"
 rebirthFunction.Parent = remotes
 
+-- Index milestones: the reward is given once, right here on the server.
+-- The claim is marked before the reward is added and it all happens in one
+-- go (no yields), so double clicks, rejoins or replays can't pay twice.
+local claimFunction = Instance.new("RemoteFunction")
+claimFunction.Name = "ClaimMilestone"
+claimFunction.Parent = remotes
+claimFunction.OnServerInvoke = function(player, id)
+	local data = PlayerData.get(player)
+	if not data or type(id) ~= "string" then
+		return nil
+	end
+	data.Milestones = data.Milestones or {}
+	local ok = Config.canClaimMilestone(data, id)
+	if not ok then
+		return nil
+	end
+	local m = Config.MILESTONES_BY_ID[id]
+	data.Milestones[id] = true
+	data.Coins += m.Coins
+	if m.Boost > 1 then
+		data.LuckChain = math.min(Config.luckMultiplier(data) * m.Boost, Config.CHAIN_MAX)
+	end
+	PlayerData.sync(player)
+	return { Id = id, Coins = m.Coins, Boost = m.Boost, LuckChain = data.LuckChain }
+end
+
 local function refreshGates(unlocked)
 	for i = 2, #Config.AREAS do
 		World.setGateOpen(i, i <= unlocked)

@@ -32,13 +32,13 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 77-point player checklist (spawning, rolling, pets
+- The sim ends with a 83-point player checklist (spawning, rolling, pets
   fighting, levels and EXP, rebirth keeping worlds, the full and compact hatches, flex
   rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
-  hatch show step by step). It must say "checklist: 77/77 passed". It takes
+  hatch show step by step). It must say "checklist: 83/83 passed". It takes
   a few minutes; run it in the background.
 - Economy: `python3 tools/economy/simulate.py 3 --hours 10` simulates an
   active player (it reads worlds, rebirths, levels and animals from
@@ -120,6 +120,15 @@ for how it plays and where the code lives.
   `Config.chanceOf`, which follows `Config.rollResult` step by step: change
   one, change the other (the sim checks them against 1M real rolls). The
   boost is applied inside `Config.luck`.
+- Collection rewards: `Config.MILESTONES` (Size, Count, Coins, Boost); the
+  server pays them in `Progress.luau` (ClaimMilestone), marking
+  `data.Milestones[id]` first, so each is paid once. Coin amounts are tuned
+  with `simulate.py` (it applies them); keep W2/W3/W4 on target.
+- Animation: use `Ui.appear`, `Ui.pop`, `Effects.flash` and quick Quint
+  easing; check `Ui.reduced()` (Settings → Reduced motion) before
+  bounces, shakes or camera moves. The luck pill (Roll.LuckPill) lives in
+  the coin pill; the boost badge (Roll.BoostBadge) next to the Roll button
+  in `Screen.Controls`. No large text in the middle of the screen.
 - Pet stats: every row in `Config.PETS` has `Stats` (Speed, Luck, Coins,
   Damage, Exp). Read them with `Config.petStat(name, stat)` (sizes scale
   the bonus) and `Config.teamStat(data, stat)` (equipped bonuses added up:

@@ -35,6 +35,13 @@ REBIRTHS = [(float(c), int(l)) for c, l in re.findall(r'\{ Cost = ([\d.e]+), Lev
 REBIRTH_LUCK, REBIRTH_COINS = num(r'REBIRTH_LUCK = ([\d.]+)'), num(r'REBIRTH_COINS = ([\d.]+)')
 LEVEL_BASE, LEVEL_GROWTH = num(r'LEVEL_BASE = ([\d.]+)'), num(r'LEVEL_GROWTH = ([\d.]+)')
 
+# Index milestones (Config.MILESTONES): (size index 0-2, count, coins, boost, id)
+MILESTONES = []
+for kind, count, coins_m, boost, mid in re.findall(r'\{ Id = "([a-z]+)\d+", Count = (\d+), Coins = ([\d.e]+), Boost = (\d+) \}()', _config):
+    pass
+for mid, kind, count, coins_m, boost in re.findall(r'\{ Id = "([^"]+)", Size = (\d), Count = (\d+), Coins = ([\d.e]+), Boost = (\d+)', _config):
+    MILESTONES.append((int(kind) - 1, int(count), float(coins_m), int(boost), mid))
+
 def exp_to_next(level):  # Config.expToNext
     return math.floor(LEVEL_BASE * LEVEL_GROWTH ** (level - 1) + 0.5)
 
@@ -83,6 +90,8 @@ def run(hours=8, seed=1, verbose=False):
     log = {}
     roll_clock = 0.0
     chain = 1
+    found = [set(), set(), set()]  # animals discovered per size (normal/huge/titanic)
+    earned = 0.0  # coins earned per second (for reporting)
     def refresh_team():
         nonlocal team
         team = sorted(pets, key=lambda p: -p[0])[: int(val("Slots"))]
@@ -116,6 +125,15 @@ def run(hours=8, seed=1, verbose=False):
                         size = i
                         break
                 pets.append((base_power(odds) * SIZES[size][1], odds, size))
+                if odds not in found[size]:
+                    found[size].add(odds)
+                    for m in MILESTONES:
+                        if m[0] == size and len(found[size]) >= m[1] and m[4] not in log:
+                            log[m[4]] = t
+                            coins += m[2]
+                            chain = min(chain * m[3], CHAIN_MAX) if m[3] > 1 else chain
+                            if verbose:
+                                print(f"    milestone {m[4]} at {hm(t)}: +{fmt(m[2])} coins (income {fmt(earned * 60)}/min)")
             chain = min(multiplier * 2 ** boosts, CHAIN_MAX) if boosts else 1
             pets = sorted(pets, key=lambda p: -p[0])[:60]
             refresh_team()
@@ -125,7 +143,8 @@ def run(hours=8, seed=1, verbose=False):
             per_kill = hp / dps + OVERHEAD
             coin_team = 1 + sum(pet_bonus(o, s, 1) for _, o, s in team)
             exp_team = 1 + sum(pet_bonus(o, s, 3) for _, o, s in team)
-            coins += reward * val("Coins") * (1 + REBIRTH_COINS * rebirths) * coin_team / per_kill
+            earned = reward * val("Coins") * (1 + REBIRTH_COINS * rebirths) * coin_team / per_kill
+            coins += earned
             exp += exp_per * exp_team / per_kill
             while exp >= exp_to_next(level):
                 exp -= exp_to_next(level)

@@ -12,6 +12,7 @@ State.Settings = {
 	FullHatch = false, -- false: the compact hatch row at the top; true: the big centred hatch
 	Reveals = true, -- the spin before a roll's result shows
 	Sounds = true,
+	ReducedMotion = false, -- calmer animations: no bounces, shakes or camera kicks
 }
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")

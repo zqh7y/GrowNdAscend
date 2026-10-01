@@ -32,18 +32,23 @@ chase Huge and Titanic pets.**
 - **The hatch:** the server rolls first (each roll is a pet or a luck
   boost, plus the exact luck it used); the screen only shows that result.
   - **The reel** is vertical and sits at the bottom of the screen, by hand
-    and on auto: pets and luck boosts fall from the top to the bottom over
-    a faint panel (10% opacity) and ease to a stop on your result in the
-    middle slot. Every item shows its **complete, exact chance** for this
-    roll ("1 in 12.5K") in a label wide enough to never clip, worked out
-    from the same luck, size luck and world the server rolled with
+    and on auto: a soft frosted tray (10% opacity) slides up, and small
+    white cards (the pet on the left, its **complete, exact chance** in a
+    pill on the right, e.g. "1 in 12.5K") fall from the top to the bottom
+    and ease to a stop on your result. Two little notches on the tray's
+    edges mark the middle slot; the card that stops there lifts and takes
+    a coloured outline (gold for rare results), then the tray slips away.
+    Luck boosts are green cards with a clover. The chances come from the
+    same luck, size luck and world the server rolled with
     (`Config.chanceOf`); no rarity names.
   - **Luck boosts** are real results: every roll has a 1 in 12 chance of
     being a **x2 LUCK** instead of a pet. It applies to your next roll and
     is used up by it. Boosts stack by multiplying: hatch x2 → next roll x2;
     hatch another x2 during that roll → next roll x4, then x8, x16 … up to
-    x1024. A chip above the reel shows it ("THIS ROLL: x4 LUCK", then
-    "NEXT ROLL: x8 LUCK" in gold). The server keeps the waiting boost in
+    x1024. A small clover badge above the Roll, Auto and mode buttons shows it ("×8"):
+    filled green while a roll is using it, white with a gold edge while
+    it's waiting for your next roll; it pops when it grows and shrinks
+    away when it's used up. The server keeps the waiting boost in
     your saved data, so rejoining doesn't lose it, and rapid presses can't
     use it twice.
   - **Full mode** (the eye button): a bigger reel with a silhouette moment,
@@ -63,6 +68,12 @@ chase Huge and Titanic pets.**
 
   The Roll, Auto and hatch mode buttons sit on their own layer above
   everything, so they always work. Every 10th roll has 2x luck.
+- **Feel:** panels fade and rise in, and ease away on close; cards in the
+  Inventory and Index grow in one after another; equipping pops the card
+  and a soft poof appears where the pet joins (or leaves) your team; a
+  rebirth flashes the screen; walking into another world slides a small
+  banner with its name down under the HUD. **Settings → Reduced motion**
+  turns off bounces, shakes, camera kicks and most confetti.
 - **Pet stats:** every animal has its own five multipliers (its `Stats` in
   `Config.PETS`), shown on its Inventory card: **Speed** (how fast it
   moves), **Luck**, **Coins**, **Damage** (its own hits) and **EXP**. Every
@@ -78,9 +89,31 @@ chase Huge and Titanic pets.**
   where existing luck = Luck upgrade x rebirths x world x 10th-roll bonus x
   luck boost. A 1.1x and a 1.3x pet make 1.4x; with existing luck x5 that
   is x7. Coins and EXP work the same way (team bonus x everything else).
+- **Your luck** sits right next to your coins: a small green pill "🍀 ×7.4"
+  with exactly the luck your next roll uses (`Config.luck`). Hover or tap
+  it for the breakdown (upgrade, pets, rebirths, world, boost, bonus
+  roll). It updates the moment you equip a pet, get a boost or walk into
+  another world.
 - **Upgrade tree** (the tree button): Coins, Damage, Luck, Roll Speed, Rolls
   at Once, Auto Hatch (auto roll → quick reveals → auto-equip best), Size
-  Luck and Pet Slots. Some branches unlock after others.
+  Luck and Pet Slots. Some branches unlock after others. It's a scrollable
+  board that grows up from START, with rounded connectors that fill with a
+  branch's colour once it's unlocked. Each upgrade is a card with its icon,
+  "Lv 4 / 20" and a slim bar, and its price always visible in a pill:
+  grey padlock + requirement (locked), price (not enough yet), green price
+  pill and a gently breathing outline (affordable), gold MAX (maxed).
+  Cards lift on hover and press on click; buying squashes and pops the
+  card, fills its bar, flashes its connector, bursts sparkles and floats
+  "+1 level" up. The side panel shows the selected upgrade in full (now →
+  next, level pips, BUY).
+- **Collection rewards** in the Index: discovering animals unlocks
+  surprise rewards (5, 10, 15 … 70 animals, the first Huge and Titanic
+  animals, and more). A small card under the categories shows how close
+  the next one is ("18 / 20 animals"); when one is reached it turns gold,
+  the Index button gets a gold dot and a CLAIM button appears. Claiming
+  opens a gift that wobbles, pops open and shows exactly what the server
+  gave (coins and/or a luck boost that multiplies your waiting boost).
+  Each reward can only be claimed once (saved with your data).
 - **Pets are chunky collectibles:** every animal is built from soft
   rounded blocks (a big head on a compact body, short sturdy legs) with its
   own silhouette, ears, tail, markings and face (glossy layered eyes,

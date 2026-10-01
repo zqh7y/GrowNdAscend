@@ -34,6 +34,8 @@ local DEFAULT = {
 	Discovered = {}, -- [animal name] = true once found (the Index)
 	Fusion = nil, -- { Pet = name going in, Ends = os.time() } while the machine is fusing
 	Strongest = 0, -- power of the strongest pet ever owned
+	LuckChain = 1, -- the luck boost waiting for the next roll (x2, x4 ... x1024)
+	Milestones = {}, -- [Index milestone id] = true once its reward is claimed
 }
 
 local sessionData = {} -- [player] = data while they're in game
@@ -73,6 +75,7 @@ local function load(player)
 	data.Equipped = {}
 	data.Upgrades = {}
 	data.Discovered = {}
+	data.Milestones = {}
 	if ok and saved then
 		for k, v in pairs(saved) do
 			data[k] = v
@@ -156,6 +159,7 @@ function PlayerData.sync(player)
 		Discovered = data.Discovered,
 		Fusion = data.Fusion,
 		LuckChain = data.LuckChain or 1,
+		Milestones = data.Milestones or {},
 		ServerTime = os.time(),
 	})
 end

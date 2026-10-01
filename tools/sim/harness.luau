@@ -773,6 +773,119 @@ if ok then
 		indexReport.SideOnRight = Index.Side.AnchorPoint.X == 1 and Index.Side.Position.X.Scale == 1
 		Index.Size = 1
 		STATS.Index = indexReport
+
+		-- POLISH: collection rewards, luck pill, boost badge, upgrade states, reduced motion, world banner
+		local polish = {}
+		-- collection rewards: claim through the Index (with its reveal), once only
+		data.Discovered = {}
+		for i = 1, 12 do
+			data.Discovered[Cfg.PETS[i].Name] = true
+		end
+		data.Milestones = {}
+		data.Coins = 1000
+		data.Equipped = {} -- (no fighting while we count coins)
+		PlayerData.sync(player)
+		frames(2)
+		polish.ReadyBefore = Index.anyClaimable()
+		polish.DotBefore = C("Hud").IndexDot.Visible
+		local coins0 = data.Coins
+		local claimCo = task.spawn(Index.claim)
+		for _ = 1, 600 do
+			if coroutine.status(claimCo) == "dead" then break end
+			frames(1)
+		end
+		polish.FirstClaim = Index.LastClaim and table.clone(Index.LastClaim)
+		polish.CoinsAfterFirst = data.Coins - coins0
+		polish.ClaimedN5 = data.Milestones.n5 == true
+		-- claiming the same one again (a double click, a replay) pays nothing
+		local coins1, chain1 = data.Coins, data.LuckChain
+		local again = remotes.ClaimMilestone:InvokeServer("n5")
+		local bogus = remotes.ClaimMilestone:InvokeServer("n70")
+		polish.Repeat = { Again = again, Bogus = bogus, CoinsSame = data.Coins == coins1, ChainSame = data.LuckChain == chain1 }
+		-- the next one (n10: coins and a x2 boost) multiplies the waiting boost
+		data.LuckChain = 4
+		local second = remotes.ClaimMilestone:InvokeServer("n10")
+		polish.Second = { Got = second, Chain = data.LuckChain }
+		data.LuckChain = 1
+		PlayerData.sync(player)
+		frames(2)
+		-- the luck pill shows exactly the next roll's luck, and follows equipping
+		local Roll = C("Roll")
+		local function expectedLuck()
+			local nextIsBonus = (data.Rolls + 1) % Cfg.BONUS_EVERY == 0
+			return Cfg.luck(data, nextIsBonus, Roll.currentWorld(data))
+		end
+		data.Pets = { Fox = 1, Glitch = 1 }
+		data.Equipped = {}
+		PlayerData.sync(player)
+		frames(2)
+		local before = Roll.ShownLuck
+		local okBefore = math.abs((before or 0) - expectedLuck()) < 1e-9
+		remotes.Equip:InvokeServer("Glitch")
+		frames(2)
+		local after = Roll.ShownLuck
+		polish.LuckPill = { Before = before, After = after, Expected = expectedLuck(), Ok = okBefore and math.abs((after or 0) - expectedLuck()) < 1e-9 and after > before,
+			InCoinPill = Roll.LuckPill.Parent ~= nil and Roll.LuckPill.Parent.Parent == player.PlayerGui.GameGui }
+		-- the boost badge: next to the Roll button, never a sentence in the middle
+		data.LuckChain = 8
+		PlayerData.sync(player)
+		frames(2)
+		local waitingState = Roll.BadgeState
+		data.LuckChain = 1
+		PlayerData.sync(player)
+		frames(20)
+		local sentences = 0
+		for _, d in ipairs(player.PlayerGui:GetDescendants()) do
+			if d:IsA("TextLabel") and (string.find(d.Text, "NEXT ROLL") or string.find(d.Text, "THIS ROLL")) then
+				sentences += 1
+			end
+		end
+		polish.Badge = { Waiting = waitingState, After = Roll.BadgeState, InControls = Roll.BoostBadge.Parent == player.PlayerGui.ControlsGui, Sentences = sentences }
+		-- upgrade tree: every card shows its price or state, and the four states read right
+		local Tree = C("UpgradeTree")
+		data.Equipped = {} -- (no fighting: coins must stay where we put them)
+		data.Upgrades = { Coins = 20 }
+		data.Coins = 1e15
+		PlayerData.sync(player)
+		Tree.open()
+		Tree.select("Luck")
+		frames(2)
+		local withPrice = 0
+		for _, n in pairs(Tree.Nodes) do
+			if n.PriceText.Text ~= "" then withPrice += 1 end
+		end
+		local states = table.clone(Tree.States)
+		data.Coins = 0
+		PlayerData.sync(player)
+		Tree.select("Luck")
+		frames(2)
+		polish.Tree = { WithPrice = withPrice, Count = #Cfg.UPGRADES, Maxed = states.Coins, Affordable = states.Luck, Available = Tree.States.Luck, Locked = Tree.States.Rolls }
+		C("Screen").close(Tree.Modal)
+		-- reduced motion
+		local Ui = C("Ui")
+		local State = C("State")
+		State.Settings.ReducedMotion = true
+		local probe = Instance.new("Frame")
+		Ui.appear(probe, 5)
+		local scaler = probe:FindFirstChildOfClass("UIScale")
+		polish.Reduced = Ui.reduced() == true and scaler == nil
+		State.Settings.ReducedMotion = false
+		Ui.appear(probe, 5)
+		polish.NormalMotion = probe:FindFirstChildOfClass("UIScale") ~= nil
+		-- the world banner when walking into another world
+		local rootPart = player.Character.HumanoidRootPart
+		rootPart.CFrame = CFrame.new(Cfg.areaStart(1) + 50, 3, 0)
+		frames(30)
+		rootPart.CFrame = CFrame.new(Cfg.areaStart(2) + 50, 3, 0)
+		frames(30)
+		polish.Banner = C("Hud").LastBanner
+		rootPart.CFrame = CFrame.new(Cfg.areaStart(1) + 50, 3, 0)
+		frames(30)
+		STATS.Polish = polish
+		print(string.format("polish: first claim %s (+%s coins, shown %s); repeat paid %s; luck pill %s -> %s (expected %s); badge %s -> %s; tree %d/%d priced, states %s/%s/%s/%s; banner %s",
+			tostring(polish.FirstClaim and polish.FirstClaim.Id), tostring(polish.CoinsAfterFirst), table.concat((polish.FirstClaim or {}).Shown or {}, " + "),
+			tostring(not polish.Repeat.CoinsSame), tostring(before), tostring(after), tostring(polish.LuckPill.Expected), tostring(waitingState), tostring(polish.Badge.After),
+			withPrice, #Cfg.UPGRADES, tostring(polish.Tree.Maxed), tostring(polish.Tree.Affordable), tostring(polish.Tree.Available), tostring(polish.Tree.Locked), tostring(polish.Banner)))
 	end
 	for _, e in ipairs(STATS.Errors) do
 		print("THREAD ERROR: " .. e)
@@ -1252,7 +1365,7 @@ if ok then
 			if (f.Multiplier or 1) > 1 then steps += 1 end
 		end
 		local usedLuck = c8.Luck and c8.Expected and math.abs(c8.Luck - c8.Expected) < 1e-6 * c8.Expected
-		item(69, "luck boosts x2 -> x1024, used by the roll", rules and chainOk and usedLuck == true and c8.Multiplier == 8 and c8.Chip == "THIS ROLL: x8 LUCK",
+		item(69, "luck boosts x2 -> x1024, used by the roll", rules and chainOk and usedLuck == true and c8.Multiplier == 8 and c8.Chip == "active ×8",
 			string.format("x8 spin rolled with luck %s (expected %s), chip '%s'; %d auto spins followed the chain (%d boosted)", tostring(c8.Luck), tostring(c8.Expected), tostring(c8.Chip), #feeds, steps))
 	end
 
@@ -1410,6 +1523,31 @@ if ok then
 		item(77, "five multipliers per pet, all working", valid == #Config.PETS and kinds >= 40 and hitOk and paysOk == true and speedOk,
 			string.format("%d/%d pets valid, %d different stat sets; Owl+Piglet: coins x%.3f (got x%.3f), EXP x%.3f (got x%.3f); Tiger hits x%.2f; Cheetah speed x%.2f",
 				valid, #Config.PETS, kinds, coinTeam, (coinsWith or 0) / math.max(coinsWithout or 1, 1), expTeam, (expWith or 0) / math.max(expWithout or 1, 1e-9), Config.PETS_BY_NAME.Tiger.Stats.Damage, Config.PETS_BY_NAME.Cheetah.Stats.Speed))
+	end
+
+	-- 78-83. the polish pass
+	do
+		local p = STATS.Polish or {}
+		local first = p.FirstClaim or {}
+		local rep = p.Repeat or {}
+		local second = p.Second or {}
+		item(78, "collection rewards: claimed once, saved", p.ReadyBefore == true and p.DotBefore == true and first.Id == "n5" and p.CoinsAfterFirst == Config.MILESTONES_BY_ID.n5.Coins
+			and p.ClaimedN5 == true and rep.Again == nil and rep.Bogus == nil and rep.CoinsSame == true and rep.ChainSame == true
+			and second.Got ~= nil and second.Chain == 8,
+			string.format("5 animals -> +%s coins (shown: %s); claiming it again or a locked one paid nothing; 10 animals -> x2 boost on top of x4 = x%s",
+				tostring(p.CoinsAfterFirst), table.concat(first.Shown or {}, " + "), tostring(second.Chain)))
+		item(79, "reward reveal shows the real reward", first.Shown ~= nil and first.Shown[1] == "+" .. Config.formatNumber(Config.MILESTONES_BY_ID.n5.Coins) .. " coins", tostring(first.Shown and first.Shown[1]))
+		local lp = p.LuckPill or {}
+		item(80, "luck pill: exact next-roll luck, by the coins", lp.Ok == true and lp.InCoinPill == true,
+			string.format("x%s -> x%s after equipping a Glitch (Config.luck says x%s), in the coin pill", tostring(lp.Before), tostring(lp.After), tostring(lp.Expected)))
+		local b = p.Badge or {}
+		item(81, "boost badge by the Roll button, no sentences", b.Waiting == "waiting" and b.After == "none" and b.InControls == true and b.Sentences == 0,
+			string.format("x8 saved -> '%s', used up -> '%s'; %d 'NEXT ROLL' texts on screen", tostring(b.Waiting), tostring(b.After), b.Sentences or -1))
+		local t = p.Tree or {}
+		item(82, "upgrade tree: prices and states visible", t.WithPrice == t.Count and t.Maxed == "maxed" and t.Affordable == "affordable" and t.Available == "available" and t.Locked == "locked",
+			string.format("%d/%d cards show a price/state; Coins %s, Luck %s then %s, Rolls %s", t.WithPrice or 0, t.Count or 0, tostring(t.Maxed), tostring(t.Affordable), tostring(t.Available), tostring(t.Locked)))
+		item(83, "reduced motion + world banner", p.Reduced == true and p.NormalMotion == true and p.Banner == Config.AREAS[2].Name,
+			"reduced motion skips the animations; walking into World 2 shows '" .. tostring(p.Banner) .. "'")
 	end
 
 	local passed = 0

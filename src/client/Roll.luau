@@ -1,10 +1,11 @@
--- Rolling: the Roll button's action (the server picks the pets, then the
--- hatch plays: Hatch.luau), the luck meter, auto roll (free for everyone)
--- and hiding the hatches (results then slide in as small cards at the side,
--- so you can grind without the animation). Pressing Roll while a hatch is
+-- Rolling: the Roll button's action (the server picks the results, then the
+-- hatch plays: Hatch.luau), the luck pill (next to the coins), the luck
+-- boost badge (next to the Roll button), auto roll (free for everyone) and
+-- the compact/full hatch switch. Pressing Roll while a hatch is
 -- playing skips ahead instead of rolling again, so rolling fast never
 -- breaks it.
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Ui = require(script.Parent.Ui)
@@ -21,19 +22,26 @@ local rolling = false
 local autoRoll = false
 local rollButton, autoButton, hideButton -- set by the HUD
 
--- Luck chip -----------------------------------------------------------------------------------
--- A small chip at the top, with the rest of your progress (coins, team,
--- level): your luck where you stand, and how many rolls until the 2x
--- bonus roll. Nothing cluttering the Roll button.
+-- Luck pill -----------------------------------------------------------------------------------
+-- Your effective luck where you stand ("🍀 ×7.4"), as a compact pill that
+-- the HUD puts next to the coins. Hover (or tap) it for the breakdown. It
+-- updates as soon as your data changes (equipping pets, boosts, rebirths)
+-- and when you walk into another world.
 
-local meter = Ui.glass({
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 160),
-	Size = UDim2.fromOffset(0, 28),
+local function times(value)
+	return "×" .. Config.formatStat(value):sub(1, -2)
+end
+
+local meter = Ui.new("TextButton", {
+	Name = "LuckPill",
+	LayoutOrder = 3,
+	Size = UDim2.fromOffset(0, 34),
 	AutomaticSize = Enum.AutomaticSize.X,
-	Radius = 14,
-	Parent = gui,
+	BackgroundColor3 = Color3.fromRGB(234, 249, 239),
+	AutoButtonColor = false,
+	Text = "",
 }, {
+	Ui.corner(17),
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -42,26 +50,94 @@ local meter = Ui.glass({
 	}),
 	Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 12) }),
 })
-local luckIcon = Ui.icon("clover", 16, Ui.SUCCESS, { LayoutOrder = 0, Parent = meter })
+Roll.LuckPill = meter
+local meterEdge = Ui.stroke(Color3.fromRGB(170, 226, 190), 1.5, 0)
+meterEdge.Parent = meter
+local luckIcon = Ui.icon("clover", 18, Ui.SUCCESS, { LayoutOrder = 0, Parent = meter })
 local luckText = Ui.new("TextLabel", {
+	Name = "Value",
 	LayoutOrder = 1,
 	AutomaticSize = Enum.AutomaticSize.X,
-	Size = UDim2.fromOffset(0, 16),
+	Size = UDim2.fromOffset(0, 20),
+	Font = Ui.FONT_DISPLAY,
 	TextScaled = false,
-	TextSize = 14,
-	Parent = meter,
-})
-local bonusText = Ui.new("TextLabel", {
-	LayoutOrder = 2,
-	AutomaticSize = Enum.AutomaticSize.X,
-	Size = UDim2.fromOffset(0, 16),
-	Font = Ui.FONT_MEDIUM,
-	TextScaled = false,
-	TextSize = 12,
-	TextColor3 = Ui.MUTED,
+	TextWrapped = false,
+	TextSize = 20,
+	TextColor3 = Color3.fromRGB(30, 140, 80),
 	Parent = meter,
 })
 local meterScale = Ui.new("UIScale", { Parent = meter })
+
+-- the breakdown, under the pill while hovered
+local details = Ui.glass({
+	Name = "LuckDetails",
+	AnchorPoint = Vector2.new(0.5, 0),
+	Size = UDim2.fromOffset(250, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	Radius = 14,
+	Visible = false,
+	ZIndex = 60,
+	Parent = gui,
+}, {
+	Ui.new("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
+	Ui.padding(12),
+})
+Roll.LuckDetails = details
+local detailRows = {}
+local function detailRow(order, name)
+	local row = Ui.new("Frame", { LayoutOrder = order, Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, ZIndex = 61, Parent = details })
+	Ui.new("TextLabel", {
+		Size = UDim2.new(0.65, 0, 1, 0),
+		Font = if order == 99 then Ui.FONT else Ui.FONT_MEDIUM,
+		TextScaled = false,
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = if order == 99 then Ui.INK else Ui.MUTED,
+		Text = name,
+		ZIndex = 61,
+		Parent = row,
+	})
+	detailRows[order] = Ui.new("TextLabel", {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.new(0.35, 0, 1, 0),
+		Font = Ui.FONT,
+		TextScaled = false,
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = Ui.INK,
+		ZIndex = 61,
+		Parent = row,
+	})
+end
+detailRow(1, "Luck upgrade")
+detailRow(2, "Equipped pets")
+detailRow(3, "Rebirths")
+detailRow(4, "This world")
+detailRow(5, "Luck boost (next roll)")
+detailRow(6, "Bonus roll")
+Ui.new("Frame", { LayoutOrder = 98, Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = Ui.LINE, ZIndex = 61, Parent = details })
+detailRow(99, "Next roll")
+local function placeDetails()
+	local at = meter.AbsolutePosition
+	local size = meter.AbsoluteSize
+	if at and size then
+		local scale = gui:FindFirstChildOfClass("UIScale")
+		local s = if scale then scale.Scale else 1
+		details.Position = UDim2.fromOffset((at.X + size.X / 2) / s, (at.Y + size.Y + 8) / s)
+	end
+end
+meter.MouseEnter:Connect(function()
+	placeDetails()
+	details.Visible = true
+end)
+meter.MouseLeave:Connect(function()
+	details.Visible = false
+end)
+meter.Activated:Connect(function()
+	placeDetails()
+	details.Visible = not details.Visible
+end)
 
 -- The world the player stands in (it changes the odds), never above unlocked
 local function currentWorld(data)
@@ -72,7 +148,8 @@ local function currentWorld(data)
 end
 Roll.currentWorld = currentWorld
 
-local shownWorld = 0
+local shownWorld, shownLuck = 0, nil
+Roll.ShownLuck = nil -- (for the simulator) the luck the pill shows
 local function refreshLuck()
 	local data = State.Data
 	if not data then
@@ -82,19 +159,112 @@ local function refreshLuck()
 	local nextIsBonus = untilBonus == 1
 	local world = currentWorld(data)
 	shownWorld = world
+	-- exactly what the next roll uses (the same function the server rolls with)
 	local luck = Config.luck(data, nextIsBonus, world)
-	luckText.Text = if luck < 1000 then string.format("Luck x%.2f", luck) else "Luck x" .. Config.formatNumber(luck)
-	local chain = Config.luckMultiplier(data)
-	bonusText.Text = if chain > 1 then string.format("· 🍀 x%d next spin", chain) elseif nextIsBonus then "· 2x bonus roll!" else "· 2x in " .. untilBonus
-	bonusText.TextColor3 = if nextIsBonus then Ui.GOLD else Ui.MUTED
-	meter.Edge.Color = if nextIsBonus then Ui.GOLD else Ui.LINE
-	meter.Edge.Thickness = if nextIsBonus then 2 else 1
+	luckText.Text = if luck < 1000 then times(luck) else "×" .. Config.formatNumber(luck)
+	Roll.ShownLuck = luck
+	detailRows[1].Text = times(Config.upgradeValue(data, "Luck"))
+	detailRows[2].Text = times(Config.petLuckTotal(data))
+	detailRows[3].Text = times(Config.rebirthLuck(data.Rebirths or 0))
+	detailRows[4].Text = times(Config.AREAS[math.clamp(world, 1, #Config.AREAS)].Luck)
+	detailRows[5].Text = "×" .. Config.luckMultiplier(data)
+	detailRows[6].Text = if nextIsBonus then "×" .. Config.BONUS_LUCK .. " now" else "×" .. Config.BONUS_LUCK .. " in " .. untilBonus
+	detailRows[99].Text = luckText.Text
+	-- a gold edge when the next roll is the bonus roll
+	meterEdge.Color = if nextIsBonus then Ui.GOLD else Color3.fromRGB(170, 226, 190)
+	meterEdge.Thickness = if nextIsBonus then 2 else 1.5
 	for _, d in ipairs(luckIcon:GetDescendants()) do
 		if d:IsA("Frame") and d.BackgroundTransparency < 1 then
 			d.BackgroundColor3 = if nextIsBonus then Ui.GOLD else Ui.SUCCESS
 		end
 	end
+	-- a soft pop when it changes
+	if shownLuck and math.abs(luck - shownLuck) > 1e-9 then
+		meterScale.Scale = if luck > shownLuck then 1.12 else 0.94
+		TweenService:Create(meterScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+	shownLuck = luck
 end
+
+-- Boost badge ---------------------------------------------------------------------------------
+-- A small clover badge next to the Roll button: "×8". Green and filled when
+-- the roll in progress is using the boost (active), white with a gold edge
+-- when it's saved for your next roll (waiting), hidden when there's none.
+-- It pops when the boost grows and shrinks away when it's used up.
+
+local badge = Ui.new("Frame", {
+	Name = "BoostBadge",
+	AnchorPoint = Vector2.new(1, 0.5),
+	Size = UDim2.fromOffset(74, 34),
+	BackgroundColor3 = Ui.WHITE,
+	Visible = false,
+}, {
+	Ui.corner(17),
+	Ui.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 5),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+Roll.BoostBadge = badge
+local badgeEdge = Ui.stroke(Ui.GOLD, 2, 0)
+badgeEdge.Parent = badge
+local badgeIcon = Ui.icon("clover", 16, Ui.GOLD, { LayoutOrder = 0, Parent = badge })
+local badgeText = Ui.new("TextLabel", {
+	LayoutOrder = 1,
+	Size = UDim2.fromOffset(40, 20),
+	Font = Ui.FONT_DISPLAY,
+	TextScaled = false,
+	TextWrapped = false,
+	TextSize = 18,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Parent = badge,
+})
+local badgeScale = Ui.new("UIScale", { Parent = badge })
+Roll.BadgeState = "none"
+local badgeMultiplier = 1
+
+local function paintIcon(color)
+	for _, d in ipairs(badgeIcon:GetDescendants()) do
+		if d:IsA("Frame") and d.BackgroundTransparency < 1 then
+			d.BackgroundColor3 = color
+		end
+	end
+end
+
+local function setBadge(state, multiplier)
+	local previous, before = Roll.BadgeState, badgeMultiplier
+	Roll.BadgeState, badgeMultiplier = state, multiplier
+	if state == "none" then
+		if badge.Visible then
+			-- used up: shrink away
+			TweenService:Create(badgeScale, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { Scale = 0.6 }):Play()
+			task.delay(0.2, function()
+				if Roll.BadgeState == "none" then
+					badge.Visible = false
+				end
+			end)
+		end
+		return
+	end
+	badgeText.Text = "×" .. multiplier
+	local active = state == "active"
+	badge.BackgroundColor3 = if active then Ui.SUCCESS else Ui.WHITE
+	badgeEdge.Color = if active then Color3.fromRGB(36, 168, 100) else Ui.GOLD
+	badgeText.TextColor3 = if active then Ui.WHITE else Color3.fromRGB(200, 140, 20)
+	paintIcon(if active then Ui.WHITE else Ui.GOLD)
+	if not badge.Visible then
+		badge.Visible = true
+		badgeScale.Scale = 0.6
+		TweenService:Create(badgeScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	elseif multiplier > before or previous ~= state then
+		badgeScale.Scale = if multiplier > before then 1.3 else 1.1
+		TweenService:Create(badgeScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+end
+Hatch.BoostChanged.Event:Connect(setBadge)
 
 -- Rolling --------------------------------------------------------------------------------
 
@@ -126,10 +296,6 @@ function Roll.roll()
 		-- one when grinding (auto roll, Auto Hatch 1, or the setting off)
 		local fast = hatchedOnce and (not State.Settings.Reveals or autoRoll or Config.upgradeLevel(data, "AutoHatch") >= 1)
 		hatchedOnce = true
-		meterScale.Scale = 1.06
-		task.delay(0.12, function()
-			meterScale.Scale = 1
-		end)
 		-- the spinner is always at the bottom of the screen (by hand and on
 		-- auto); the full mode adds the big reveal. A Huge or Titanic gets the
 		-- bush cutscene and a crazy pull its own show (Hatch decides, from the
@@ -224,6 +390,14 @@ end)
 State.watch(function()
 	refreshLuck()
 	refreshAuto()
+	if not Hatch.busy() then
+		local waiting = Config.luckMultiplier(State.Data)
+		if waiting > 1 then
+			setBadge("waiting", waiting)
+		elseif Roll.BadgeState ~= "none" then
+			setBadge("none", 1)
+		end
+	end
 end)
 
 return Roll

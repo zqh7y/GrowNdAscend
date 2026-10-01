@@ -198,107 +198,130 @@ local function reelNames(ctx, flex)
 	return names, flexAt
 end
 
--- the luck boost's card: a green rounded tile with a clover and "x2"
+
+-- The reel's look ------------------------------------------------------------------------------
+-- A soft frosted tray at the bottom of the screen. Each result is a small
+-- white card: the pet (or the green luck-boost tile) on the left and its
+-- complete chance in a pill on the right. Two little notches on the tray's
+-- edges mark the middle slot; the card that stops there lifts and takes a
+-- coloured outline (gold for rare results). The tray slides up into place
+-- when a roll starts and slips away afterwards.
+
+local EASE_OUT = TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local EASE_IN = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+
+-- the luck boost's tile: a green rounded square with a clover and "×2"
 local function boostTile(parent, size)
 	local tile = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(size * 0.8, size * 0.8),
-		BackgroundColor3 = Ui.SUCCESS,
-		ZIndex = 54,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = Ui.WHITE,
+		ZIndex = 55,
 		Parent = parent,
 	}, {
-		Ui.corner(12),
-		Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(110, 220, 140), Color3.fromRGB(40, 170, 100)) }),
+		Ui.corner(math.floor(size * 0.28)),
+		Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(120, 226, 150), Color3.fromRGB(36, 168, 100)) }),
 	})
+	Ui.icon("clover", math.floor(size * 0.42), Ui.WHITE, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, math.floor(size * 0.1)), ZIndex = 56, Parent = tile })
 	Ui.new("TextLabel", {
-		Size = UDim2.fromScale(1, 0.55),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -math.floor(size * 0.06)),
+		Size = UDim2.new(1, 0, 0, math.floor(size * 0.34)),
 		Font = Ui.FONT_DISPLAY,
 		TextScaled = false,
 		TextSize = math.floor(size * 0.3),
 		TextColor3 = Ui.WHITE,
-		Text = "🍀",
-		ZIndex = 55,
-		Parent = tile,
-	})
-	Ui.new("TextLabel", {
-		Position = UDim2.fromScale(0, 0.48),
-		Size = UDim2.fromScale(1, 0.45),
-		Font = Ui.FONT_DISPLAY,
-		TextScaled = false,
-		TextSize = math.floor(size * 0.26),
-		TextColor3 = Ui.WHITE,
-		Text = "x" .. Config.BOOST.Multiplier .. " LUCK",
-		ZIndex = 55,
+		Text = "×" .. Config.BOOST.Multiplier,
+		ZIndex = 56,
 		Parent = tile,
 	})
 	return tile
 end
 
--- One item on the reel: the pet in 3D (or the boost tile) on the left, and
--- its complete chance on the right, in a label wide enough to never clip
+-- One card on the reel
 local function reelItem(parent, name, look, silhouette, ctx)
+	local boost = name == BOOST
 	local item = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -16, 0, look.Item),
+		Size = UDim2.new(1, -20, 0, look.Card),
 		BackgroundTransparency = 1,
-		ZIndex = 53,
+		ZIndex = 52,
 		Parent = parent,
 	})
 	local scale = Ui.new("UIScale", { Parent = item })
-	local icon = Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 6, 0.5, 0),
-		Size = UDim2.fromOffset(look.Item, look.Item),
-		BackgroundTransparency = 1,
+	local shadow = Ui.new("Frame", {
+		Position = UDim2.fromOffset(0, 3),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(16, 22, 44),
+		BackgroundTransparency = 0.86,
+		ZIndex = 52,
+		Parent = item,
+	}, { Ui.corner(16) })
+	local card = Ui.new("Frame", {
+		Name = "Card",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = if boost then Color3.fromRGB(236, 250, 240) else Ui.WHITE,
 		ZIndex = 53,
 		Parent = item,
+	}, { Ui.corner(16) })
+	local outline = Ui.stroke(if boost then Color3.fromRGB(150, 220, 170) else Ui.LINE, 1.5, 0)
+	outline.Parent = card
+	local icon = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 8, 0.5, 0),
+		Size = UDim2.fromOffset(look.Art, look.Art),
+		BackgroundTransparency = 1,
+		ZIndex = 54,
+		Parent = card,
 	})
 	local view
-	if name == BOOST then
-		view = boostTile(icon, look.Item)
+	if boost then
+		view = boostTile(icon, look.Art - 6)
 	else
 		view = PetView.take(name, silhouette)
 		view.Size = UDim2.fromScale(1, 1)
-		view.ZIndex = 54
+		view.ZIndex = 55
 		view.Parent = icon
 	end
 	local text = chanceText(name, ctx)
 	local chip = Ui.new("TextLabel", {
 		Name = "Chance",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, look.Item + 14, 0.5, 0),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -10, 0.5, 0),
 		Size = UDim2.fromOffset(look.Chip, look.ChipHeight),
-		BackgroundColor3 = Ui.WHITE,
-		BackgroundTransparency = 0.08,
+		BackgroundColor3 = if boost then Ui.WHITE else Ui.GLASS_LIGHT,
 		Font = Ui.FONT,
 		TextScaled = false,
 		TextWrapped = false,
 		TextSize = look.Text,
-		TextColor3 = Ui.INK,
+		TextColor3 = if boost then Color3.fromRGB(30, 140, 80) else Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = text,
 		ZIndex = 56,
-		Parent = item,
+		Parent = card,
 	}, { Ui.corner(look.ChipHeight // 2) })
-	local pet = name ~= BOOST and Config.petInfo(name)
+	local pet = not boost and Config.petInfo(name)
 	return {
 		Frame = item,
+		Card = card,
+		Shadow = shadow,
+		Outline = outline,
 		Scale = scale,
 		View = view,
 		Chip = chip,
 		Chance = text,
 		Name = name,
 		Odds = if pet then pet.Odds else 1,
-		Boost = name == BOOST,
+		Boost = boost,
 	}
 end
 
 -- Places the reel for an offset (in slots). Item i sits ABOVE the middle
 -- until the offset reaches it, so as the offset grows everything moves
--- DOWN: things fall from the top and pass out at the bottom. The middle
--- slot is full size, the others smaller and fainter.
+-- DOWN: cards come in at the top and leave at the bottom. Cards away from
+-- the middle are a touch smaller and fade towards the tray's edges.
 local function layoutReel(items, offset, height, reach)
 	for i, item in ipairs(items) do
 		local slot = (i - 1) - offset
@@ -308,73 +331,68 @@ local function layoutReel(items, offset, height, reach)
 		item.Frame.Position = UDim2.new(0.5, 0, 0.5, -slot * height)
 		if visible then
 			local near = 1 - math.min(math.abs(slot), 1)
-			item.Scale.Scale = 0.78 + (1 - away) * 0.14 + near * 0.12
-			local fade = math.clamp((away - 0.4) / 0.6, 0, 1)
+			item.Scale.Scale = 0.9 + near * 0.08
+			local fade = math.clamp((away - 0.45) / 0.55, 0, 1) ^ 1.5
+			item.Card.BackgroundTransparency = fade
+			item.Shadow.BackgroundTransparency = 0.86 + fade * 0.14
+			item.Outline.Transparency = fade
 			if item.Boost then
 				item.View.BackgroundTransparency = fade
 			else
 				item.View.ImageTransparency = fade
 			end
 			item.Chip.TextTransparency = fade
-			item.Chip.BackgroundTransparency = 0.08 + fade * 0.92
+			item.Chip.BackgroundTransparency = fade
 		end
 	end
 end
 
 local REEL_SIZES = {
-	compact = { Width = 250, Height = 216, Item = 60, Slot = 70, Reach = 1.8, Chip = 120, ChipHeight = 26, Text = 15 },
-	full = { Width = 310, Height = 300, Item = 84, Slot = 96, Reach = 1.8, Chip = 150, ChipHeight = 32, Text = 19 },
+	compact = { Width = 280, Height = 214, Card = 60, Art = 52, Slot = 70, Reach = 1.75, Chip = 126, ChipHeight = 28, Text = 15 },
+	full = { Width = 340, Height = 300, Card = 84, Art = 76, Slot = 96, Reach = 1.75, Chip = 150, ChipHeight = 34, Text = 18 },
 }
+local BOTTOM = UDim2.new(0.5, 0, 1, -14)
+local HIDDEN = UDim2.new(0.5, 0, 1, 40)
 
 local spinner = Ui.new("Frame", {
 	Name = "HatchReel",
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -14),
-	Size = UDim2.fromOffset(250, 216),
+	Position = BOTTOM,
+	Size = UDim2.fromOffset(280, 214),
 	BackgroundColor3 = Ui.WHITE,
-	BackgroundTransparency = 0.9, -- a faint panel: 10% opacity, the game stays visible
+	BackgroundTransparency = 0.9, -- a faint tray: 10% opacity, the game stays visible
 	Visible = false,
 	ZIndex = 44,
 	Parent = gui,
-}, { Ui.corner(22) })
+}, { Ui.corner(24) })
 Hatch.Spinner = spinner -- (for the simulator)
--- a soft band marks the middle slot
-local band = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.5),
-	Size = UDim2.new(1, -8, 0, 70),
-	BackgroundColor3 = Ui.WHITE,
-	BackgroundTransparency = 0.72,
-	ZIndex = 45,
-	Parent = spinner,
-}, { Ui.corner(16) })
+local trayEdge = Ui.stroke(Ui.WHITE, 1.5, 0.45)
+trayEdge.Parent = spinner
+local spinnerScale = Ui.new("UIScale", { Parent = spinner })
+-- the middle-slot notches: two small rounded wedges on the tray's edges
+local notches = {}
+for _, side in ipairs({ 0, 1 }) do
+	notches[side] = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(side, 0.5),
+		Size = UDim2.fromOffset(14, 14),
+		Rotation = 45,
+		BackgroundColor3 = Ui.WHITE,
+		ZIndex = 58,
+		Parent = spinner,
+	}, { Ui.corner(3), Ui.stroke(Ui.LINE, 1, 0) })
+end
 local spinRow = Ui.new("Frame", {
 	Size = UDim2.fromScale(1, 1),
 	BackgroundTransparency = 1,
 	ClipsDescendants = true,
 	ZIndex = 46,
 	Parent = spinner,
-}, { Ui.corner(22) })
--- the luck boost chip, just above the reel (never over an item)
-local luckChip = Ui.new("TextLabel", {
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 0, -6),
-	Size = UDim2.fromOffset(210, 26), -- fixed and wide enough for "THIS ROLL: x1024 LUCK"
-	BackgroundColor3 = Ui.SUCCESS,
-	Font = Ui.FONT,
-	TextScaled = false,
-	TextWrapped = false,
-	TextSize = 14,
-	TextColor3 = Ui.WHITE,
-	Text = "",
-	ZIndex = 47,
-	Parent = spinner,
-}, { Ui.corner(13) })
-local luckScale = Ui.new("UIScale", { Parent = luckChip })
--- the result's name, above the chip
+}, { Ui.corner(24) })
+-- the result's name, just above the tray once it lands
 local spinName = Ui.new("TextLabel", {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 0, -36),
+	Position = UDim2.new(0.5, 0, 0, -8),
 	Size = UDim2.fromOffset(420, 28),
 	Font = Ui.FONT_DISPLAY,
 	TextScaled = false,
@@ -387,9 +405,10 @@ local spinName = Ui.new("TextLabel", {
 	ZIndex = 46,
 	Parent = spinner,
 })
+local spinNameScale = Ui.new("UIScale", { Parent = spinName })
 local flexLabel = Ui.new("TextLabel", {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 0, -36),
+	Position = UDim2.new(0.5, 0, 0, -8),
 	Size = UDim2.fromOffset(600, 34),
 	Font = Ui.FONT_DISPLAY,
 	TextScaled = false,
@@ -402,9 +421,26 @@ local flexLabel = Ui.new("TextLabel", {
 	Parent = spinner,
 })
 
-local function setLuckChip(text, multiplier, highlight)
-	luckChip.Text = string.format("%s: x%d LUCK", text, multiplier)
-	luckChip.BackgroundColor3 = if highlight then Ui.GOLD elseif multiplier > 1 then Ui.SUCCESS else Color3.fromRGB(150, 158, 178)
+-- The luck boost badge lives next to the Roll button (Roll.luau draws it);
+-- the hatch tells it what happens: "active" (this roll uses ×N), "waiting"
+-- (×N saved for the next roll) or "none"
+Hatch.BoostChanged = Instance.new("BindableEvent")
+local function boostState(state, multiplier)
+	Hatch.BoostChanged:Fire(state, multiplier)
+	return state .. " ×" .. multiplier
+end
+
+local hideToken = 0
+local function showSpinner()
+	hideToken += 1 -- cancel a pending hide
+	if spinner.Visible and spinner.Position == BOTTOM then
+		return
+	end
+	spinner.Visible = true
+	spinner.Position = HIDDEN
+	spinnerScale.Scale = 0.96
+	TweenService:Create(spinner, EASE_OUT, { Position = BOTTOM }):Play()
+	TweenService:Create(spinnerScale, EASE_OUT, { Scale = 1 }):Play()
 end
 
 -- Spins the reel onto `best` (a result already decided by the server).
@@ -428,19 +464,17 @@ local function spin(results, best, fast, full)
 		items[i].Flex = flexAt[i]
 	end
 	spinner.Size = UDim2.fromOffset(look.Width, look.Height)
-	band.Size = UDim2.new(1, -8, 0, look.Slot)
 	spinner.BackgroundTransparency = 0.9
 	spinName.Text = ""
 	flexLabel.Visible = false
-	local multiplier = best.Multiplier or 1
-	if multiplier > 1 then
-		setLuckChip("THIS ROLL", multiplier, false)
-	else
-		setLuckChip("NEXT ROLL", 1, false)
+	for _, notch in pairs(notches) do
+		notch.BackgroundColor3 = Ui.WHITE
 	end
-	local luckShown = luckChip.Text
-	luckScale.Scale = 1
-	spinner.Visible = true
+	-- the boost this roll uses (if any) turns "active" on the badge
+	local multiplier = best.Multiplier or 1
+	local badgeAtStart = boostState(if multiplier > 1 then "active" else "none", multiplier)
+	layoutReel(items, 2, look.Slot, look.Reach)
+	showSpinner()
 
 	-- fast at first, a smooth slow-down onto the result
 	local startOffset, finalOffset = 2, LANDING - 1
@@ -490,7 +524,7 @@ local function spin(results, best, fast, full)
 		end
 		lastOffset = offset
 		layoutReel(items, offset, look.Slot, look.Reach)
-		-- (for the simulator) how the result's item moves on screen
+		-- (for the simulator) how the result's card moves on screen
 		table.insert(xs, watch.Frame.Position.X.Offset)
 		table.insert(ys, watch.Frame.Position.Y.Offset)
 		local index = math.floor(offset + 0.5)
@@ -506,19 +540,26 @@ local function spin(results, best, fast, full)
 	end
 	flexLabel.Visible = false
 
-	-- the result pops, with its name above the reel
+	-- the result settles: a little lift, a coloured outline, the notches take its colour
 	local landed = items[LANDING]
-	landed.Scale.Scale = 1.25
-	TweenService:Create(landed.Scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1.06 }):Play()
+	local accent = if isBoost(best) then Ui.SUCCESS elseif tier >= 4 then Config.SIZES[best.Size].Color elseif tier >= 3 then Ui.GOLD else Ui.BLUE
+	landed.Scale.Scale = 1.1
+	TweenService:Create(landed.Scale, TweenInfo.new(0.32, Enum.EasingStyle.Back), { Scale = 1.03 }):Play()
+	landed.Outline.Color = accent
+	landed.Outline.Thickness = if tier >= 3 then 3 else 2
+	TweenService:Create(landed.Shadow, EASE_OUT, { Position = UDim2.fromOffset(0, 7), BackgroundTransparency = 0.8 }):Play()
+	for _, notch in pairs(notches) do
+		notch.BackgroundColor3 = accent
+	end
 	local extra = #results - 1
 	spinName.Text = if full and not isBoost(best) then "" else resultName .. (if extra > 0 then "  +" .. extra else "")
-	spinName.TextColor3 = if isBoost(best) then Color3.fromRGB(140, 235, 160) elseif best.Size > 1 then Config.SIZES[best.Size].Color else Ui.WHITE
-	-- the boost waiting for the next roll
+	spinName.TextColor3 = if isBoost(best) then Color3.fromRGB(150, 240, 170) elseif best.Size > 1 then Config.SIZES[best.Size].Color else Ui.WHITE
+	spinNameScale.Scale = 0.85
+	TweenService:Create(spinNameScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	-- the boost waiting for the next roll ("none" if this roll used it up)
 	local nextMultiplier = best.NextMultiplier or 1
-	setLuckChip("NEXT ROLL", nextMultiplier, nextMultiplier > 1)
-	if nextMultiplier > 1 then
-		luckScale.Scale = 1.35
-		TweenService:Create(luckScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	local badgeAfter = boostState(if nextMultiplier > 1 then "waiting" else "none", nextMultiplier)
+	if nextMultiplier > multiplier then
 		Effects.play("Coin", 1.6)
 	end
 	if isBoost(best) then
@@ -566,18 +607,31 @@ local function spin(results, best, fast, full)
 		Chances = shown,
 		ResultChance = landed.Chance,
 		Context = ctx,
-		LuckChip = luckShown,
-		NextChip = luckChip.Text,
+		LuckChip = badgeAtStart,
+		NextChip = badgeAfter,
 		First = first,
 		Tier = tier,
 		Motion = { Sideways = sideways, Down = down, Up = up },
 	}
 end
 
+-- the tray slips away (the next roll brings it back)
 local function hideSpinner()
-	spinner.Visible = false
 	flexLabel.Visible = false
-	clear(spinRow)
+	hideToken += 1
+	local token = hideToken
+	if not spinner.Visible then
+		clear(spinRow)
+		return
+	end
+	TweenService:Create(spinner, EASE_IN, { Position = HIDDEN }):Play()
+	TweenService:Create(spinnerScale, EASE_IN, { Scale = 0.96 }):Play()
+	task.delay(0.2, function()
+		if token == hideToken then
+			spinner.Visible = false
+			clear(spinRow)
+		end
+	end)
 end
 
 -- Kept for older callers
@@ -799,6 +853,9 @@ local function sparkle(count, colors, spread)
 end
 
 local function cameraKick(strength)
+	if Ui.reduced() then
+		return
+	end
 	local camera = workspace.CurrentCamera
 	if camera and camera.FieldOfView then
 		local fov = camera.FieldOfView
@@ -897,7 +954,9 @@ local function crazyIntro()
 	local start = os.clock()
 	while os.clock() - start < 0.9 do
 		local strength = (os.clock() - start) / 0.9 * 10
-		stage.Position = UDim2.new(0.5, math.random(-10, 10) * strength / 10, 0.48, math.random(-10, 10) * strength / 10)
+		if not Ui.reduced() then
+			stage.Position = UDim2.new(0.5, math.random(-10, 10) * strength / 10, 0.48, math.random(-10, 10) * strength / 10)
+		end
 		for i, crack in ipairs(cracks) do
 			crack.BackgroundColor3 = rainbowAt(os.clock() * 0.8 + i / 12)
 		end
@@ -1163,7 +1222,7 @@ local function bushCutscene(result, name)
 		local camGoal = CFrame.lookAt(focus - flat * (12 * s) + Vector3.new(0, 3.5 * s, 0), focus)
 		-- the camera glides in
 		local start, from = os.clock(), camera.CFrame
-		while os.clock() - start < 0.6 and not skipRequested do
+		while os.clock() - start < 0.6 and not skipRequested and not Ui.reduced() do
 			local u = (os.clock() - start) / 0.6
 			camera.CFrame = from:Lerp(camGoal, 1 - (1 - u) ^ 3)
 			task.wait()

@@ -285,12 +285,13 @@ end)
 
 -- Settings ---------------------------------------------------------------------------------
 
-local settingsModal, settingsBox = Screen.modal(440, 340, "Settings")
+local settingsModal, settingsBox = Screen.modal(440, 400, "Settings")
 Screen.title(settingsBox, "Settings")
 local SETTINGS = {
 	{ Key = "DamageNumbers", Name = "Damage numbers" },
 	{ Key = "Reveals", Name = "Full hatch animation" },
 	{ Key = "Sounds", Name = "Sounds" },
+	{ Key = "ReducedMotion", Name = "Reduced motion" },
 }
 for i, setting in ipairs(SETTINGS) do
 	local y = 60 + (i - 1) * 62
@@ -310,7 +311,7 @@ for i, setting in ipairs(SETTINGS) do
 		Position = UDim2.new(1, 0, 0, y),
 		Size = UDim2.fromOffset(100, 44),
 		Radius = 22,
-		Text = "ON",
+		Text = if State.Settings[setting.Key] then "ON" else "OFF",
 		TextSize = 16,
 		ZIndex = 33,
 		Parent = settingsBox,
@@ -319,7 +320,7 @@ for i, setting in ipairs(SETTINGS) do
 		Ui.setText(toggle, if State.Settings[setting.Key] then "ON" else "OFF")
 		Ui.setStyle(toggle, if State.Settings[setting.Key] then "success" else "glass")
 		Effects.play("Click")
-	end, "success")
+	end, if State.Settings[setting.Key] then "success" else "glass")
 end
 
 function Panels.openSettings()

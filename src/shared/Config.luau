@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 12 (vertical reel, luck boosts, pet stats)"
+Config.BUILD = "build 13 (2026 polish: reel, tree, index rewards)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -407,6 +407,60 @@ function Config.rollResult(luck, sizeLuck, world, random)
 	end
 	local pet = Config.roll(luck, random, world)
 	return { Kind = "Pet", Pet = pet, Size = Config.rollSize(sizeLuck, random) }
+end
+
+-- Index milestones ----------------------------------------------------------------------
+-- Surprise rewards for discovering animals. Size is the Index category
+-- (1 Normal, 2 Huge, 3 Titanic), Count how many of it you've found. Coins
+-- are paid once; Boost multiplies the luck boost waiting for your next roll
+-- (like hatching x2 LUCK boosts). Claimed ids are saved in data.Milestones,
+-- so each one can only ever be claimed once. Coin amounts are a few minutes
+-- of income at the point most players reach them (tools/economy/simulate.py).
+Config.MILESTONES = {
+	{ Id = "n5", Size = 1, Count = 5, Coins = 100, Boost = 1 },
+	{ Id = "n10", Size = 1, Count = 10, Coins = 300, Boost = 2 },
+	{ Id = "n15", Size = 1, Count = 15, Coins = 600, Boost = 1 },
+	{ Id = "n20", Size = 1, Count = 20, Coins = 1e3, Boost = 2 },
+	{ Id = "n25", Size = 1, Count = 25, Coins = 1e5, Boost = 1 },
+	{ Id = "n30", Size = 1, Count = 30, Coins = 2e5, Boost = 4 },
+	{ Id = "n40", Size = 1, Count = 40, Coins = 7.5e5, Boost = 1 },
+	{ Id = "n50", Size = 1, Count = 50, Coins = 1.5e8, Boost = 8 },
+	{ Id = "n60", Size = 1, Count = 60, Coins = 1e9, Boost = 1 },
+	{ Id = "n70", Size = 1, Count = 70, Coins = 1e12, Boost = 16 },
+	{ Id = "h1", Size = 2, Count = 1, Coins = 800, Boost = 2 },
+	{ Id = "h5", Size = 2, Count = 5, Coins = 1.5e3, Boost = 1 },
+	{ Id = "h15", Size = 2, Count = 15, Coins = 3e5, Boost = 4 },
+	{ Id = "t1", Size = 3, Count = 1, Coins = 2e3, Boost = 4 },
+	{ Id = "t5", Size = 3, Count = 5, Coins = 5e5, Boost = 1 },
+}
+
+Config.MILESTONES_BY_ID = {}
+for _, m in ipairs(Config.MILESTONES) do
+	Config.MILESTONES_BY_ID[m.Id] = m
+end
+
+-- How many animals of a size (1 Normal, 2 Huge, 3 Titanic) are discovered
+function Config.discoveredCount(data, sizeIndex)
+	local n = 0
+	for _, pet in ipairs(Config.PETS) do
+		if data.Discovered and data.Discovered[Config.petName(pet.Name, sizeIndex)] then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- Can this milestone be claimed now? (true) or (false, why)
+function Config.canClaimMilestone(data, id)
+	local m = Config.MILESTONES_BY_ID[id]
+	if not m then
+		return false, "Unknown reward"
+	elseif data.Milestones and data.Milestones[id] then
+		return false, "Already claimed"
+	elseif Config.discoveredCount(data, m.Size) < m.Count then
+		return false, "Not reached yet"
+	end
+	return true
 end
 
 -- Seconds the fusion machine takes: rarer pets and bigger sizes take longer

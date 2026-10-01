@@ -54,6 +54,9 @@ local coinsText = Ui.new("TextLabel", {
 	Parent = coinPill,
 })
 local coinScale = Ui.new("UIScale", { Parent = coinPill })
+-- your luck sits in the same pill, after a thin divider (Roll.luau keeps it current)
+Ui.new("Frame", { LayoutOrder = 2, Size = UDim2.fromOffset(1, 26), BackgroundColor3 = Ui.LINE, Parent = coinPill })
+Roll.LuckPill.Parent = coinPill
 
 Effects.CoinTarget = coinIcon
 Effects.CoinLanded.Event:Connect(function()
@@ -315,10 +318,22 @@ local function button(parent, order, icon, label, onClick, size, style)
 end
 
 button(nav, 1, "paw", "Inventory", Inventory.open, nil, "blue")
-button(nav, 2, "book", "Index", Index.open, nil, "purple")
+local _, indexButton = button(nav, 2, "book", "Index", Index.open, nil, "purple")
 local _, upgradesButton = button(nav, 3, "tree", "Upgrades", UpgradeTree.open, nil, "green")
 button(nav, 4, "star", "Rebirth", Panels.openRebirth, nil, "magenta")
 button(nav, 5, "gear", "Settings", Panels.openSettings, nil, "gray")
+
+-- a gold dot on Index when a collection reward is ready
+local indexDot = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(1, -4, 0, 4),
+	Size = UDim2.fromOffset(14, 14),
+	BackgroundColor3 = Ui.GOLD,
+	Visible = false,
+	ZIndex = 5,
+	Parent = indexButton,
+}, { Ui.corner(0.5), Ui.stroke(Ui.WHITE, 2) })
+Hud.IndexDot = indexDot
 
 -- a gold dot on Upgrades when something can be bought
 local upgradeDot = Ui.new("Frame", {
@@ -358,6 +373,80 @@ local _, rollButton = button(controls, 2, "dice", "Roll", function()
 	task.spawn(Roll.roll)
 end, 88, "primary")
 Roll.bindButtons(rollButton, autoButton, hideButton)
+-- the luck boost badge sits on top of the control column (clear of the
+-- reel at any screen size: the column is always right of it)
+Roll.BoostBadge.AnchorPoint = Vector2.new(0.5, 1)
+Roll.BoostBadge.Position = UDim2.new(1, -66, 1, -288)
+Roll.BoostBadge.Parent = Screen.Controls
+
+-- World banner ----------------------------------------------------------------------------------
+-- Walking into another world slides a small banner down under the HUD
+-- ("Sahara"), in that world's colour, then it slides away.
+
+local banner = Ui.new("Frame", {
+	Name = "WorldBanner",
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 150),
+	Size = UDim2.fromOffset(0, 34),
+	AutomaticSize = Enum.AutomaticSize.X,
+	BackgroundColor3 = Ui.WHITE,
+	Visible = false,
+	Parent = gui,
+}, {
+	Ui.corner(17),
+	Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 18) }),
+})
+local bannerEdge = Ui.stroke(Ui.LINE, 2, 0)
+bannerEdge.Parent = banner
+local bannerText = Ui.new("TextLabel", {
+	AutomaticSize = Enum.AutomaticSize.X,
+	Size = UDim2.fromOffset(0, 34),
+	Font = Ui.FONT_DISPLAY,
+	TextScaled = false,
+	TextWrapped = false,
+	TextSize = 20,
+	Text = "",
+	Parent = banner,
+})
+local bannerToken = 0
+Hud.LastBanner = nil -- for the simulator
+local function showBanner(area)
+	bannerToken += 1
+	local token = bannerToken
+	Hud.LastBanner = area.Name
+	bannerText.Text = area.Name
+	bannerText.TextColor3 = area.Color:Lerp(Ui.INK, 0.35)
+	bannerEdge.Color = area.Color
+	banner.Visible = true
+	banner.Position = UDim2.new(0.5, 0, 0, if Ui.reduced() then 150 else 120)
+	banner.BackgroundTransparency = 0
+	TweenService:Create(banner, TweenInfo.new(0.35, Enum.EasingStyle.Quint), { Position = UDim2.new(0.5, 0, 0, 150) }):Play()
+	task.delay(2.2, function()
+		if token == bannerToken then
+			TweenService:Create(banner, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { Position = UDim2.new(0.5, 0, 0, 120), BackgroundTransparency = 1 }):Play()
+			task.delay(0.26, function()
+				if token == bannerToken then
+					banner.Visible = false
+				end
+			end)
+		end
+	end)
+end
+local shownArea = nil
+task.spawn(function()
+	while true do
+		task.wait(0.3)
+		local character = game:GetService("Players").LocalPlayer.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if root then
+			local area = Config.areaAt(root.Position.X)
+			if shownArea and area ~= shownArea then
+				showBanner(Config.AREAS[area])
+			end
+			shownArea = area
+		end
+	end
+end)
 
 -- Updates ------------------------------------------------------------------------------------------
 
@@ -367,6 +456,7 @@ State.watch(function()
 	refreshTeam(data)
 	refreshLevel(data)
 	upgradeDot.Visible = UpgradeTree.anyAffordable()
+	indexDot.Visible = Index.anyClaimable()
 end)
 
 -- which version is running (bottom left, small)

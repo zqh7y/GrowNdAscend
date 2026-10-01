@@ -140,21 +140,49 @@ function Screen.open(shade)
 		Screen.blur(true)
 	end
 	openModal = shade
+	shade:SetAttribute("Closing", false)
 	Ui.popIn(shade)
+	local tweens = game:GetService("TweenService")
+	-- the dim fades in; the panel rises into place
+	shade.BackgroundTransparency = 1
+	tweens:Create(shade, TweenInfo.new(0.2), { BackgroundTransparency = 0.55 }):Play()
 	local holder = holderOf(shade)
 	if holder then
-		-- a little bounce in from below
-		holder.Position = UDim2.new(0.5, 0, 0.5, 40)
-		game:GetService("TweenService"):Create(holder, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Position = UDim2.new(0.5, 0, 0.5, 12) }):Play()
+		holder.Position = UDim2.new(0.5, 0, 0.5, if Ui.reduced() then 12 else 36)
+		tweens:Create(holder, TweenInfo.new(0.32, Enum.EasingStyle.Quint), { Position = UDim2.new(0.5, 0, 0.5, 12) }):Play()
 	end
 end
 
+-- Closes a panel: it eases down and fades, then hides
 function Screen.close(shade)
-	shade.Visible = false
 	if openModal == shade then
 		openModal = nil
 		Screen.blur(false)
 	end
+	if not shade.Visible or shade:GetAttribute("Closing") then
+		return
+	end
+	local holder = holderOf(shade)
+	if Ui.reduced() or not holder then
+		shade.Visible = false
+		return
+	end
+	shade:SetAttribute("Closing", true)
+	local tweens = game:GetService("TweenService")
+	local scaler = holder:FindFirstChildOfClass("UIScale")
+	local out = TweenInfo.new(0.14, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+	tweens:Create(shade, out, { BackgroundTransparency = 1 }):Play()
+	tweens:Create(holder, out, { Position = UDim2.new(0.5, 0, 0.5, 30) }):Play()
+	if scaler then
+		tweens:Create(scaler, out, { Scale = 0.95 }):Play()
+	end
+	task.delay(0.15, function()
+		-- (unless it was opened again meanwhile)
+		if shade:GetAttribute("Closing") then
+			shade:SetAttribute("Closing", false)
+			shade.Visible = false
+		end
+	end)
 end
 
 -- The panel's heading, top left: a small rounded icon tile in the theme's

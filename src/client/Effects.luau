@@ -138,6 +138,21 @@ function Effects.burst(position, color)
 	end)
 end
 
+-- A soft full-screen flash that fades out (rebirths, big moments)
+function Effects.flash(color, seconds)
+	local veil = Ui.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = color or Color3.new(1, 1, 1),
+		BackgroundTransparency = if Ui.reduced() then 0.7 else 0.2,
+		ZIndex = 90,
+		Parent = Screen.Gui,
+	})
+	game:GetService("TweenService"):Create(veil, TweenInfo.new(seconds or 0.4, Enum.EasingStyle.Quad), { BackgroundTransparency = 1 }):Play()
+	task.delay((seconds or 0.4) + 0.05, function()
+		veil:Destroy()
+	end)
+end
+
 -- Coins flying into the counter ---------------------------------------------------------
 
 Effects.CoinTarget = nil -- the HUD's coin icon (set by the HUD)
@@ -186,6 +201,9 @@ local CONFETTI = {
 }
 
 function Effects.confetti(count, zIndex)
+	if Ui.reduced() then
+		count = math.ceil(count / 4)
+	end
 	for _ = 1, count do
 		local piece = Ui.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),

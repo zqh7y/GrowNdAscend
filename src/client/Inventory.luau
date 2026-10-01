@@ -136,6 +136,9 @@ local function count(list, name)
 	return n
 end
 
+local staggering = false -- cards grow in one after another (when the screen opens)
+local shownEquipped = nil -- [name] = copies equipped when the cards were last drawn
+
 local function card(order, name, owned, equipped, data)
 	local pet, size = Config.petInfo(name)
 	local rarity = Config.rarity(pet.Odds)
@@ -146,8 +149,11 @@ local function card(order, name, owned, equipped, data)
 		ZIndex = 32,
 		Parent = grid,
 	}, if equipped > 0 then Ui.SUCCESS else accent, { Ui.padding(10) })
-	if size.Index > 1 then
-		Ui.brackets(frame, accent, 10, 34)
+	if staggering then
+		Ui.appear(frame, order)
+	elseif shownEquipped and (shownEquipped[name] or 0) ~= equipped then
+		-- this pet was just equipped or unequipped
+		Ui.pop(frame, if equipped > (shownEquipped[name] or 0) then 1.08 else 0.94)
 	end
 
 	-- the pet itself, standing on a holo pad in its rarity colour
@@ -340,8 +346,14 @@ function refresh(force)
 	table.sort(list, function(a, b)
 		return sort.Before(a, b, data)
 	end)
+	staggering = force == true
 	for i, name in ipairs(list) do
 		card(i, name, data.Pets[name], count(data.Equipped, name), data)
+	end
+	staggering = false
+	shownEquipped = {}
+	for _, name in ipairs(data.Equipped) do
+		shownEquipped[name] = (shownEquipped[name] or 0) + 1
 	end
 	empty.Visible = #list == 0
 	empty.Text = if total == 0 then "No pets yet. Roll to hatch your first one!" else "No " .. string.lower(filter.Name) .. " pets."
