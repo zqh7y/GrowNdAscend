@@ -232,10 +232,9 @@ count, categories, rewards) and the hexagon grid on the right; hover or tap
 a tile for its card (name, rarity, chance here, power, stats). The upgrade
 tree is hexagon nodes on a teal board joined by paths (level badge and
 price under each, "?" when locked, gold when maxed); tapping one opens a
-card next to it with BUY. A normal roll (and auto) shows one slot per roll near the top of the
-screen: while it spins only the text flickers (each candidate's exact
-odds and name, slowing down), then the pet you got grows in above its
-odds and name and stays until the next roll; the reel at the bottom is only
+card next to it with BUY. A normal roll (and auto) shows one slot per roll at the bottom of the
+screen: pets flicker by (each with its exact odds and name, slowing
+down), then the pet you got grows in and stays until the next roll; the reel at the bottom is only
 used with "Big hatch reveals" on. The luck sign is a green bar
 with a clover and "x12.5". The rebirth screen shows REBIRTH X / 8 as a segment bar, what
 resets vs what you gain, and both requirements as MET / LOCKED with

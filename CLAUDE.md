@@ -160,7 +160,7 @@ for how it plays and where the code lives.
   `Ui.hexagon` (3 rotated rects in a CanvasGroup with one gradient) and
   `Ui.chunky` (outlined display text) are the building blocks. Panel titles
   are big tilted outlined text, close is a big red X (Screen.modal). Normal and auto
-  rolls cycle in place at the top (Hatch `cycle`, speed `Hatch.CYCLE_START`/
+  rolls cycle in place at the bottom (Hatch `cycle`, `Hatch.ROW_POSITION`, speed `Hatch.CYCLE_START`/
   `CYCLE_END`; the user wanted it slower than their reference video); the
   bottom reel is only for "Big hatch reveals". Upgrade tree: hexagon
   nodes, card pops up on tap (`UpgradeTree.Card`).

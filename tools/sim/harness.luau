@@ -737,7 +737,8 @@ if ok then
 			if Hatch.busy() and Hatch.ResultsRow.Visible then
 				trayFrames += 1
 				local p = Hatch.ResultsRow.Position
-				if p.X.Scale ~= 0.5 or p.X.Offset ~= 0 or p.Y.Offset ~= 205 then
+				local want = Hatch.ROW_POSITION
+				if p.X.Scale ~= want.X.Scale or p.X.Offset ~= want.X.Offset or p.Y.Scale ~= 1 or p.Y.Offset ~= want.Y.Offset then
 					trayOff += 1
 				end
 			end
@@ -1683,8 +1684,8 @@ if ok then
 	item(64, "crazy pulls get a very special show", crazy.Tier == 6 and crazy.Crazy == true and string.find(crazy.Banner or "", "INSANE") ~= nil and (crazy.Seconds or 0) > (titanic.Seconds or 0) and crazy.Revealed == "Glitch",
 		string.format("'%s', %.1fs vs %.1fs for a Titanic", tostring(crazy.Banner), crazy.Seconds or 0, titanic.Seconds or 0))
 	item(65, "Roll / Auto / mode buttons always reachable", STATS.Controls == true, "own layer above panels and the hatch")
-	item(66, "rolls cycle near the top (by hand and auto)", ah.AutoBottom == false and ah.TopAfter == false and (STATS.Tray or {}).Off == 0,
-		"no bottom reel for normal or auto rolls; the slots cycle at the top")
+	item(66, "rolls cycle at the bottom (by hand and auto)", ah.AutoBottom == false and ah.TopAfter == false and (STATS.Tray or {}).Off == 0,
+		"normal and auto rolls cycle in the row at the bottom of the screen (not the big reel)")
 
 	-- 67. the odds shown are the real odds: a million rolls with the real
 	-- roll function land on each pet as often as Config.chanceOf says
@@ -1958,7 +1959,7 @@ if ok then
 		local fm = ((hh.common or {}).Motion) or {}
 		local cm = (STATS.Chain8 or {}).Motion or {}
 		item(84, "rolls stay in place", (tray.Frames or 0) > 30 and tray.Off == 0 and fm.TrayMoved == 0 and cm.TrayMoved == 0,
-			string.format("%d auto-roll frames cycling at the top, %d off its spot (or a bottom reel); the big reel never moves", tray.Frames or 0, tray.Off or -1))
+			string.format("%d auto-roll frames cycling at the bottom, %d off its spot (or a bottom reel); the big reel never moves", tray.Frames or 0, tray.Off or -1))
 		-- every pet, every world, any luck: a real chance
 		local zero, worst = 0, 1
 		for _, pet in ipairs(Config.PETS) do

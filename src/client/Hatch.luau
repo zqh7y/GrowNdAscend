@@ -1370,10 +1370,11 @@ end
 
 -- THE FLOATING RESULTS -------------------------------------------------------------------------
 
+Hatch.ROW_POSITION = UDim2.new(0.5, 0, 1, -12) -- the rolls sit at the bottom of the screen
 local resultsRow = Ui.new("Frame", {
 	Name = "Results",
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 205),
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = Hatch.ROW_POSITION,
 	Size = UDim2.fromOffset(0, 200),
 	AutomaticSize = Enum.AutomaticSize.X,
 	BackgroundTransparency = 1,
@@ -1435,17 +1436,11 @@ local function makeSlot(order)
 	return { Holder = holder, View = viewHolder, Pop = pop, Odds = odds, Name = label, Shows = nil }
 end
 
--- Puts a name and its odds text in a slot. While cycling (`landed` false)
--- only the text changes, no picture; when it lands (`landed` true) the pet
--- (or the boost tile) grows in above the text.
+-- Puts a pet (or the boost tile) in a slot with its odds and name. While
+-- cycling each one pops in quickly; when it lands (`landed` true) the
+-- result grows in from small.
 local function setSlot(slot, name, oddsText, landed)
-	if not landed then
-		if slot.Shows then
-			PetView.releaseAll(slot.View)
-			clear(slot.View)
-			slot.Shows = nil
-		end
-	elseif slot.Shows ~= name then
+	if slot.Shows ~= name then
 		PetView.releaseAll(slot.View)
 		clear(slot.View)
 		if name == BOOST then
@@ -1468,10 +1463,9 @@ local function setSlot(slot, name, oddsText, landed)
 	end
 	slot.Odds.Text = oddsText
 	slot.Odds.Tint.Color = ColorSequence.new(color:Lerp(Ui.WHITE, 0.45), color)
-	if landed and not Ui.reduced() then
-		-- the pet grows in from small
-		slot.Pop.Scale = 0.25
-		TweenService:Create(slot.Pop, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	if not Ui.reduced() then
+		slot.Pop.Scale = if landed then 0.25 else 0.75
+		TweenService:Create(slot.Pop, TweenInfo.new(if landed then 0.3 else 0.12, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	end
 end
 
@@ -1496,7 +1490,7 @@ end
 -- the result stays until the next roll starts (or a few seconds), then
 -- simply disappears
 local function fadeResultsLater(id, fast)
-	resultsRow.Position = UDim2.new(0.5, 0, 0, 205)
+	resultsRow.Position = Hatch.ROW_POSITION
 	task.delay(if fast then 2.5 else 4, function()
 		if resultsId == id then
 			resultsRow.Visible = false
@@ -1545,7 +1539,7 @@ local function cycle(results, best, fast)
 	local id = resultsId
 	PetView.releaseAll(resultsRow)
 	clear(resultsRow)
-	resultsRow.Position = UDim2.new(0.5, 0, 0, 205)
+	resultsRow.Position = Hatch.ROW_POSITION
 	resultsRow.Visible = true
 	local multiplier = best.Multiplier or 1
 	local badgeAtStart = boostState(if multiplier > 1 then "active" else "none", multiplier)
