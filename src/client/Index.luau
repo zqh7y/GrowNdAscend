@@ -300,7 +300,7 @@ function Index.showTip(frame, info)
 	tipName.Text = if found then name else "???"
 	tipRarity.Text = rarity.Name
 	tipRarity.BackgroundColor3 = rarity.Color
-	tipOdds.Text = info.Odds .. " here"
+	tipOdds.Text = info.Odds .. " at x1 luck"
 	tipPower.Text = if found then "⚔ " .. Config.formatNumber(Config.petPower(name)) .. " power" else "Not found yet"
 	local parts = {}
 	if found then
@@ -333,17 +333,10 @@ end
 -- Tiles ------------------------------------------------------------------------------------
 
 local function card(pet, sizeIndex, found, world)
-	-- the exact chance of your next roll here (your luck, size luck and this
-	-- world: the same numbers the server rolls with); every animal can hatch
-	-- in every world, it's just rarer in worlds before its home world
-	local data = State.Data
-	local chance = 0
-	if data then
-		local nextIsBonus = (data.Rolls + 1) % Config.BONUS_EVERY == 0
-		local sizeLuck = Config.sizeLuck(data) * (if nextIsBonus then Config.BONUS_LUCK else 1)
-		chance = Config.chanceOf(Config.petName(pet.Name, sizeIndex), Config.luck(data, nextIsBonus, world), sizeLuck, world)
-	end
-	local odds = if chance > 0 then Config.shortOdds(1 / chance) else "-"
+	-- how rare it really is: its odds at x1 luck (the same for everyone,
+	-- whatever their luck), counting its size
+	local _ = world
+	local odds = Config.shortOdds(Config.oddsOf(Config.petName(pet.Name, sizeIndex)))
 	local tile = PetTile.new({
 		Name = Config.petName(pet.Name, sizeIndex),
 		Width = TILE_W,
@@ -386,8 +379,7 @@ function refresh(force)
 		table.insert(names, name)
 	end
 	table.sort(names)
-	local nextIsBonus = (data.Rolls + 1) % Config.BONUS_EVERY == 0
-	local luckKey = string.format("%.6g|%.6g", Config.luck(data, nextIsBonus, world), Config.sizeLuck(data) * (if nextIsBonus then 2 else 1))
+	local luckKey = "" -- (the odds shown don't depend on luck)
 	local signature = Index.Tab .. "|" .. Index.Size .. "|" .. world .. "|" .. luckKey .. "|" .. table.concat(names, ",")
 	if signature == lastSignature and not force then
 		return

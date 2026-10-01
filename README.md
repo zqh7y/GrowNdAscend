@@ -173,6 +173,16 @@ chase Huge and Titanic pets.**
   or stops at the fountain. Each world has its own light. Quiet stretches
   alternate with lively ones, everything is capped, and only the world you're
   in is alive (`Ambient.luau`).
+- **Luck Board** (the clover "Luck" button on the left): an incremental
+  board just for luck. Six rows you level up with coins, each multiplying
+  your luck: Lucky Paw (x1.12 a level), Four-Leaf Clover (x1.12), Golden
+  Horseshoe (x1.12), Rainbow (x1.15), Lucky Star (x1.18), Cosmic Fortune
+  (x1.25). Each unlocks when the row before reaches level 5. They stack with
+  everything else, so luck climbs fast (about x5 at 10 minutes, x180 at 30,
+  the x1M cap by ~1.5 h for an active player). A gold dot shows when you can
+  buy one; the luck breakdown has a "Luck Board" line.
+- The Index shows how rare each pet really is (its odds at x1 luck),
+  whatever your luck.
 - **Outfits:** every animal wears its own outfit (looks only): Fireman,
   Cop, Doctor, Rapper, Millionaire, Chef, Pirate, Cowboy, Wizard, Builder,
   Astronaut, Graduate, Party, DJ, Surfer, Viking, Ninja, Santa, Skater,

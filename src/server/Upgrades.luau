@@ -36,4 +36,33 @@ buyFunction.OnServerInvoke = function(player, id)
 	return true
 end
 
+-- The Luck Board: the next level of a row
+local boardFunction = Instance.new("RemoteFunction")
+boardFunction.Name = "BuyLuck"
+boardFunction.Parent = remotes
+
+boardFunction.OnServerInvoke = function(player, id)
+	local data = PlayerData.get(player)
+	if not data or type(id) ~= "string" then
+		return false
+	end
+	local ok, reason = Config.canBoard(data, id)
+	if not ok then
+		notifyEvent:FireClient(player, reason, "danger")
+		return false
+	end
+	local item = Config.LUCK_BOARD_BY_ID[id]
+	local level = Config.boardLevel(data, id)
+	local cost = Config.boardCost(item, level)
+	if data.Coins < cost then
+		notifyEvent:FireClient(player, "You need " .. Config.formatNumber(cost - data.Coins) .. " more coins", "danger")
+		return false
+	end
+	data.Coins -= cost
+	data.LuckBoard = data.LuckBoard or {}
+	data.LuckBoard[id] = level + 1
+	PlayerData.sync(player)
+	return true
+end
+
 return {}

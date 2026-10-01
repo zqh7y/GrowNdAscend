@@ -498,6 +498,43 @@ if ok then
 			local distinct = 0
 			for _ in pairs(looks) do distinct += 1 end
 			local okT, titanic = pcall(C("PetModels").build, "Titanic " .. Config.PETS[1].Name)
+			-- the Luck Board: buy rows, unlock the next at level 5, luck multiplies
+			do
+				local savedCoins, savedBoard = data.Coins, data.LuckBoard
+				data.LuckBoard = {}
+				data.Coins = 1e18
+				PlayerData.sync(player)
+				local lb = {}
+				local luck0 = Config.luck(data, false, 1, 1)
+				lb.LockedRefused = remotes.BuyLuck.OnServerInvoke(player, "clover") == false
+				local bought = 0
+				for _ = 1, Config.BOARD_UNLOCK do
+					if remotes.BuyLuck.OnServerInvoke(player, "paw") then bought += 1 end
+				end
+				local luck1 = Config.luck(data, false, 1, 1)
+				lb.PawRatio = luck1 / luck0
+				lb.WantRatio = Config.LUCK_BOARD_BY_ID.paw.Per ^ Config.BOARD_UNLOCK
+				lb.Bought = bought
+				lb.CloverNow = remotes.BuyLuck.OnServerInvoke(player, "clover") == true
+				local coinsBefore = data.Coins
+				remotes.BuyLuck.OnServerInvoke(player, "paw")
+				lb.Charged = coinsBefore - data.Coins == Config.boardCost(Config.LUCK_BOARD_BY_ID.paw, Config.BOARD_UNLOCK)
+				data.LuckBoard.paw = Config.LUCK_BOARD_BY_ID.paw.Max
+				lb.MaxRefused = remotes.BuyLuck.OnServerInvoke(player, "paw") == false
+				PlayerData.sync(player)
+				local Board = C("LuckBoard")
+				Board.open()
+				frames(1)
+				lb.Total = Board.Total.Text
+				lb.WantTotal = "x" .. Config.formatStat(Config.boardLuck(data)):sub(1, -2)
+				lb.PawButton = Board.Rows.paw.Buy.Content.Label.Text
+				lb.Dot = C("Hud").LuckDot ~= nil
+				C("Screen").close(Board.Modal)
+				data.LuckBoard = savedBoard or {}
+				data.Coins = savedCoins
+				PlayerData.sync(player)
+				STATS.LuckBoard = lb
+			end
 			STATS.Outfits = { Dressed = dressed, Distinct = distinct, Broken = table.concat(broken, ", "), Titanic = okT and titanic:GetAttribute("Outfit") ~= nil }
 			data.Pets.Cat = 2
 			C("Screen").close(AuraMachine.Modal)
@@ -1047,7 +1084,7 @@ if ok then
 						if d.Name == "ChanceHere" then
 							checkedCards += 1
 							local pet = Cfg.PETS[cardFrame.LayoutOrder]
-							local want = Cfg.shortOdds(1 / Cfg.chanceOf(pet.Name, luckNow, sizeLuckNow, idxWorld))
+							local want = Cfg.shortOdds(Cfg.oddsOf(pet.Name)) -- its rarity at x1 luck, whatever your luck
 							if d.Text == want then chanceOk += 1 end
 						end
 					end
@@ -2073,8 +2110,8 @@ if ok then
 		item(85, "every pet can hatch in every world", zero == 0, string.format("%d zero chances over 70 pets x 4 worlds x 5 luck levels (rarest later-world pet early: %s)", zero, Config.formatChance(worst)))
 		local b = STATS.B14 or {}
 		local ix = b.Index or {}
-		item(86, "Index: every world, exact chance here", ix.BestIn == 0 and (ix.Cards or 0) == 70 and ix.EveryWorld == 70 and ix.ChanceOk == 70,
-			string.format("%d/%d cards say 'Hatches in every world', %d/%d show the exact chance here, %d 'Best in'", ix.EveryWorld or 0, ix.Cards or 0, ix.ChanceOk or 0, ix.Cards or 0, ix.BestIn or -1))
+		item(86, "Index: every world, rarity at x1 luck", ix.BestIn == 0 and (ix.Cards or 0) == 70 and ix.EveryWorld == 70 and ix.ChanceOk == 70,
+			string.format("%d/%d cards say 'Hatches in every world', %d/%d show the pet's rarity at x1 luck (not changed by your luck), %d 'Best in'", ix.EveryWorld or 0, ix.Cards or 0, ix.ChanceOk or 0, ix.Cards or 0, ix.BestIn or -1))
 		local g = STATS.Gates or {}
 		local lockedOk = g.Locked ~= nil
 		for _, l in ipairs(g.Locked or {}) do
@@ -2151,6 +2188,10 @@ if ok then
 		item(105, "every pet wears its own outfit", of.Dressed == #Config.PETS and of.Distinct == #Config.PETS and of.Titanic == true,
 			string.format("%d/%d animals dressed, %d different looks (%d outfits x 2 colourways), a Titanic wears its outfit under its crown%s",
 				of.Dressed or 0, #Config.PETS, of.Distinct or 0, #Config.OUTFITS, if of.Broken and of.Broken ~= "" then "; broken: " .. of.Broken else ""))
+		local lb = STATS.LuckBoard or {}
+		item(106, "Luck Board: rows, unlocks, real luck", lb.LockedRefused == true and lb.Bought == Config.BOARD_UNLOCK and math.abs((lb.PawRatio or 0) - (lb.WantRatio or -1)) < 1e-6
+			and lb.CloverNow == true and lb.Charged == true and lb.MaxRefused == true and lb.Total == lb.WantTotal and lb.PawButton == "MAX" and lb.Dot == true,
+			string.format("Clover locked until Lucky Paw Lv %d; 5 paws -> luck x%.2f; charged the right price; maxed rows refused; the board says %s", Config.BOARD_UNLOCK, lb.PawRatio or 0, tostring(lb.Total)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))

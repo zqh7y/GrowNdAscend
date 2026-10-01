@@ -60,6 +60,20 @@ UP = {  # id: (value(level), cost(level), max)  -- mirrors Config.UPGRADES
     "SizeLuck":  (lambda l: 1.12 ** l,            lambda l: 1e6 * 4.5 ** l, 15),
     "Slots":     (lambda l: 3 + l,                lambda l: [1e4, 5e7, 2e11][l], 3),
 }
+# the Luck Board (read from Config.LUCK_BOARD): each row multiplies luck by
+# Per per level; a row needs the row before at BOARD_UNLOCK levels
+BOARD = re.findall(r'\{ Id = "([a-z]+)", Name = "[^"]+", Icon = "[a-z]+", Color = [^}]+\), Per = ([\d.]+), Max = (\d+), BaseCost = ([\d.e]+), Growth = ([\d.]+) \}', _config)
+BOARD_UNLOCK = int(num(r'BOARD_UNLOCK = (\d+)'))
+BOARD_IDS = []
+for bid, per, mx, base, growth in BOARD:
+    per, mx, base, growth = float(per), int(mx), float(base), float(growth)
+    UP["B_" + bid] = ((lambda p: lambda l: p ** l)(per), (lambda b, g: lambda l: b * g ** l)(base, growth), mx)
+    BOARD_IDS.append("B_" + bid)
+
+def board_ok(lv, key):  # Config.canBoard (the row before needs BOARD_UNLOCK levels)
+    i = BOARD_IDS.index(key)
+    return i == 0 or lv[BOARD_IDS[i - 1]] >= BOARD_UNLOCK
+
 HIT_EVERY = 0.6
 OVERHEAD = 1.6  # seconds per enemy: running over, retargeting, its hops
 BONUS_EVERY, BONUS_LUCK = 10, 2
@@ -113,7 +127,10 @@ def run(hours=8, seed=1, verbose=False):
                 if rng.random() < CHAIN_CHANCE:  # a x2 luck boost instead of a pet
                     boosts += 1
                     continue
-                luck = val("Luck") * (1 + sum(pet_bonus(o, s, 0) for _, o, s in team)) * bonus
+                board = 1.0
+                for key in BOARD_IDS:
+                    board *= val(key)
+                luck = val("Luck") * board * (1 + sum(pet_bonus(o, s, 0) for _, o, s in team)) * bonus
                 luck = min(luck * REBIRTH_LUCK ** rebirths * world_luck * multiplier, MAX_LUCK)
                 odds = 2
                 for o, w in reversed(PETS[1:]):
@@ -175,7 +192,7 @@ def run(hours=8, seed=1, verbose=False):
             goals.append(REBIRTHS[rebirths][0])
         cap = 0.5 * min(goals) if goals else float("inf")
         while True:
-            options = [(UP[k][1](lv[k]), k) for k in UP if lv[k] < UP[k][2]]
+            options = [(UP[k][1](lv[k]), k) for k in UP if lv[k] < UP[k][2] and (k not in BOARD_IDS or board_ok(lv, k))]
             options = [o for o in options if o[0] <= coins and o[0] <= cap]
             if not options:
                 break

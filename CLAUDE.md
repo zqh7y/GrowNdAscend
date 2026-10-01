@@ -37,14 +37,14 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 105-point player checklist (spawning, rolling, pets
+- The sim ends with a 106-point player checklist (spawning, rolling, pets
   fighting, levels and EXP, rebirth keeping worlds, the full and compact hatches, flex
   rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
   hatch show step by step, the ROLL + AUTO buttons, the dense inventory with side details
-  and Equip Best). It must say "checklist: 105/105 passed". It takes
+  and Equip Best). It must say "checklist: 106/106 passed". It takes
   a few minutes; run it in the background. The harness runs as one big
   function: wrap new test blocks in `do ... end` or Luau runs out of local
   registers (limit 200).
@@ -164,6 +164,12 @@ for how it plays and where the code lives.
   `CYCLE_END`; pets scroll fast (0.09s -> 0.3s each) but a roll still takes ~2.6s); the
   bottom reel is only for "Big hatch reveals". Upgrade tree: hexagon
   nodes, card pops up on tap (`UpgradeTree.Card`).
+- Luck Board: `Config.LUCK_BOARD` (one row per line, simulate.py parses
+  them), levels in `data.LuckBoard`, `Config.boardLuck` multiplies
+  `Config.luck`; server BuyLuck in Upgrades.luau; client LuckBoard.luau.
+  The user wanted luck to grow much faster.
+- The Index shows each pet's rarity at x1 luck (`Config.oddsOf`), never
+  luck-adjusted (the user asked).
 - Outfits: `Config.OUTFITS` (35 names) / `Config.outfitOf(name)` (pet
   #i gets outfit (i-1)%35+1, second colourway for #36+); built by `outfit`
   in PetModels (sizes in u = half the head height; returns the hat height

@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 30 (an outfit for every pet)"
+Config.BUILD = "build 31 (Luck Board, Index shows x1 rarity)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -395,9 +395,67 @@ function Config.petLuckTotal(data)
 	return Config.teamStat(data, "Luck")
 end
 
+-- The Luck Board ----------------------------------------------------------------------
+-- An incremental board just for luck (its own screen, the clover button):
+-- six luck upgrades bought with coins, each multiplying your luck by Per
+-- per level. Each unlocks when the one before reaches level 5. They stack
+-- with everything else, so luck climbs fast. Saved in data.LuckBoard.
+-- (One row per line: tools/economy/simulate.py reads them.)
+Config.LUCK_BOARD = {
+	{ Id = "paw", Name = "Lucky Paw", Icon = "paw", Color = Color3.fromRGB(110, 210, 120), Per = 1.12, Max = 20, BaseCost = 40, Growth = 2.1 },
+	{ Id = "clover", Name = "Four-Leaf Clover", Icon = "clover", Color = Color3.fromRGB(46, 196, 120), Per = 1.12, Max = 20, BaseCost = 2500, Growth = 2.3 },
+	{ Id = "horseshoe", Name = "Golden Horseshoe", Icon = "star", Color = Color3.fromRGB(255, 196, 40), Per = 1.12, Max = 20, BaseCost = 2e6, Growth = 2.6 },
+	{ Id = "rainbow", Name = "Rainbow", Icon = "spark", Color = Color3.fromRGB(255, 110, 170), Per = 1.15, Max = 15, BaseCost = 3e9, Growth = 3 },
+	{ Id = "star", Name = "Lucky Star", Icon = "star", Color = Color3.fromRGB(140, 110, 255), Per = 1.18, Max = 12, BaseCost = 5e12, Growth = 3.4 },
+	{ Id = "cosmic", Name = "Cosmic Fortune", Icon = "spark", Color = Color3.fromRGB(40, 220, 230), Per = 1.25, Max = 10, BaseCost = 1e15, Growth = 4 },
+}
+Config.BOARD_UNLOCK = 5 -- a row unlocks when the row before reaches this level
+Config.LUCK_BOARD_BY_ID = {}
+for i, item in ipairs(Config.LUCK_BOARD) do
+	item.Index = i
+	Config.LUCK_BOARD_BY_ID[item.Id] = item
+end
+
+function Config.boardLevel(data, id)
+	return math.clamp(math.floor(((data.LuckBoard or {})[id]) or 0), 0, Config.LUCK_BOARD_BY_ID[id].Max)
+end
+
+function Config.boardCost(item, level)
+	return math.floor(item.BaseCost * item.Growth ^ level)
+end
+
+function Config.boardValue(item, level)
+	return item.Per ^ level
+end
+
+-- All the board's luck together
+function Config.boardLuck(data)
+	local total = 1
+	for _, item in ipairs(Config.LUCK_BOARD) do
+		total *= Config.boardValue(item, Config.boardLevel(data, item.Id))
+	end
+	return total
+end
+
+-- Can this row be bought now? (ok, reason)
+function Config.canBoard(data, id)
+	local item = Config.LUCK_BOARD_BY_ID[id]
+	if not item then
+		return false, "Unknown"
+	end
+	if Config.boardLevel(data, id) >= item.Max then
+		return false, "Maxed"
+	end
+	local before = Config.LUCK_BOARD[item.Index - 1]
+	if before and Config.boardLevel(data, before.Id) < Config.BOARD_UNLOCK then
+		return false, "Needs " .. before.Name .. " Lv " .. Config.BOARD_UNLOCK
+	end
+	return true
+end
+
 function Config.luck(data, isBonus, world, multiplier)
 	local fromPets = Config.petLuckTotal(data)
-	local luck = Config.upgradeValue(data, "Luck") * fromPets * Config.rebirthLuck(data.Rebirths or 0)
+	local luck = Config.upgradeValue(data, "Luck") * fromPets * Config.rebirthLuck(data.Rebirths or 0) * Config.boardLuck(data)
 	luck *= Config.AREAS[math.clamp(world or 1, 1, #Config.AREAS)].Luck
 	if isBonus then
 		luck *= Config.BONUS_LUCK
