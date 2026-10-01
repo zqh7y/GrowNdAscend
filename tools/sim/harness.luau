@@ -594,8 +594,9 @@ if ok then
 		for _, case in ipairs({
 			{ Key = "common", Result = { Pet = "Dog", Size = 1, First = true } },
 			{ Key = "rare", Result = { Pet = "Lion", Size = 1 } },
-			{ Key = "huge", Result = { Pet = "Tiger", Size = 2, FirstOfSize = true } },
-			{ Key = "titanic", Result = { Pet = "Glitch", Size = 3 } },
+			{ Key = "huge", Result = { Pet = "Lion", Size = 2, FirstOfSize = true } },
+			{ Key = "titanic", Result = { Pet = "Cat", Size = 3 } },
+			{ Key = "crazy", Result = { Pet = "Glitch", Size = 1 } },
 		}) do
 			local startClock = CLOCK
 			try("hatch " .. case.Key, Hatch.play, { case.Result, { Pet = "Cat", Size = 1 } }, false, 1)
@@ -664,8 +665,10 @@ if ok then
 		if not C("Roll").autoOn() then
 			C("Roll").toggleAuto()
 		end
+		local autoBottom = false
 		for _ = 1, 900 do
 			frames(1)
+			if Hatch.LastFeed and Hatch.LastFeed.Bottom then autoBottom = true end
 		end
 		local autoRolls = data.Rolls - autoBefore
 		C("Roll").toggleAuto()
@@ -685,7 +688,9 @@ if ok then
 			if Hatch.Shade.Visible then everShaded = true end
 		end
 		local feed = Hatch.LastFeed or {}
-		STATS.AutoHide = { AutoRolls = autoRolls, HiddenRolls = data.Rolls - hiddenBefore, EverShaded = everShaded, Landed = feed.Landed, Names = feed.Names, Backdrop = feed.Backdrop }
+		local controlsGui, gameGui = player.PlayerGui:FindFirstChild("ControlsGui"), player.PlayerGui:FindFirstChild("GameGui")
+		STATS.Controls = controlsGui ~= nil and controlsGui:FindFirstChild("Controls") ~= nil and (controlsGui.DisplayOrder or 0) > (gameGui.DisplayOrder or 0)
+		STATS.AutoHide = { AutoBottom = autoBottom, TopAfter = feed.Bottom == false, AutoRolls = autoRolls, HiddenRolls = data.Rolls - hiddenBefore, EverShaded = everShaded, Landed = feed.Landed, Names = feed.Names, Backdrop = feed.Backdrop }
 		print(string.format("auto roll with no upgrades: %d rolls in 15s | compact hatch: %d roll, landed %s (shown %s), backdrop transparency %s, full screen dim %s",
 			autoRolls, STATS.AutoHide.HiddenRolls, tostring(feed.Landed), tostring(feed.Names and feed.Names[1]), tostring(feed.Backdrop), tostring(everShaded)))
 
@@ -908,7 +913,11 @@ if ok then
 	-- 17, 18. screen layout: navigation on the left, controls on the right, nothing in the top-left corner
 	local gameGui = player.PlayerGui.GameGui
 	local leftNav, rightControls, topLeft = false, false, {}
-	for _, child in ipairs(gameGui:GetChildren()) do
+	local onScreen = gameGui:GetChildren()
+	for _, child in ipairs(player.PlayerGui.ControlsGui:GetChildren()) do
+		table.insert(onScreen, child)
+	end
+	for _, child in ipairs(onScreen) do
 		if child:IsA("GuiObject") and child.Visible then
 			local pos, anchor = child.Position, child.AnchorPoint or Vector2.new(0, 0)
 			if pos.X.Scale == 0 and anchor.X == 0 and pos.Y.Scale == 0.5 then
@@ -1116,6 +1125,11 @@ if ok then
 	local power = h2.common and h2.common.Power
 	local expected = h2.common and h2.common.Result and Config.formatNumber(Config.petPower(h2.common.Result)) .. " power"
 	item(63, "hatch reveal counts up to the pet's power", power ~= nil and power == expected, tostring(power) .. " for " .. tostring(h2.common and h2.common.Result))
+	local crazy = h2.crazy or {}
+	item(64, "crazy pulls get a very special show", crazy.Tier == 6 and crazy.Crazy == true and string.find(crazy.Banner or "", "INSANE") ~= nil and (crazy.Seconds or 0) > (titanic.Seconds or 0) and crazy.Revealed == "Glitch",
+		string.format("'%s', %.1fs vs %.1fs for a Titanic", tostring(crazy.Banner), crazy.Seconds or 0, titanic.Seconds or 0))
+	item(65, "Roll / Auto / mode buttons always reachable", STATS.Controls == true, "own layer above panels and the hatch")
+	item(66, "auto rolls show at the bottom", ah.AutoBottom == true and ah.TopAfter == true, "compact row at the bottom while auto rolling, top by hand")
 
 	local passed = 0
 	for _, r in ipairs(results) do

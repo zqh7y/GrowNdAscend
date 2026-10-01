@@ -16,10 +16,24 @@ local gui = Ui.new("ScreenGui", {
 })
 Screen.Gui = gui
 
+-- The Roll / Auto / hatch mode buttons live on their own layer above
+-- everything (panels, the hatch), so they can be pressed at any time
+local controlsGui = Ui.new("ScreenGui", {
+	Name = "ControlsGui",
+	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
+	DisplayOrder = 10,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
+})
+Screen.Controls = controlsGui
+
 local uiScale = Ui.new("UIScale", { Parent = gui })
+local controlsScale = Ui.new("UIScale", { Parent = controlsGui })
 local function fitScreen()
 	local size = Workspace.CurrentCamera.ViewportSize
 	uiScale.Scale = math.clamp(math.min(size.X / 1280, size.Y / 760), 0.55, 1.15)
+	controlsScale.Scale = uiScale.Scale
 end
 fitScreen()
 Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitScreen)

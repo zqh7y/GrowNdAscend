@@ -332,9 +332,10 @@ local upgradeDot = Ui.new("Frame", {
 }, { Ui.corner(0.5), Ui.stroke(Ui.INK, 1.5) })
 
 
--- Gameplay controls (right side) -----------------------------------------------------------------
+-- Gameplay controls (right side), on their own layer so they always work --------------------------
 
 local controls = Ui.new("Frame", {
+	Name = "Controls",
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -18, 1, -16),
 	Size = UDim2.fromOffset(96, 0),
@@ -350,6 +351,7 @@ local controls = Ui.new("Frame", {
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
+controls.Parent = Screen.Controls
 local _, hideButton = button(controls, 0, "eye", "Compact", Roll.toggleHatchMode, 44)
 local _, autoButton = button(controls, 1, "loop", "Auto", Roll.toggleAuto, 56)
 local _, rollButton = button(controls, 2, "dice", "Roll", function()

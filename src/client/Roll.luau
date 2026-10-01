@@ -131,13 +131,20 @@ function Roll.roll()
 		task.delay(0.12, function()
 			meterScale.Scale = 1
 		end)
-		if not State.Settings.FullHatch then
-			Hatch.compact(results, fast)
+		-- auto rolls always show in the compact row at the bottom; by hand,
+		-- the compact row at the top unless the full hatch is switched on.
+		-- A Huge, Titanic or crazy pull always gets its big reveal after it
+		if autoRoll or not State.Settings.FullHatch then
+			Hatch.compact(results, fast, autoRoll)
+			local best, bestTier = nil, 3
 			for _, result in ipairs(results) do
-				if result.Size >= 2 then
-					Hatch.reveal(result.Pet, result.Size)
-					break
+				local tier = Hatch.tier(result)
+				if tier > bestTier then
+					best, bestTier = result, tier
 				end
+			end
+			if best then
+				Hatch.reveal(best.Pet, best.Size)
 			end
 		else
 			Hatch.play(results, fast, results[1].World or world)

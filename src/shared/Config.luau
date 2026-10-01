@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 9 (clean UI, new hatch, blocky pets)"
+Config.BUILD = "build 10 (auto rolls at the bottom, crazy pull show)"
 
 -- Pets -------------------------------------------------------------------------
 

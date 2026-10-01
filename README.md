@@ -47,8 +47,20 @@ chase Huge and Titanic pets.**
     middle with a small "Huge Dragon?!" label; it's only a show, the
     carousel always stops on what you actually rolled.
 
-  Click (or press Roll) to skip; hatches get quicker after the first few
-  and when auto rolling. Every 10th roll has 2x luck.
+  - **Auto rolls** always show in the compact row at the **bottom** of the
+    screen, so the top stays clear while you grind.
+  - **Crazy pulls** (a Mythic or Secret animal, a Titanic of a 1 in 1,000+
+    animal, or a Huge of a 1 in 100,000+ one) get a very special show, even
+    while auto rolling: the screen goes dark, three heartbeats with rings
+    of light ("... wait... NO WAY..."), the screen trembles and cracks open
+    with rainbow light, a white flash and a confetti storm, then the pet
+    rises under "INSANE SECRET!" with spinning rainbow rays, a shimmering
+    name and fireworks.
+
+  The Roll, Auto and hatch mode buttons sit on their own layer above
+  everything (panels and the hatch included), so they always work. Click
+  (or press Roll) to skip; hatches get quicker after the first few and when
+  auto rolling. Every 10th roll has 2x luck.
 - **Upgrade tree** (the tree button): Coins, Damage, Luck, Roll Speed, Rolls
   at Once, Auto Hatch (auto roll → quick reveals → auto-equip best), Size
   Luck and Pet Slots. Some branches unlock after others.

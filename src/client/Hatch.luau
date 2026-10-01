@@ -66,9 +66,19 @@ local function pause(seconds)
 	return false
 end
 
--- How big a moment a result is: 0 common .. 3 legendary+, 4 huge, 5 titanic
+-- A really crazy pull: a Mythic or Secret animal (1 in 1M+), a Titanic of
+-- a 1 in 1,000+ animal, or a Huge of a 1 in 100,000+ one
+function Hatch.isCrazy(result)
+	local odds = Config.PETS_BY_NAME[result.Pet].Odds
+	return odds >= 1e6 or (result.Size >= 3 and odds >= 1000) or (result.Size == 2 and odds >= 1e5)
+end
+
+-- How big a moment a result is: 0 common .. 3 legendary+, 4 huge, 5 titanic,
+-- 6 a crazy pull (its own very special show)
 function Hatch.tier(result)
-	if result.Size >= 3 then
+	if Hatch.isCrazy(result) then
+		return 6
+	elseif result.Size >= 3 then
 		return 5
 	elseif result.Size == 2 then
 		return 4
@@ -226,9 +236,10 @@ local compactChip = Ui.new("TextLabel", {
 	Parent = compact,
 }, { Ui.corner(10), Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
 
--- Shows a roll in the compact row. Yields until it's done (about a second
--- and a half; quicker with `fast`).
-function Hatch.compact(results, fast)
+-- Shows a roll in the compact row: at the top of the screen, or at the
+-- bottom (`bottom`, used while auto rolling). Yields until it's done (about
+-- a second and a half; quicker with `fast`).
+function Hatch.compact(results, fast, bottom)
 	if busy or #results == 0 then
 		return
 	end
@@ -253,6 +264,18 @@ function Hatch.compact(results, fast)
 		end
 		compactName.Text, compactChip.Text = "", ""
 		compactChip.Visible = false
+		if bottom then
+			-- above the bottom edge, with the name and rarity above the row
+			compact.AnchorPoint = Vector2.new(0.5, 1)
+			compact.Position = UDim2.new(0.5, 0, 1, -24)
+			compactName.Position = UDim2.new(0.5, 0, 0, -54)
+			compactChip.Position = UDim2.new(0.5, 0, 0, -28)
+		else
+			compact.AnchorPoint = Vector2.new(0.5, 0)
+			compact.Position = UDim2.new(0.5, 0, 0, 196)
+			compactName.Position = UDim2.new(0.5, 0, 1, 4)
+			compactChip.Position = UDim2.new(0.5, 0, 1, 30)
+		end
 		compact.Visible = true
 		compact.BackgroundTransparency = 0.9 -- a faint pill, the game stays visible
 
@@ -296,7 +319,7 @@ function Hatch.compact(results, fast)
 		else
 			Effects.play("Coin", 1.3, 0.05)
 		end
-		Hatch.LastFeed = { Names = { resultName }, Cards = #results, Landed = landed.Name, Backdrop = compact.BackgroundTransparency }
+		Hatch.LastFeed = { Names = { resultName }, Cards = #results, Landed = landed.Name, Backdrop = compact.BackgroundTransparency, Bottom = compact.Position.Y.Scale == 1 }
 		skipRequested = false
 		pause(if fast then 0.45 else (if tier >= 4 then 1.6 else 0.8))
 		TweenService:Create(compact, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
@@ -561,12 +584,125 @@ local function cameraKick(strength)
 	end
 end
 
+-- THE CRAZY PULL: the screen goes dark, three heartbeats with growing
+-- rings of light and teasing words, the screen trembles and cracks open
+-- with rainbow light, then a white flash and a confetti storm. Then the pet
+-- rises slowly under "INSANE ...!" with a rainbow glow, firework sparkles
+-- and jingles for a long hold. It plays even when auto rolling.
+local flash = Ui.new("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Ui.WHITE,
+	BackgroundTransparency = 1,
+	ZIndex = 62,
+	Parent = shade,
+})
+local teaser = Ui.new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.42),
+	Size = UDim2.fromOffset(900, 60),
+	Font = Ui.FONT_DISPLAY,
+	TextScaled = false,
+	TextSize = 44,
+	TextColor3 = Ui.WHITE,
+	Text = "",
+	ZIndex = 61,
+	Parent = shade,
+})
+local teaserScale = Ui.new("UIScale", { Parent = teaser })
+
+local function rainbowAt(t)
+	return Color3.fromHSV(t % 1, 0.55, 1)
+end
+
+local function crazyIntro()
+	Hatch.Last = Hatch.Last or {}
+	Hatch.Last.Crazy = true
+	reveal.Visible = false
+	carousel.Visible = false
+	shade.Visible = true
+	TweenService:Create(shade, TweenInfo.new(0.4), { BackgroundTransparency = 0.04 }):Play()
+	local temporary = {}
+	local function cleanup()
+		teaser.Text = ""
+		for _, g in ipairs(temporary) do
+			g:Destroy()
+		end
+		stage.Position = UDim2.fromScale(0.5, 0.48)
+	end
+	-- three heartbeats
+	for beat, words in ipairs({ "...", "wait...", "NO WAY..." }) do
+		Effects.play("Roll", 0.45 + beat * 0.12)
+		local stroke = Ui.stroke(rainbowAt(beat / 3), 6)
+		local ring = Ui.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.42),
+			Size = UDim2.fromOffset(40, 40),
+			BackgroundTransparency = 1,
+			ZIndex = 60,
+			Parent = shade,
+		}, { Ui.corner(0.5), stroke })
+		table.insert(temporary, ring)
+		local reach = 260 + beat * 180
+		TweenService:Create(ring, TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(reach, reach) }):Play()
+		TweenService:Create(stroke, TweenInfo.new(0.75), { Transparency = 1 }):Play()
+		teaser.Text = words
+		teaser.TextColor3 = rainbowAt(beat / 3)
+		teaserScale.Scale = 1.6
+		TweenService:Create(teaserScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 + beat * 0.12 }):Play()
+		if pause(0.8 - beat * 0.08) then
+			cleanup()
+			return
+		end
+	end
+	-- the screen trembles and cracks open with rainbow light
+	teaser.Text = ""
+	local cracks = {}
+	for k = 0, 11 do
+		local crack = Ui.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0.42),
+			Size = UDim2.fromOffset(10, 0),
+			Rotation = k * 30 + math.random(-8, 8),
+			BackgroundColor3 = rainbowAt(k / 12),
+			ZIndex = 59,
+			Parent = shade,
+		}, { Ui.corner(5) })
+		table.insert(temporary, crack)
+		table.insert(cracks, crack)
+		TweenService:Create(crack, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.fromOffset(10 + k % 3 * 6, 1100) }):Play()
+	end
+	Effects.jingle(3)
+	local start = os.clock()
+	while os.clock() - start < 0.9 do
+		local strength = (os.clock() - start) / 0.9 * 10
+		stage.Position = UDim2.new(0.5, math.random(-10, 10) * strength / 10, 0.48, math.random(-10, 10) * strength / 10)
+		for i, crack in ipairs(cracks) do
+			crack.BackgroundColor3 = rainbowAt(os.clock() * 0.8 + i / 12)
+		end
+		if skipRequested then
+			break
+		end
+		task.wait()
+	end
+	-- the flash
+	cleanup()
+	flash.BackgroundTransparency = 0
+	TweenService:Create(flash, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 1 }):Play()
+	Effects.confetti(160)
+	Effects.jingle(7)
+	cameraKick(8)
+end
+
 local function showReveal(result, fast, others)
 	local pet, size = Config.PETS_BY_NAME[result.Pet], Config.SIZES[result.Size]
 	local rarity = Config.rarity(pet.Odds)
 	local tier = Hatch.tier(result)
 	local accent = if result.Size > 1 then size.Color else rarity.Color
 	local name = Config.petName(result.Pet, result.Size)
+	if tier >= 6 then
+		crazyIntro()
+		skipRequested = false
+	end
 
 	clear(petHolder)
 	local view = PetView.take(name)
@@ -581,8 +717,10 @@ local function showReveal(result, fast, others)
 	glowInner.BackgroundTransparency = if tier >= 2 then 0.72 else 0.82
 	glowOuter.BackgroundTransparency = if tier >= 2 then 0.86 else 0.92
 	rays.Visible = tier >= 2
-	sizeChip.Visible = result.Size > 1
-	sizeChip.Text = string.upper(size.Name)
+	sizeChip.Visible = result.Size > 1 or tier >= 6
+	sizeChip.Text = if tier >= 6
+		then "INSANE " .. string.upper(if result.Size > 1 then size.Name else rarity.Name) .. "!"
+		else string.upper(size.Name)
 	sizeChip.BackgroundColor3 = accent
 	newChip.Visible = result.First or (result.Size > 1 and result.FirstOfSize) or false
 	newChip.Text = if result.First then "NEW" else "NEW " .. string.upper(size.Name)
@@ -603,7 +741,12 @@ local function showReveal(result, fast, others)
 	end
 
 	-- the rise: quick for most, slow and grand for a Titanic
-	if tier >= 5 and not fast then
+	if tier >= 6 then
+		-- the slowest, grandest rise
+		petScale.Scale = 0.05
+		TweenService:Create(petScale, TweenInfo.new(1.6, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), { Scale = 1.15 }):Play()
+		TweenService:Create(shade, TweenInfo.new(0.6), { BackgroundTransparency = 0.25 }):Play()
+	elseif tier >= 5 and not fast then
 		petScale.Scale = 0.1
 		TweenService:Create(petScale, TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 		TweenService:Create(shade, TweenInfo.new(0.6), { BackgroundTransparency = 0.35 }):Play()
@@ -645,8 +788,13 @@ local function showReveal(result, fast, others)
 		Effects.confetti(90)
 		hold = 3.2
 	end
+	if tier >= 6 then
+		task.delay(1.2, Effects.jingle, 7)
+		task.delay(2.4, Effects.confetti, 100)
+		hold = 5
+	end
 	if fast then
-		hold = if tier >= 5 then 2 elseif tier == 4 then 1.4 else 0.5
+		hold = if tier >= 6 then 3.5 elseif tier >= 5 then 2 elseif tier == 4 then 1.4 else 0.5
 	end
 	Hatch.Last = Hatch.Last or {}
 	Hatch.Last.Name, Hatch.Last.Tier, Hatch.Last.Size = name, tier, result.Size
@@ -654,8 +802,20 @@ local function showReveal(result, fast, others)
 	Hatch.Last.Revealed = nameText.Text
 
 	local shownAt = os.clock()
+	local nextBurst = os.clock() + 0.5
 	local spin = RunService.RenderStepped:Connect(function(dt)
-		rays.Rotation += dt * 12
+		rays.Rotation += dt * (if tier >= 6 then 40 else 12)
+		if tier >= 6 then
+			-- the name shimmers and fireworks keep popping
+			nameText.TextColor3 = Color3.fromHSV((os.clock() * 0.4) % 1, 0.35, 1)
+			for _, ray in pairs(rayFrames) do
+				ray.BackgroundColor3 = Color3.fromHSV((os.clock() * 0.3 + ray.Rotation / 180) % 1, 0.5, 1)
+			end
+			if os.clock() >= nextBurst then
+				nextBurst = os.clock() + 0.55
+				sparkle(10, { Color3.fromHSV(math.random(), 0.6, 1), Ui.WHITE, Ui.GOLD }, 320)
+			end
+		end
 		-- the power counts up quickly
 		local u = math.clamp((os.clock() - shownAt) / 0.6, 0, 1)
 		powerText.Text = Config.formatNumber(math.floor(power * (1 - (1 - u) ^ 3))) .. " power"
@@ -669,6 +829,10 @@ local function showReveal(result, fast, others)
 	skipRequested = false
 	pause(hold)
 	spin:Disconnect()
+	nameText.TextColor3 = Ui.WHITE
+	for _, ray in pairs(rayFrames) do
+		ray.BackgroundColor3 = Ui.WHITE
+	end
 	powerText.Text = Config.formatNumber(power) .. " power"
 	Hatch.Last.Power = powerText.Text
 end
@@ -798,6 +962,9 @@ local function show(results, fast, world)
 end
 
 local function finish()
+	flash.BackgroundTransparency = 1
+	teaser.Text = ""
+	stage.Position = UDim2.fromScale(0.5, 0.48)
 	shade.Visible = false
 	reveal.Visible = false
 	flexLabel.Visible = false
@@ -830,6 +997,8 @@ function Hatch.reveal(petName, sizeIndex)
 		return
 	end
 	busy = true
+	skipRequested = false
+	Hatch.Last = { Mode = "reveal" }
 	shade.Visible = true
 	shade.BackgroundTransparency = 0.55
 	local ok, err = pcall(showReveal, { Pet = petName, Size = sizeIndex, First = false }, false, {})
