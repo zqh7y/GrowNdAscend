@@ -212,10 +212,10 @@ Adding things later is one row each: a pet in `Config.PETS`, a size in
 
 Coins at the top with YOUR TEAM (equipped pets and damage per second)
 under them, colourful navigation down the left (Inventory, Index, Upgrades,
-Rebirth, Settings; the leaderboards live in the Forest), and the roll dock at
-the bottom right (a big ROLL button with its cost/count under it and an
-Auto switch right below, ON/OFF; the compact/full hatch choice lives in
-Settings), so the middle stays clear for the fights. The
+Rebirth, Settings; the leaderboards live in the Forest), and two buttons at
+the bottom right: a big blue ROLL and a smaller AUTO next to it (white
+OFF / green ON); nothing drawn behind them. The compact/full hatch
+choice lives in Settings, so the middle stays clear for the fights. The
 top-left corner is left for Roblox's own menu buttons.
 
 Every screen shares one clean, friendly style: white rounded panels with

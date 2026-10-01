@@ -1150,7 +1150,7 @@ if ok then
 		local rollB, autoB = Roll.controls()
 		local wasOn = Roll.autoOn()
 		autoB.Activated:Fire()
-		local switchedOn = Roll.autoOn() ~= wasOn and autoB.Pill.State.Text == "ON"
+		local switchedOn = Roll.autoOn() ~= wasOn and autoB.State.Text == "ON"
 		-- while auto rolls, the big button keeps saying ROLL (no flicker to SKIP)
 		local rollLabel = rollB:FindFirstChild("Label", true) or rollB:FindFirstChild("Label")
 		local labelChanges = 0
@@ -1177,15 +1177,21 @@ if ok then
 			if node == player.PlayerGui.ControlsGui then inControls = true end
 			node = node.Parent
 		end
-		local dock = nil
+		local dock, panels = nil, 0
 		for _, d in ipairs(player.PlayerGui.ControlsGui:GetDescendants()) do
-			if d.Name == "RollDock" then dock = d end
+			if d.Name == "RollButtons" then dock = d end
+		end
+		-- nothing drawn behind the buttons: every frame around them is invisible
+		local node2 = rollB.Parent
+		while node2 and node2 ~= player.PlayerGui.ControlsGui do
+			if node2:IsA("GuiObject") and node2.BackgroundTransparency < 1 then panels += 1 end
+			node2 = node2.Parent
 		end
 		b14.Controls = { Roll = inControls, Auto = autoB ~= nil, Switched = switchedOn,
 			Back = Roll.autoOn() == wasOn, Compact = compactInControls, Setting = bigReveals,
 			Dock = dock ~= nil and rollB.Parent == dock and autoB.Parent == dock,
-			Above = rollB.Position.Y.Offset + rollB.Size.Y.Offset <= autoB.Position.Y.Offset,
-			Bigger = rollB.Size.Y.Offset > autoB.Size.Y.Offset * 1.5,
+			Above = rollB.LayoutOrder < autoB.LayoutOrder and rollB.Size.Y.Offset == autoB.Size.Y.Offset and panels == 0,
+			Bigger = rollB.Size.X.Offset > autoB.Size.X.Offset * 1.5,
 			Label = rollLabel ~= nil, LabelChanges = labelChanges }
 		STATS.B14 = b14
 		print(string.format("build 14: index %d/%d chances exact, %d 'Best in'; inventory %d small cards, %d stat blocks in grid, %s -> %s; team %d pets %d%%, %d pets %d%%; controls switched %s, compact in controls %d",
@@ -1909,8 +1915,8 @@ if ok then
 			and inv.DetailStats == 5 and inv.Dps == true and inv.Same == true and inv.Normal == "Dog,Tiger" and inv.Huge == "Huge Fox",
 			string.format("Equip -> equipped, button now '%s', card has a check; all 5 stats + DPS shown; switching pets keeps the grid; Normal = %s, Huge = %s",
 				tostring(inv.After), tostring(inv.Normal), tostring(inv.Huge)))
-		item(92, "roll dock: ROLL first, AUTO under it, steady while auto rolls", ctl.Dock == true and ctl.Above == true and ctl.Bigger == true and ctl.Label == true and ctl.LabelChanges == 0,
-			string.format("one dock in the controls; ROLL above and bigger than AUTO; label changed %d times in 120 auto-roll frames", ctl.LabelChanges or -1))
+		item(92, "just two buttons: ROLL, AUTO next to it", ctl.Dock == true and ctl.Above == true and ctl.Bigger == true and ctl.Label == true and ctl.LabelChanges == 0,
+			string.format("ROLL and AUTO side by side, no panel behind them, ROLL wider; label changed %d times in 120 auto-roll frames", ctl.LabelChanges or -1))
 		local eb = (STATS.B15 or {}).Best or {}
 		local du = (STATS.B15 or {}).Dupes or {}
 		local od = (STATS.B15 or {}).Order or {}

@@ -400,7 +400,7 @@ local controls = Ui.new("Frame", {
 	}),
 })
 controls.Parent = Screen.Controls
--- the roll dock: the big ROLL button with AUTO attached under it (Roll.luau)
+-- the ROLL and AUTO buttons, side by side (Roll.luau)
 Roll.buildControls(controls)
 
 -- the luck boost badge sits on top of the control column (clear of the

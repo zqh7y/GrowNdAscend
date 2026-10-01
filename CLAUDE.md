@@ -43,7 +43,7 @@ for how it plays and where the code lives.
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
-  hatch show step by step, the roll dock, the dense inventory with side details
+  hatch show step by step, the ROLL + AUTO buttons, the dense inventory with side details
   and Equip Best). It must say "checklist: 94/94 passed". It takes
   a few minutes; run it in the background. The harness runs as one big
   function: wrap new test blocks in `do ... end` or Luau runs out of local
@@ -134,9 +134,10 @@ for how it plays and where the code lives.
   made it drift and snap when rolls came quickly.
 - Odds: every step of a roll hits at most `Config.MAX_HIT` (99%), so every
   animal has a non-zero chance in every world at any luck (tested).
-- Roll controls: `Roll.buildControls` builds the roll dock (`Roll.DOCK_SIZE`):
-  ROLL on top (sub line = cost/count, ready bar, R key), the Auto row under
-  it (ON/OFF pill). While auto rolls the button stays still and says ROLL.
+- Roll controls: `Roll.buildControls` makes just two buttons side by side
+  (`Roll.DOCK_SIZE` is the row): ROLL (ready bar inside, R key) and AUTO
+  (OFF white / ON green), in an invisible row, no panel. The user wants it
+  that simple. While auto rolls the button stays still and says ROLL.
   Compact/full is the "Big hatch reveals" setting (`State.Settings.FullHatch`).
 - Inventory: columns come from the width (`Inventory.columnsFor`); the
   details panel only exists while a pet is selected (`Inventory.select`)
