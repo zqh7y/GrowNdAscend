@@ -214,6 +214,13 @@ function World.buildUpgradeBoard(center)
 	-- a stage to stand it on
 	Build.part(model, { Size = Vector3.new(WIDTH + 4, 1, 6), CFrame = facing * CFrame.new(0, 0.5, 0), Color = white })
 	Build.part(model, { Size = Vector3.new(WIDTH + 4.2, 0.3, 6.2), CFrame = facing * CFrame.new(0, 1.05, 0), Color = GREEN })
+	-- wide stairs up to the stage from the path side, and a green carpet
+	-- running from the path to the bottom step
+	for k, step in ipairs({ { Top = 0.8, Z = -3.6 }, { Top = 0.4, Z = -4.6 } }) do
+		Build.part(model, { Name = "Stair" .. k, Size = Vector3.new(WIDTH + 2, step.Top, 1.05), CFrame = facing * CFrame.new(0, step.Top / 2, step.Z), Color = white })
+		Build.part(model, { Size = Vector3.new(WIDTH + 2.1, 0.08, 0.25), CFrame = facing * CFrame.new(0, step.Top + 0.04, step.Z - 0.42), Color = GREEN })
+	end
+	Build.part(model, { Name = "Carpet", Size = Vector3.new(6, 0.1, 10), CFrame = facing * CFrame.new(0, 0.05, -10.1), Color = GREEN, Material = Enum.Material.Fabric })
 	-- the frame, the cap, the posts
 	Build.part(model, { Size = Vector3.new(WIDTH + 1, HEIGHT + 1, 0.8), CFrame = facing * CFrame.new(0, 1.2 + (HEIGHT + 1) / 2, 0.2), Color = white })
 	Build.part(model, { Size = Vector3.new(WIDTH + 1.4, 1.2, 1.2), CFrame = facing * CFrame.new(0, 1.8 + HEIGHT + 0.6, 0.2), Color = GREEN })
@@ -282,7 +289,10 @@ for i, area in ipairs(Config.AREAS) do
 		World.UpgradeBoard = World.buildUpgradeBoard(center)
 		for dx = -12, 12, 6 do
 			space:add(center + Vector3.new(dx, 0, 0), 5.5)
+			-- and the stairs and the carpet in front, kept clear
+			space:add(center + Vector3.new(dx, 0, -6), 4)
 		end
+		space:add(center + Vector3.new(0, 0, -12), 4.5)
 	end
 
 	local ctx = {

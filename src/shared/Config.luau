@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 33 (all upgrades on the board)"
+Config.BUILD = "build 34 (stairs up to the upgrade board)"
 
 -- Pets -------------------------------------------------------------------------
 
