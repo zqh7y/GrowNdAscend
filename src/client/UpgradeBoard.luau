@@ -9,6 +9,8 @@
 --           needs, MAX when done). The Luck section also has the six Luck
 --           Board rows (Config.LUCK_BOARD).
 -- The server builds the stand (World.buildUpgradeBoard); this draws on it.
+-- Walking up onto the stand turns the camera to face the board; EXIT (or
+-- walking away) gives the camera back to the character.
 local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
@@ -442,6 +444,135 @@ function UpgradeBoard.anyAffordable()
 	end
 	return false
 end
+
+-- Camera focus: walking up turns the camera to the board ---------------------------------------
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+UpgradeBoard.ZONE = 11 -- studs from the spot in front of the board that start the focus
+UpgradeBoard.LEAVE = 15 -- walk this far away and it can start again
+UpgradeBoard.Focused = false
+local dismissed = false -- EXIT pressed: wait until they walk away before focusing again
+local savedFov
+
+local focusGui = Ui.new("ScreenGui", {
+	Name = "UpgradeBoardFocus",
+	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
+	DisplayOrder = 20,
+	Enabled = false,
+	Parent = player:WaitForChild("PlayerGui"),
+})
+UpgradeBoard.FocusGui = focusGui
+
+-- the spot on the ground in front of the board, where the stairs are
+local function frontSpot()
+	local look = screenPart.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	flat = if flat.Magnitude > 0.01 then flat.Unit else Vector3.new(0, 0, -1)
+	local p = screenPart.Position + flat * 6
+	return Vector3.new(p.X, 0, p.Z), flat
+end
+
+-- where the camera goes: straight in front of the board, far enough back
+-- that the whole board fits the screen (with room for the EXIT button)
+function UpgradeBoard.focusCFrame()
+	local camera = workspace.CurrentCamera
+	local _, flat = frontSpot()
+	local size = screenPart.Size
+	local viewport = camera.ViewportSize
+	local aspect = math.max(viewport.X / math.max(viewport.Y, 1), 0.4)
+	local tanHalf = math.tan(math.rad(70 / 2))
+	local fitHeight = (size.Y / 2 + 2.5) / tanHalf
+	local fitWidth = (size.X / 2 + 1.5) / (tanHalf * aspect)
+	local center = screenPart.Position + Vector3.new(0, 0.6, 0)
+	return CFrame.lookAt(center + flat * math.max(fitHeight, fitWidth), center)
+end
+
+local function glide(camera, goal, time)
+	if Ui.reduced() then
+		camera.CFrame = goal
+		return
+	end
+	TweenService:Create(camera, TweenInfo.new(time, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { CFrame = goal }):Play()
+end
+
+function UpgradeBoard.focus()
+	if UpgradeBoard.Focused then
+		return
+	end
+	local camera = workspace.CurrentCamera
+	UpgradeBoard.Focused = true
+	savedFov = camera.FieldOfView
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.FieldOfView = 70
+	glide(camera, UpgradeBoard.focusCFrame(), 0.7)
+	focusGui.Enabled = true
+	Effects.play("Click", 1.1)
+end
+
+-- gives the camera back to the character; byButton = they pressed EXIT
+function UpgradeBoard.unfocus(byButton)
+	if not UpgradeBoard.Focused then
+		return
+	end
+	UpgradeBoard.Focused = false
+	dismissed = byButton == true
+	local camera = workspace.CurrentCamera
+	camera.CameraType = Enum.CameraType.Custom
+	camera.FieldOfView = savedFov or 70
+	focusGui.Enabled = false
+end
+
+local exitButton = Ui.button({
+	Name = "Exit",
+	Text = "EXIT",
+	Icon = "close",
+	TextSize = 24,
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 18),
+	Size = UDim2.fromOffset(150, 52),
+	Radius = 14,
+	Parent = focusGui,
+}, function()
+	UpgradeBoard.unfocus(true)
+end, "danger")
+UpgradeBoard.ExitButton = exitButton
+Ui.stroke(Ui.INK, 3, 0).Parent = exitButton
+
+-- checks where the character is: near the board -> focus, away -> unfocus
+function UpgradeBoard.check()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not root or (humanoid and humanoid.Health <= 0) then
+		UpgradeBoard.unfocus(false)
+		return
+	end
+	local spot = frontSpot()
+	local distance = (Vector3.new(root.Position.X, 0, root.Position.Z) - spot).Magnitude
+	if distance > UpgradeBoard.LEAVE then
+		dismissed = false
+		UpgradeBoard.unfocus(false)
+	elseif distance <= UpgradeBoard.ZONE and not dismissed and not UpgradeBoard.Focused then
+		UpgradeBoard.focus()
+	end
+end
+
+local since = 0
+RunService.Heartbeat:Connect(function(dt)
+	since += dt
+	if since >= 0.15 then
+		since = 0
+		UpgradeBoard.check()
+	end
+end)
+player.CharacterAdded:Connect(function()
+	dismissed = false
+	UpgradeBoard.unfocus(false)
+end)
 
 selectSection("Damage")
 State.watch(refresh)

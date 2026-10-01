@@ -533,6 +533,40 @@ if ok then
 				PlayerData.sync(player)
 				STATS.LuckBoard = lb
 			end
+			do
+				-- walking up to the board turns the camera to it; EXIT gives it back
+				local Board = C("UpgradeBoard")
+				local root = player.Character.HumanoidRootPart
+				local camera = workspace.CurrentCamera
+				local savedAt = root.CFrame
+				local screen = workspace.Map.UpgradeBoard.Screen
+				local front = screen.Position + screen.CFrame.LookVector * 6
+				local fc = {}
+				root.CFrame = CFrame.new(front.X + 40, 3, front.Z)
+				Board.check()
+				fc.FarIdle = not Board.Focused
+				root.CFrame = CFrame.new(front.X + 2, 3, front.Z)
+				Board.check()
+				fc.Focused = Board.Focused and camera.CameraType == Enum.CameraType.Scriptable and Board.FocusGui.Enabled
+				local goal = Board.focusCFrame()
+				fc.Facing = goal.LookVector:Dot(screen.CFrame.LookVector) < -0.95
+				fc.Distance = (goal.Position - screen.Position).Magnitude
+				Board.ExitButton.Activated:Fire()
+				frames(1)
+				fc.Exited = not Board.Focused and camera.CameraType == Enum.CameraType.Custom and not Board.FocusGui.Enabled
+				Board.check()
+				fc.StaysOut = not Board.Focused
+				root.CFrame = CFrame.new(front.X + 40, 3, front.Z)
+				Board.check()
+				root.CFrame = CFrame.new(front.X, 3, front.Z + 1)
+				Board.check()
+				fc.Again = Board.Focused
+				root.CFrame = CFrame.new(front.X + 40, 3, front.Z)
+				Board.check()
+				fc.WalkAway = not Board.Focused and camera.CameraType == Enum.CameraType.Custom
+				root.CFrame = savedAt
+				STATS.BoardFocus = fc
+			end
 			STATS.Outfits = { Dressed = dressed, Distinct = distinct, Broken = table.concat(broken, ", "), Titanic = okT and titanic:GetAttribute("Outfit") ~= nil }
 			data.Pets.Cat = 2
 			C("Screen").close(AuraMachine.Modal)
@@ -2191,6 +2225,11 @@ if ok then
 		item(106, "Luck Board: rows, unlocks, real luck", lb.LockedRefused == true and lb.Bought == Config.BOARD_UNLOCK and math.abs((lb.PawRatio or 0) - (lb.WantRatio or -1)) < 1e-6
 			and lb.CloverNow == true and lb.Charged == true and lb.MaxRefused == true and lb.Total == lb.WantTotal and lb.PawButton == "MAX" and lb.Dot == true,
 			string.format("Clover locked until Lucky Paw Lv %d; 5 paws -> luck x%.2f; charged the right price; maxed rows refused; the board in the world says %s", Config.BOARD_UNLOCK, lb.PawRatio or 0, tostring(lb.Total)))
+		local fc = STATS.BoardFocus or {}
+		item(107, "upgrade board camera focus", fc.FarIdle == true and fc.Focused == true and fc.Facing == true and fc.Exited == true
+			and fc.StaysOut == true and fc.Again == true and fc.WalkAway == true,
+			string.format("walk up -> camera on the board (%.1f studs back, facing it); EXIT -> camera back on the player and stays there until you walk away; back again -> focus; walking off -> camera back (%s)",
+				fc.Distance or -1, tostring(fc.Exited)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))
