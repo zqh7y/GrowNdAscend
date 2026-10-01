@@ -616,4 +616,108 @@ function Ui.popIn(frame)
 	TweenService:Create(scaler, TweenInfo.new(0.24, Enum.EasingStyle.Quint), { Scale = 1 }):Play()
 end
 
+-- Hexagons and chunky text (the collection look) ------------------------------------
+-- A pointy-top hexagon is three rectangles (width 1, height 0.5 of the
+-- hexagon's box) turned 0, 60 and 120 degrees. The colour layer sits in a
+-- CanvasGroup so one gradient runs smoothly over the whole shape.
+
+Ui.HEX_RATIO = math.sqrt(3) / 2 -- a pointy-top hexagon's width / height
+
+local function hexRects(parent, color, zIndex)
+	for _, angle in ipairs({ 0, 60, 120 }) do
+		Ui.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1, 0.5),
+			Rotation = angle,
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+			ZIndex = zIndex,
+			Parent = parent,
+		})
+	end
+end
+
+-- A hexagon tile. props: Size (height; width follows), Position,
+-- AnchorPoint, Colors = { top, bottom }, Edge (outline colour, or nil),
+-- EdgeSize (pixels), ZIndex, Parent, Name. Returns the holder; put
+-- content in it (it is a plain transparent frame of the hexagon's size).
+function Ui.hexagon(props)
+	local height = props.Size or 80
+	local z = props.ZIndex or 2
+	local holder = Ui.new("Frame", {
+		Name = props.Name or "Hex",
+		AnchorPoint = props.AnchorPoint or Vector2.new(0, 0),
+		Position = props.Position or UDim2.new(),
+		Size = UDim2.fromOffset(math.floor(height * Ui.HEX_RATIO + 0.5), height),
+		BackgroundTransparency = 1,
+		ZIndex = z,
+		LayoutOrder = props.LayoutOrder or 0,
+		Parent = props.Parent,
+	})
+	local edgeSize = if props.Edge then (props.EdgeSize or 3) else 0
+	if props.Edge then
+		local edge = Ui.new("Frame", {
+			Name = "Edge",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			ZIndex = z,
+			Parent = holder,
+		})
+		hexRects(edge, props.Edge, z)
+	end
+	local colors = props.Colors or { Ui.WHITE, Ui.GLASS_LIGHT }
+	local fill = Ui.new("CanvasGroup", {
+		Name = "Fill",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -edgeSize * 2, 1, -edgeSize * 2),
+		BackgroundTransparency = 1,
+		ZIndex = z,
+		Parent = holder,
+	}, {
+		Ui.new("UIGradient", { Name = "Tint", Rotation = 90, Color = ColorSequence.new(colors[1], colors[2] or colors[1]) }),
+	})
+	hexRects(fill, Ui.WHITE, z)
+	return holder
+end
+
+-- Recolours a hexagon made by Ui.hexagon
+function Ui.setHexColors(hex, top, bottom, edge)
+	hex.Fill.Tint.Color = ColorSequence.new(top, bottom or top)
+	local edgeFrame = hex:FindFirstChild("Edge")
+	if edgeFrame and edge then
+		for _, rect in ipairs(edgeFrame:GetChildren()) do
+			if rect:IsA("Frame") then
+				rect.BackgroundColor3 = edge
+			end
+		end
+	end
+end
+
+-- Big friendly outlined text (white with a dark outline, or a two-colour
+-- gradient). props: the usual TextLabel props plus Colors = { top, bottom }
+-- and Outline (thickness, default 2.5).
+Ui.OUTLINE = Color3.fromRGB(28, 22, 40)
+function Ui.chunky(props)
+	local colors = props.Colors
+	local outline = props.Outline or 2.5
+	props.Colors, props.Outline = nil, nil
+	props.Font = props.Font or Ui.FONT_DISPLAY
+	props.TextScaled = false
+	props.BackgroundTransparency = 1
+	props.TextColor3 = props.TextColor3 or Ui.WHITE
+	local label = Ui.new("TextLabel", props)
+	Ui.new("UIStroke", { Name = "Outline", Color = Ui.OUTLINE, Thickness = outline, Parent = label })
+	if colors then
+		Ui.new("UIGradient", { Name = "Tint", Rotation = 90, Color = ColorSequence.new(colors[1], colors[2] or colors[1]), Parent = label })
+	end
+	return label
+end
+
+-- The two colours for something of this rarity (light on top, deeper below)
+function Ui.rarityColors(color)
+	return color:Lerp(Ui.WHITE, 0.35), color:Lerp(Color3.new(0, 0, 0), 0.12)
+end
+
 return Ui

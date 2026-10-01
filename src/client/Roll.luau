@@ -30,41 +30,49 @@ local rollButton, autoButton -- set by Roll.buildControls
 -- and when you walk into another world.
 
 local function times(value)
-	return "×" .. Config.formatStat(value):sub(1, -2)
+	return "x" .. Config.formatStat(value):sub(1, -2)
 end
 
+-- the luck sign: a green bar with a clover and big outlined "x12.5"
+local LUCK_TOP, LUCK_BOTTOM = Color3.fromRGB(110, 226, 120), Color3.fromRGB(34, 156, 74)
 local meter = Ui.new("TextButton", {
 	Name = "LuckPill",
 	LayoutOrder = 3,
-	Size = UDim2.fromOffset(0, 34),
+	Size = UDim2.fromOffset(0, 38),
 	AutomaticSize = Enum.AutomaticSize.X,
-	BackgroundColor3 = Color3.fromRGB(234, 249, 239),
+	BackgroundColor3 = Ui.WHITE,
 	AutoButtonColor = false,
 	Text = "",
 }, {
-	Ui.corner(17),
+	Ui.corner(10),
+	Ui.new("UIGradient", { Name = "Tint", Rotation = 90, Color = ColorSequence.new(LUCK_TOP, LUCK_BOTTOM) }),
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
-		Padding = UDim.new(0, 6),
+		Padding = UDim.new(0, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
-	Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 12) }),
+	Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 12) }),
 })
 Roll.LuckPill = meter
-local meterEdge = Ui.stroke(Color3.fromRGB(170, 226, 190), 1.5, 0)
+local meterEdge = Ui.stroke(Color3.fromRGB(22, 110, 52), 2, 0)
 meterEdge.Parent = meter
-local luckIcon = Ui.icon("clover", 18, Ui.SUCCESS, { LayoutOrder = 0, Parent = meter })
-local luckText = Ui.new("TextLabel", {
+local cloverTile = Ui.new("Frame", {
+	LayoutOrder = 0,
+	Size = UDim2.fromOffset(28, 28),
+	BackgroundColor3 = Color3.fromRGB(26, 120, 60),
+	BackgroundTransparency = 0.55,
+	Parent = meter,
+}, { Ui.corner(7) })
+local luckIcon = Ui.icon("clover", 22, Color3.fromRGB(190, 255, 190), { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = cloverTile })
+local luckText = Ui.chunky({
 	Name = "Value",
 	LayoutOrder = 1,
 	AutomaticSize = Enum.AutomaticSize.X,
-	Size = UDim2.fromOffset(0, 20),
-	Font = Ui.FONT_DISPLAY,
-	TextScaled = false,
+	Size = UDim2.fromOffset(0, 30),
 	TextWrapped = false,
-	TextSize = 20,
-	TextColor3 = Color3.fromRGB(30, 140, 80),
+	TextSize = 26,
+	Outline = 2.5,
 	Parent = meter,
 })
 local meterScale = Ui.new("UIScale", { Parent = meter })
@@ -162,7 +170,7 @@ local function refreshLuck()
 	shownWorld = world
 	-- exactly what the next roll uses (the same function the server rolls with)
 	local luck = Config.luck(data, nextIsBonus, world)
-	luckText.Text = if luck < 1000 then times(luck) else "×" .. Config.formatNumber(luck)
+	luckText.Text = if luck < 1000 then times(luck) else "x" .. Config.formatNumber(luck)
 	Roll.ShownLuck = luck
 	detailRows[1].Text = times(Config.upgradeValue(data, "Luck"))
 	detailRows[2].Text = times(Config.petLuckTotal(data))
@@ -172,11 +180,11 @@ local function refreshLuck()
 	detailRows[6].Text = if nextIsBonus then "×" .. Config.BONUS_LUCK .. " now" else "×" .. Config.BONUS_LUCK .. " in " .. untilBonus
 	detailRows[99].Text = luckText.Text
 	-- a gold edge when the next roll is the bonus roll
-	meterEdge.Color = if nextIsBonus then Ui.GOLD else Color3.fromRGB(170, 226, 190)
-	meterEdge.Thickness = if nextIsBonus then 2 else 1.5
+	meterEdge.Color = if nextIsBonus then Ui.GOLD else Color3.fromRGB(22, 110, 52)
+	meterEdge.Thickness = if nextIsBonus then 3 else 2
 	for _, d in ipairs(luckIcon:GetDescendants()) do
 		if d:IsA("Frame") and d.BackgroundTransparency < 1 then
-			d.BackgroundColor3 = if nextIsBonus then Ui.GOLD else Ui.SUCCESS
+			d.BackgroundColor3 = if nextIsBonus then Ui.GOLD else Color3.fromRGB(190, 255, 190)
 		end
 	end
 	-- a soft pop when it changes

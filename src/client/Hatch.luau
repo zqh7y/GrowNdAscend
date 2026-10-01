@@ -23,6 +23,11 @@
 --                Titanic. On auto it plays at most once per cooldown; in
 --                between, a short reveal.
 --   CRAZY PULLS  (Mythic/Secret animals) their own show before the reveal.
+--   RESULTS      after a compact hatch (and on auto) the pets you got float
+--                big near the top of the screen, no panel: each with its
+--                odds in outlined letters ("1/3.26K") and its name under it.
+--                They stay a moment, then rise and fade (the next roll can
+--                start meanwhile).
 --
 -- The player can't skip it (clicks and Roll presses are ignored while it
 -- plays). It always cleans up (camera, bush, spinner), so rolling never
@@ -1363,6 +1368,116 @@ local function finish()
 	skipRequested = false
 end
 
+-- THE FLOATING RESULTS -------------------------------------------------------------------------
+
+local resultsRow = Ui.new("Frame", {
+	Name = "Results",
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 205),
+	Size = UDim2.fromOffset(0, 200),
+	AutomaticSize = Enum.AutomaticSize.X,
+	BackgroundTransparency = 1,
+	ZIndex = 20,
+	Parent = gui,
+}, {
+	Ui.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 18),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+Hatch.ResultsRow = resultsRow
+Hatch.LastResults = nil -- for the simulator: { Names, Odds }
+local resultsId = 0
+
+-- Shows the pets a roll gave, big, near the top of the screen
+function Hatch.showResults(results, fast)
+	resultsId += 1
+	local id = resultsId
+	PetView.releaseAll(resultsRow)
+	clear(resultsRow)
+	local shown = { Names = {}, Odds = {} }
+	local order = 0
+	for _, r in ipairs(results) do
+		if not isBoost(r) and r.Pet then
+			order += 1
+			local name = Config.petName(r.Pet, r.Size or 1)
+			local pet = Config.PETS_BY_NAME[r.Pet]
+			local rarity = Config.rarity(pet.Odds)
+			local holder = Ui.new("Frame", {
+				Name = name,
+				LayoutOrder = order,
+				Size = UDim2.fromOffset(170, 200),
+				BackgroundTransparency = 1,
+				ZIndex = 20,
+				Parent = resultsRow,
+			})
+			local view = PetView.take(name)
+			view.AnchorPoint = Vector2.new(0.5, 0)
+			view.Position = UDim2.fromScale(0.5, 0)
+			view.Size = UDim2.fromOffset(150, 132)
+			view.ZIndex = 21
+			view.Parent = holder
+			local odds = Ui.chunky({
+				Name = "Odds",
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 0, 128),
+				Size = UDim2.new(1, 30, 0, 36),
+				TextSize = 34,
+				Text = Config.shortOdds(Config.oddsOf(name)),
+				Colors = { rarity.Color:Lerp(Ui.WHITE, 0.45), rarity.Color },
+				Outline = 3,
+				ZIndex = 22,
+				Parent = holder,
+			})
+			Ui.chunky({
+				Name = "PetName",
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 0, 164),
+				Size = UDim2.new(1, 30, 0, 28),
+				TextSize = 24,
+				Text = name,
+				Outline = 2.5,
+				ZIndex = 22,
+				Parent = holder,
+			})
+			table.insert(shown.Names, name)
+			table.insert(shown.Odds, odds.Text)
+			if not Ui.reduced() then
+				local scale = Ui.new("UIScale", { Scale = 0.3, Parent = holder })
+				TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, (order - 1) * 0.06), { Scale = 1 }):Play()
+			end
+		end
+	end
+	Hatch.LastResults = shown
+	resultsRow.Position = UDim2.new(0.5, 0, 0, 205)
+	resultsRow.Visible = order > 0
+	if order == 0 then
+		return
+	end
+	-- stay a moment, then rise and fade
+	task.delay(if fast then 1.4 else 2.2, function()
+		if resultsId ~= id then
+			return
+		end
+		if not Ui.reduced() then
+			TweenService:Create(resultsRow, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { Position = UDim2.new(0.5, 0, 0, 170) }):Play()
+			for _, d in ipairs(resultsRow:GetDescendants()) do
+				if d:IsA("UIScale") then
+					TweenService:Create(d, TweenInfo.new(0.35), { Scale = 0.6 }):Play()
+				end
+			end
+			task.wait(0.35)
+		end
+		if resultsId == id then
+			resultsRow.Visible = false
+			PetView.releaseAll(resultsRow)
+			clear(resultsRow)
+		end
+	end)
+end
+
 local function show(results, fast, mode, auto)
 	-- the reel lands on the best pet; on a boost if the spin only gave boosts
 	local best, bestScore = results[1], -math.huge
@@ -1440,6 +1555,10 @@ local function show(results, fast, mode, auto)
 		Screen.blur(true)
 		showReveal(best, fast, others)
 		Screen.blur(false)
+	end
+	-- the pets float big near the top (compact hatches and auto)
+	if not full then
+		Hatch.showResults(results, fast)
 	end
 	if shade.Visible then
 		TweenService:Create(shade, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()

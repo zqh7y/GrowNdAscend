@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 21 (faster rebirths, centred team slots, spawn fix)"
+Config.BUILD = "build 22 (hexagon collection look)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -397,6 +397,24 @@ function Config.chanceOf(name, luck, sizeLuck, world)
 end
 
 -- A chance as "1 in N" ("1 in 2.5", "1 in 500", "1 in 12.5K", "1 in 1.1M")
+-- How rare a pet is on its own ("1 in N" before any luck), counting its
+-- size: a Huge Fox is a Fox's odds x the Huge chance
+function Config.oddsOf(name)
+	local pet, size = Config.petInfo(name)
+	if not pet then
+		return 0
+	end
+	return pet.Odds * size.Chance
+end
+
+-- Odds as the short "1/430K" form used on pet tiles
+function Config.shortOdds(odds)
+	if not odds or odds <= 0 or odds ~= odds then
+		return "-"
+	end
+	return "1/" .. Config.formatNumber(odds)
+end
+
 function Config.formatChance(chance)
 	if not chance or chance <= 0 or chance ~= chance then
 		return "not possible"

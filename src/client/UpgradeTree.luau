@@ -1,5 +1,9 @@
--- The upgrade tree: a modern progression board. It's built from
--- Config.UPGRADES, so new branches appear on their own.
+-- The upgrade tree: hexagon nodes on a teal board, joined by paths. It's
+-- built from Config.UPGRADES, so new branches appear on their own. Each
+-- node: the icon and a short name on a hexagon, its level under it and the
+-- price (or MAX / a padlock). Tapping a node opens a card next to it with
+-- the description, now -> next and BUY. (The rest of this comment
+-- describes the states, which work the same as before.)
 --
 -- Layout: a soft board (scrollable on small screens) where the tree grows
 -- up from a START point. Upgrades without a requirement hang off START; the
@@ -33,17 +37,22 @@ local buyFunction = State.remote("BuyUpgrade")
 
 local WIDTH, HEIGHT = 1060, 660
 local DETAIL_W = 300
-local VIEW_W, VIEW_H = WIDTH - 48 - DETAIL_W - 16, HEIGHT - 48 - 52
-local CARD_W, CARD_H = 152, 116
-local COL_GAP, ROW_GAP = 182, 168
+local VIEW_W, VIEW_H = WIDTH - 48, HEIGHT - 48 - 46
+local CARD_H = 96 -- a node's hexagon height
+local CARD_W = math.floor(CARD_H * Ui.HEX_RATIO + 0.5)
+local COL_GAP, ROW_GAP = 124, 150
 local EASE = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local TRACK = Color3.fromRGB(226, 230, 240)
+local TRACK = Color3.fromRGB(70, 140, 150)
+local BOARD = Color3.fromRGB(30, 98, 110)
+local NODE_TOP, NODE_BOTTOM = Color3.fromRGB(150, 236, 236), Color3.fromRGB(46, 170, 184)
+local LOCKED_TOP, LOCKED_BOTTOM = Color3.fromRGB(96, 104, 120), Color3.fromRGB(58, 64, 80)
 
 local modal, box = Screen.modal(WIDTH, HEIGHT, "Upgrades")
 UpgradeTree.Modal = modal
 Screen.title(box, "Upgrade Tree")
 local coinsLine = Screen.subtitle(box, "")
 coinsLine.Position = UDim2.new(1, -188, 0, 8) -- left of Equip Best
+coinsLine.TextColor3 = Ui.INK
 
 -- Equip Best: your strongest team in one tap (same as in the Inventory)
 UpgradeTree.EquipBestButton = Ui.button({
@@ -64,17 +73,18 @@ end, "primary")
 
 local view = Ui.new("ScrollingFrame", {
 	Name = "Board",
-	Position = UDim2.fromOffset(0, 52),
+	Position = UDim2.fromOffset(0, 46),
 	Size = UDim2.fromOffset(VIEW_W, VIEW_H),
-	BackgroundColor3 = Color3.fromRGB(246, 248, 252),
+	BackgroundColor3 = BOARD,
 	ScrollBarThickness = 6,
-	ScrollBarImageColor3 = Color3.fromRGB(180, 188, 206),
+	ScrollBarImageColor3 = Color3.fromRGB(150, 210, 214),
 	ScrollingDirection = Enum.ScrollingDirection.XY,
 	ElasticBehavior = Enum.ElasticBehavior.Always,
 	ZIndex = 32,
 	Parent = box,
 }, { Ui.corner(16) })
-Ui.stroke(Ui.LINE, 1, 0).Parent = view
+Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(190, 200, 205)), Parent = view })
+Ui.stroke(Color3.fromRGB(20, 70, 80), 3, 0).Parent = view
 
 -- Laying out the tree ---------------------------------------------------------------------------
 
@@ -137,8 +147,8 @@ local function segment(a, b, color, z)
 	local min = Vector2.new(math.min(a.X, b.X), math.min(a.Y, b.Y))
 	local size = Vector2.new(math.abs(a.X - b.X), math.abs(a.Y - b.Y))
 	return Ui.new("Frame", {
-		Position = UDim2.fromOffset(min.X - 2, min.Y - 2),
-		Size = UDim2.fromOffset(size.X + 4, size.Y + 4),
+		Position = UDim2.fromOffset(min.X - 4, min.Y - 4),
+		Size = UDim2.fromOffset(size.X + 8, size.Y + 8),
 		BackgroundColor3 = color,
 		ZIndex = z or 33,
 		Parent = view,
@@ -194,106 +204,120 @@ for _, upgrade in ipairs(Config.UPGRADES) do
 	local n = { Upgrade = upgrade, Position = c }
 	n.Path = connector(from, c + Vector2.new(0, CARD_H / 2))
 
-	-- soft shadow under the card (it lifts on hover)
-	n.Shadow = Ui.new("Frame", {
+	-- the node: a transparent button holding the hexagon
+	n.Shadow = Ui.hexagon({
+		Size = CARD_H,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromOffset(c.X, c.Y + 4),
-		Size = UDim2.fromOffset(CARD_W, CARD_H),
-		BackgroundColor3 = Color3.fromRGB(20, 26, 50),
-		BackgroundTransparency = 0.9,
+		Position = UDim2.fromOffset(c.X, c.Y + 5),
+		Colors = { Color3.fromRGB(10, 40, 48), Color3.fromRGB(10, 40, 48) },
 		ZIndex = 34,
 		Parent = view,
-	}, { Ui.corner(18) })
+	})
+	n.Shadow.Fill.GroupTransparency = 0.55
 	local card = Ui.new("TextButton", {
 		Name = id,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset(c.X, c.Y),
 		Size = UDim2.fromOffset(CARD_W, CARD_H),
-		BackgroundColor3 = Ui.WHITE,
+		BackgroundTransparency = 1,
 		AutoButtonColor = false,
 		Text = "",
 		ZIndex = 35,
 		Parent = view,
-	}, { Ui.corner(18) })
+	})
 	n.Card = card
 	n.Scale = Ui.new("UIScale", { Parent = card })
-	n.Stroke = Ui.stroke(Ui.LINE, 1.5, 0)
-	n.Stroke.Parent = card
-
-	-- icon tile + name + level
+	n.Hex = Ui.hexagon({
+		Size = CARD_H,
+		Colors = { NODE_TOP, NODE_BOTTOM },
+		Edge = Color3.fromRGB(235, 255, 255),
+		EdgeSize = 3,
+		ZIndex = 35,
+		Parent = card,
+	})
+	-- (the outline that marks selected / affordable / maxed)
+	n.Stroke = { Color = Ui.WHITE, Thickness = 0, Transparency = 0 }
 	n.Tile = Ui.new("Frame", {
-		Position = UDim2.fromOffset(12, 12),
-		Size = UDim2.fromOffset(38, 38),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 16),
+		Size = UDim2.fromOffset(36, 36),
+		BackgroundTransparency = 1,
 		BackgroundColor3 = upgrade.Color,
 		ZIndex = 36,
+		Parent = card,
+	})
+	n.Icon = Ui.icon(upgrade.Icon, 32, upgrade.Color, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 37, Parent = n.Tile })
+	n.Unknown = Ui.chunky({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.42),
+		Size = UDim2.fromOffset(40, 40),
+		TextSize = 40,
+		Text = "?",
+		Outline = 3,
+		Visible = false,
+		ZIndex = 38,
+		Parent = card,
+	})
+	n.Name = Ui.chunky({
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 54),
+		Size = UDim2.new(1, -14, 0, 24),
+		TextSize = 12,
+		TextWrapped = true,
+		Text = upgrade.Name,
+		Outline = 1.5,
+		ZIndex = 37,
+		Parent = card,
+	})
+	-- level badge on the top-right edge ("3/20")
+	n.Level = Ui.chunky({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -6, 0, 12),
+		Size = UDim2.fromOffset(44, 18),
+		TextSize = 13,
+		Outline = 2,
+		ZIndex = 38,
+		Parent = card,
+	})
+	n.Bar = Ui.new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundTransparency = 1, Parent = card }) -- (kept for older code)
+	-- price under the node (always visible)
+	n.Price = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 1, 2),
+		Size = UDim2.fromOffset(0, 24),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = Color3.fromRGB(16, 56, 66),
+		BackgroundTransparency = 0.2,
+		ZIndex = 38,
 		Parent = card,
 	}, {
 		Ui.corner(12),
-		Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(215, 215, 215)) }),
+		Ui.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
+		Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 8) }),
 	})
-	n.Icon = Ui.icon(upgrade.Icon, 22, Ui.WHITE, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 37, Parent = n.Tile })
-	n.Name = label(card, {
-		Position = UDim2.fromOffset(58, 12),
-		Size = UDim2.new(1, -66, 0, 20),
-		Font = Ui.FONT,
+	n.PriceIcon = Ui.icon("coin", 16, Ui.GOLD, { LayoutOrder = 0, ZIndex = 39, Parent = n.Price })
+	n.LockIcon = Ui.icon("lock", 14, Ui.WHITE, { LayoutOrder = 1, ZIndex = 39, Parent = n.Price })
+	n.PriceText = Ui.chunky({
+		LayoutOrder = 2,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 20),
 		TextSize = 14,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-		Text = upgrade.Name,
-		TextColor3 = Ui.INK,
-	})
-	n.Level = label(card, {
-		Position = UDim2.fromOffset(58, 32),
-		Size = UDim2.new(1, -66, 0, 16),
-		Font = Ui.FONT_MEDIUM,
-		TextSize = 12,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = Ui.MUTED,
-	})
-	-- slim level bar
-	local track = Ui.new("Frame", {
-		Position = UDim2.fromOffset(12, 60),
-		Size = UDim2.new(1, -24, 0, 6),
-		BackgroundColor3 = TRACK,
-		ZIndex = 36,
-		Parent = card,
-	}, { Ui.corner(3) })
-	n.Bar = Ui.new("Frame", {
-		Size = UDim2.fromScale(0, 1),
-		BackgroundColor3 = upgrade.Color,
-		ZIndex = 37,
-		Parent = track,
-	}, { Ui.corner(3) })
-	-- price pill (always visible)
-	n.Price = Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.new(1, -24, 0, 30),
-		BackgroundColor3 = Ui.GLASS_LIGHT,
-		ZIndex = 36,
-		Parent = card,
-	}, { Ui.corner(15) })
-	n.PriceIcon = Ui.icon("coin", 16, Ui.GOLD, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 10, 0.5, 0), ZIndex = 37, Parent = n.Price })
-	n.LockIcon = Ui.icon("lock", 14, Ui.MUTED, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 11, 0.5, 0), ZIndex = 37, Parent = n.Price })
-	n.PriceText = label(n.Price, {
-		Position = UDim2.fromOffset(30, 0),
-		Size = UDim2.new(1, -38, 1, 0),
-		Font = Ui.FONT,
-		TextSize = 14,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextWrapped = false,
+		Outline = 1.5,
+		ZIndex = 39,
+		Parent = n.Price,
 	})
 
 	-- hover lifts, press presses, click selects
 	card.MouseEnter:Connect(function()
 		n.Hover = true
 		TweenService:Create(n.Scale, EASE, { Scale = 1.04 }):Play()
-		TweenService:Create(n.Shadow, EASE, { Position = UDim2.fromOffset(c.X, c.Y + 9), BackgroundTransparency = 0.84 }):Play()
+		TweenService:Create(n.Shadow, EASE, { Position = UDim2.fromOffset(c.X, c.Y + 9) }):Play()
 	end)
 	card.MouseLeave:Connect(function()
 		n.Hover = false
 		TweenService:Create(n.Scale, EASE, { Scale = 1 }):Play()
-		TweenService:Create(n.Shadow, EASE, { Position = UDim2.fromOffset(c.X, c.Y + 4), BackgroundTransparency = 0.9 }):Play()
+		TweenService:Create(n.Shadow, EASE, { Position = UDim2.fromOffset(c.X, c.Y + 5) }):Play()
 	end)
 	card.MouseButton1Down:Connect(function()
 		TweenService:Create(n.Scale, TweenInfo.new(0.08), { Scale = 0.97 }):Play()
@@ -310,15 +334,35 @@ end
 
 -- The detail panel on the right ------------------------------------------------------------------
 
+-- (a white card that pops up next to the node you tapped)
 local detail = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, 0, 0, 52),
-	Size = UDim2.fromOffset(DETAIL_W, VIEW_H),
-	BackgroundColor3 = Color3.fromRGB(246, 248, 252),
-	ZIndex = 32,
+	Name = "NodeCard",
+	Position = UDim2.fromOffset(0, 52),
+	Size = UDim2.fromOffset(DETAIL_W, 380),
+	BackgroundColor3 = Ui.WHITE,
+	Visible = false,
+	ZIndex = 50,
 	Parent = box,
-}, { Ui.corner(16), Ui.padding(18) })
-Ui.stroke(Ui.LINE, 1, 0).Parent = detail
+}, { Ui.corner(22), Ui.padding(18) })
+Ui.new("UIStroke", { Color = Ui.OUTLINE, Thickness = 4, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = detail })
+UpgradeTree.Card = detail
+local cardClose = Ui.new("TextButton", {
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, 8, 0, -8),
+	Size = UDim2.fromOffset(28, 28),
+	BackgroundColor3 = Ui.GLASS_LIGHT,
+	AutoButtonColor = false,
+	Text = "",
+	ZIndex = 60,
+	Parent = detail,
+}, { Ui.corner(14) })
+Ui.icon("close", 10, Ui.MUTED, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 61, Parent = cardClose })
+cardClose.Activated:Connect(function()
+	detail.Visible = false
+	if UpgradeTree.refresh then
+		UpgradeTree.refresh()
+	end
+end)
 local detailTile = Ui.new("Frame", {
 	Size = UDim2.fromOffset(64, 64),
 	BackgroundColor3 = Ui.BLUE,
@@ -399,8 +443,8 @@ local arrow = Ui.new("Frame", {
 }, { Ui.corner(13) })
 label(arrow, { Size = UDim2.fromScale(1, 1), TextSize = 14, Text = "→", TextColor3 = Ui.MUTED, ZIndex = 35 })
 local lockNote = label(detail, {
-	Position = UDim2.fromOffset(0, 254),
-	Size = UDim2.new(1, 0, 0, 40),
+	Position = UDim2.fromOffset(0, 246),
+	Size = UDim2.new(1, 0, 0, 36),
 	Font = Ui.FONT_MEDIUM,
 	TextSize = 14,
 	TextWrapped = true,
@@ -424,16 +468,6 @@ local buyScale = Ui.new("UIScale", { Parent = buyButton })
 
 -- Showing state ------------------------------------------------------------------------------------
 
-local function setIconColor(icon, color)
-	for _, d in ipairs(icon:GetDescendants()) do
-		if d:IsA("Frame") and d.BackgroundTransparency < 1 then
-			d.BackgroundColor3 = color
-		elseif d:IsA("UIStroke") then
-			d.Color = color
-		end
-	end
-end
-
 UpgradeTree.States = {} -- for the simulator: [id] = "locked" | "available" | "affordable" | "maxed"
 
 local function refresh(animate)
@@ -454,43 +488,44 @@ local function refresh(animate)
 		UpgradeTree.States[upgrade.Id] = state
 		n.State = state
 
-		local isSelected = upgrade.Id == selected
-		n.Card.BackgroundColor3 = if locked then Color3.fromRGB(240, 242, 247) else Ui.WHITE
-		n.Stroke.Color = if isSelected then (if maxed then Ui.GOLD else upgrade.Color) elseif maxed then Ui.GOLD elseif affordable then upgrade.Color else Ui.LINE
-		n.Stroke.Thickness = if isSelected then 3 elseif affordable or maxed then 2 else 1.5
-		n.Tile.BackgroundColor3 = if locked then Color3.fromRGB(200, 205, 218) elseif maxed then Ui.GOLD else upgrade.Color
-		n.Name.TextColor3 = if locked then Ui.MUTED else Ui.INK
-		n.Level.Text = "Lv " .. level .. " / " .. upgrade.Max
-		local fill = UDim2.fromScale(level / upgrade.Max, 1)
-		if animate then
-			TweenService:Create(n.Bar, TweenInfo.new(0.45, Enum.EasingStyle.Quint), { Size = fill }):Play()
-		else
-			n.Bar.Size = fill
+		local isSelected = upgrade.Id == selected and detail.Visible
+		-- the hexagon: teal, gold when maxed, dark with "?" when locked; its
+		-- rim is dark when selected and the upgrade's colour when affordable
+		local top, bottom = NODE_TOP, NODE_BOTTOM
+		if maxed then
+			top, bottom = Color3.fromRGB(255, 226, 120), Color3.fromRGB(240, 170, 30)
+		elseif locked then
+			top, bottom = LOCKED_TOP, LOCKED_BOTTOM
 		end
-		n.Bar.BackgroundColor3 = if maxed then Ui.GOLD else upgrade.Color
+		local rim = if isSelected then Ui.OUTLINE elseif affordable then upgrade.Color:Lerp(Ui.WHITE, 0.2) else Color3.fromRGB(235, 255, 255)
+		Ui.setHexColors(n.Hex, top, bottom, rim)
+		n.Stroke.Color, n.Stroke.Thickness = rim, if isSelected then 3 else 2
+		n.Icon.Visible = not locked
+		n.Unknown.Visible = locked
+		n.Name.Text = if locked then "" else upgrade.Name
+		n.Level.Text = level .. "/" .. upgrade.Max
+		n.Level.Visible = not locked
 		for _, piece in ipairs(n.Path) do
-			piece.BackgroundColor3 = if locked then TRACK else (if maxed then Ui.GOLD else upgrade.Color):Lerp(Ui.WHITE, 0.25)
+			piece.BackgroundColor3 = if locked then TRACK else (if maxed then Ui.GOLD else Color3.fromRGB(170, 240, 240))
 		end
-		-- the price pill
+		-- the price under the node
 		n.LockIcon.Visible = locked
 		n.PriceIcon.Visible = not locked and not maxed
 		if maxed then
 			n.PriceText.Text = "MAX"
-			n.PriceText.TextSize = 14
-			n.PriceText.TextColor3 = Ui.WHITE
-			n.Price.BackgroundColor3 = Ui.GOLD
+			n.PriceText.TextColor3 = Ui.GOLD
+			n.Price.BackgroundColor3 = Color3.fromRGB(120, 80, 10)
 		elseif locked then
 			n.PriceText.Text = reason
 			n.PriceText.TextSize = 11
-			n.PriceText.TextColor3 = Ui.MUTED
-			n.Price.BackgroundColor3 = Color3.fromRGB(230, 233, 241)
+			n.PriceText.TextColor3 = Ui.WHITE
+			n.Price.BackgroundColor3 = Color3.fromRGB(40, 46, 60)
 		else
 			n.PriceText.Text = Config.formatNumber(cost)
 			n.PriceText.TextSize = 14
-			n.PriceText.TextColor3 = if affordable then Ui.WHITE else Color3.fromRGB(205, 90, 110)
-			n.Price.BackgroundColor3 = if affordable then Ui.SUCCESS else Ui.GLASS_LIGHT
+			n.PriceText.TextColor3 = if affordable then Color3.fromRGB(150, 255, 160) else Color3.fromRGB(255, 150, 160)
+			n.Price.BackgroundColor3 = if affordable then Color3.fromRGB(20, 110, 60) else Color3.fromRGB(16, 56, 66)
 		end
-		setIconColor(n.PriceIcon, if affordable then Ui.WHITE else Ui.GOLD)
 	end
 
 	-- the selected upgrade in full
@@ -542,12 +577,31 @@ local function refresh(animate)
 	end
 end
 
+-- puts the card next to a node (right of it, or left if there's no room)
+local function placeCard(id)
+	local n = nodes[id]
+	local onBoard = n.Position - view.CanvasPosition + Vector2.new(0, 46)
+	local x = onBoard.X + CARD_W / 2 + 16
+	if x + DETAIL_W > VIEW_W then
+		x = onBoard.X - CARD_W / 2 - 16 - DETAIL_W
+	end
+	local y = math.clamp(onBoard.Y - 190, 46, 46 + VIEW_H - 380)
+	detail.Position = UDim2.fromOffset(math.clamp(x, 0, VIEW_W - DETAIL_W), y)
+end
+
+UpgradeTree.refresh = refresh
+
 function UpgradeTree.select(id)
-	if selected ~= id then
+	if selected ~= id or not detail.Visible then
 		detailTileScale.Scale = 0.85
 		TweenService:Create(detailTileScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	end
 	selected = id
+	placeCard(id)
+	if not detail.Visible then
+		detail.Visible = true
+		Ui.pop(detail, 0.9)
+	end
 	refresh()
 end
 
@@ -635,6 +689,7 @@ end
 
 function UpgradeTree.open()
 	Screen.open(modal)
+	detail.Visible = false
 	refresh()
 end
 
@@ -659,10 +714,11 @@ RunService.RenderStepped:Connect(function()
 	end
 	local t = os.clock()
 	for id, n in pairs(nodes) do
-		if n.State == "affordable" and id ~= selected then
-			n.Stroke.Transparency = 0.15 + (math.sin(t * 3 + n.Position.X * 0.01) * 0.5 + 0.5) * 0.45
-		else
-			n.Stroke.Transparency = 0
+		-- affordable nodes breathe gently (a soft pulse in size)
+		if n.State == "affordable" and id ~= selected and not n.Hover and not Ui.reduced() then
+			n.Scale.Scale = 1 + (math.sin(t * 3 + n.Position.X * 0.01) * 0.5 + 0.5) * 0.04
+		elseif not n.Hover and n.Scale.Scale ~= 1 and n.State ~= "affordable" then
+			n.Scale.Scale = 1
 		end
 	end
 end)

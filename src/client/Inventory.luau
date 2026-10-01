@@ -1,10 +1,11 @@
 -- The Inventory ("My Pets"): your pet collection.
 --
---   THE GRID   many small cards at once (about 5-8 per row, worked out from
+--   EQUIPPED   along the top: "3/5 Equipped" and your team's tiles.
+--   THE GRID   many pet tiles at once (about 5-8 per row, worked out from
 --              the space available, so it adapts to the panel and screen).
---              A card only answers "what pet is this, and do I have it on?":
---              the pet, its name, "x3" if you have copies and a green check
---              if it's equipped; its rarity is the card's soft colour.
+--              Each is the collection tile (PetTile): the pet on a hexagon
+--              in its rarity's colours, HUGE/TITANIC, its odds ("1/430K"),
+--              "x3" for copies and a green check when equipped.
 --   DETAILS    tapping a pet slides a details panel in on the right (the
 --              grid stays visible, just narrower): a big preview, name,
 --              rarity and size, power and damage per second, its five
@@ -17,6 +18,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Effects = require(script.Parent.Effects)
+local PetTile = require(script.Parent.PetTile)
 local PetView = require(script.Parent.PetView)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
@@ -27,17 +29,67 @@ local Inventory = {}
 local equipFunction = State.remote("Equip")
 local equipBestFunction = State.remote("EquipBest")
 
-local WIDTH, HEIGHT = 900, 620
+local WIDTH, HEIGHT = 900, 660
 local INNER_W = WIDTH - 48
 local DETAIL_W, GAP = 268, 12
-local TOP = 98 -- where the grid starts
+local TEAM_TILE = 76 -- width of the equipped tiles along the top
+local TEAM_Y = 30
+local TABS_Y = TEAM_Y + math.floor(TEAM_TILE * 1.18) + 12
+local TOP = TABS_Y + 46 -- where the grid starts
 local CARD_TARGET, CARD_GAP = 100, 10
 local EASE = TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 local modal, box = Screen.modal(WIDTH, HEIGHT, "Inventory")
 Screen.title(box, "My Pets")
 local hint = Screen.subtitle(box, "")
-hint.Position = UDim2.new(1, -188, 0, 8) -- left of Equip Best
+hint.Position = UDim2.new(1, -40, 0, 2)
+
+-- "3/5 Equipped" with a line each side, then the team's tiles
+local equippedTitle = Ui.chunky({
+	Name = "EquippedTitle",
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, -4),
+	Size = UDim2.fromOffset(240, 28),
+	TextSize = 24,
+	Text = "0/1 Equipped",
+	Outline = 2.5,
+	ZIndex = 34,
+	Parent = box,
+})
+for _, side in ipairs({ -1, 1 }) do
+	Ui.new("Frame", {
+		AnchorPoint = Vector2.new(if side < 0 then 1 else 0, 0.5),
+		Position = UDim2.new(0.5, side * 130, 0, 10),
+		Size = UDim2.new(0.5, -170, 0, 3),
+		BackgroundColor3 = Color3.fromRGB(196, 186, 214),
+		ZIndex = 33,
+		Parent = box,
+	}, { Ui.corner(2) })
+end
+local teamRow = Ui.new("Frame", {
+	Name = "TeamRow",
+	Position = UDim2.fromOffset(0, TEAM_Y),
+	Size = UDim2.new(1, 0, 0, math.floor(TEAM_TILE * 1.18)),
+	BackgroundTransparency = 1,
+	ZIndex = 33,
+	Parent = box,
+}, {
+	Ui.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+Inventory.TeamRow = teamRow
+Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, TABS_Y - 7),
+	Size = UDim2.new(1, -40, 0, 3),
+	BackgroundColor3 = Color3.fromRGB(196, 186, 214),
+	ZIndex = 33,
+	Parent = box,
+}, { Ui.corner(2) })
 
 -- Equip Best (shared with the upgrade tree) -----------------------------------------------------
 
@@ -73,7 +125,7 @@ end
 
 local equipBestButton = Ui.button({
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -44, 0, 0),
+	Position = UDim2.new(1, 0, 0, TABS_Y + 1),
 	Size = UDim2.fromOffset(132, 34),
 	Radius = 17,
 	Text = "Equip Best",
@@ -128,12 +180,12 @@ Inventory.FILTERS, Inventory.SORTS = FILTERS, SORTS
 Inventory.Filter = 1
 Inventory.Sort = 1
 Inventory.Selected = nil -- the pet whose details are open
-local refresh, select
+local refresh, select, rebuild
 
 -- tabs: one compact segmented pill
 local tabs = Ui.new("Frame", {
 	Name = "Tabs",
-	Position = UDim2.fromOffset(0, 50),
+	Position = UDim2.fromOffset(0, TABS_Y),
 	Size = UDim2.fromOffset(0, 36),
 	AutomaticSize = Enum.AutomaticSize.X,
 	BackgroundColor3 = Ui.GLASS_LIGHT,
@@ -173,7 +225,7 @@ end
 local sortButton = Ui.new("TextButton", {
 	Name = "Sort",
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, 0, 0, 50),
+	Position = UDim2.new(1, -142, 0, TABS_Y),
 	Size = UDim2.fromOffset(140, 36),
 	BackgroundColor3 = Ui.GLASS_LIGHT,
 	AutoButtonColor = false,
@@ -188,7 +240,7 @@ local sortButton = Ui.new("TextButton", {
 local sortMenu = Ui.new("Frame", {
 	Name = "SortMenu",
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, 0, 0, 90),
+	Position = UDim2.new(1, -142, 0, TABS_Y + 40),
 	Size = UDim2.fromOffset(140, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundColor3 = Ui.WHITE,
@@ -235,7 +287,7 @@ end)
 -- The grid ---------------------------------------------------------------------------------
 
 local layout = Ui.new("UIGridLayout", {
-	CellSize = UDim2.fromOffset(CARD_TARGET, CARD_TARGET + 24),
+	CellSize = UDim2.fromOffset(CARD_TARGET, math.floor(CARD_TARGET * PetTile.ASPECT)),
 	CellPadding = UDim2.fromOffset(CARD_GAP, CARD_GAP),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
@@ -243,7 +295,7 @@ local grid = Screen.scrollList(box, TOP, layout)
 grid.Size = UDim2.new(0, INNER_W, 1, -TOP)
 Inventory.Grid, Inventory.Layout = grid, layout -- (for the simulator)
 local empty = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 180),
+	Position = UDim2.fromOffset(0, TOP + 80),
 	Size = UDim2.fromOffset(INNER_W, 24),
 	Font = Ui.FONT_MEDIUM,
 	TextScaled = false,
@@ -264,11 +316,13 @@ function Inventory.columnsFor(width)
 	return columns, cell
 end
 
+local cellWidth = CARD_TARGET -- the tiles' width for the current column count
 local function fitGrid(width)
 	grid.Size = UDim2.new(0, width, 1, -TOP)
 	empty.Size = UDim2.fromOffset(width, 24)
 	local columns, cell = Inventory.columnsFor(width)
-	layout.CellSize = UDim2.fromOffset(cell, cell + 24)
+	cellWidth = cell
+	layout.CellSize = UDim2.fromOffset(cell, math.floor(cell * PetTile.ASPECT))
 	Inventory.Columns = columns
 end
 
@@ -292,34 +346,22 @@ local function label(parent, props)
 	return Ui.new("TextLabel", props)
 end
 
--- how a card looks for its state (normal / equipped / selected)
+-- how a card looks for its state (selected gets a dark outline)
 local function paintCard(c)
-	local selected = Inventory.Selected == c.Name
-	c.Edge.Color = if selected then Ui.INK elseif c.Equipped then Ui.SUCCESS else c.Accent:Lerp(Ui.WHITE, 0.35)
-	c.Edge.Thickness = if selected then 2.5 elseif c.Equipped then 2 else 1.5
-	c.Frame.BackgroundColor3 = if selected then Ui.WHITE else c.Tint
+	PetTile.setSelected(c.Tile, Inventory.Selected == c.Name)
 end
 
 local function card(order, name, owned, equipped)
-	local accent = accentOf(name)
-	local frame = Ui.new("TextButton", {
+	local tile = PetTile.new({
 		Name = name,
+		Width = cellWidth,
 		LayoutOrder = order,
-		AutoButtonColor = false,
-		Text = "",
-		ZIndex = 33,
-		Parent = grid,
-	}, { Ui.corner(16) })
-	local c = {
-		Name = name,
-		Frame = frame,
-		Accent = accent,
-		Tint = accent:Lerp(Ui.WHITE, 0.86),
+		Amount = owned,
 		Equipped = equipped > 0,
-		Edge = Ui.stroke(accent, 1.5, 0),
-		Scale = Ui.new("UIScale", { Parent = frame }),
-	}
-	c.Edge.Parent = frame
+		Parent = grid,
+	})
+	local frame = tile.Frame
+	local c = { Name = name, Frame = frame, Tile = tile, Equipped = equipped > 0 }
 	paintCard(c)
 	cards[name] = c
 	if staggering then
@@ -327,69 +369,31 @@ local function card(order, name, owned, equipped)
 	elseif shownEquipped and (shownEquipped[name] or 0) ~= equipped then
 		Ui.pop(frame, if equipped > (shownEquipped[name] or 0) then 1.1 else 0.92)
 	end
-	-- the pet
-	local view = PetView.take(name)
-	view.AnchorPoint = Vector2.new(0.5, 0)
-	view.Position = UDim2.new(0.5, 0, 0, 4)
-	view.Size = UDim2.new(1, -10, 1, -30)
-	view.ZIndex = 34
-	view.Parent = frame
-	-- its name
-	label(frame, {
-		Name = "PetName",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -5),
-		Size = UDim2.new(1, -8, 0, 16),
-		Font = Ui.FONT,
-		TextSize = 12,
-		TextColor3 = Ui.INK,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-		Text = name,
-	})
-	-- equipped check (top left), copies (top right)
-	if equipped > 0 then
-		local tick = label(frame, {
-			Name = "Equipped",
-			Position = UDim2.fromOffset(5, 5),
-			Size = UDim2.fromOffset(20, 20),
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Ui.SUCCESS,
-			Font = Ui.FONT,
-			TextSize = 12,
-			TextColor3 = Ui.WHITE,
-			Text = "✓",
-		})
-		Ui.corner(10).Parent = tick
-	end
-	if owned > 1 then
-		local amount = label(frame, {
-			Name = "Amount",
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -5, 0, 5),
-			Size = UDim2.fromOffset(0, 18),
-			AutomaticSize = Enum.AutomaticSize.X,
-			BackgroundTransparency = 0.1,
-			BackgroundColor3 = Ui.WHITE,
-			Font = Ui.FONT,
-			TextSize = 11,
-			TextColor3 = Ui.INK,
-			Text = "x" .. Config.formatNumber(owned),
-		})
-		Ui.corner(9).Parent = amount
-		Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5), Parent = amount })
-	end
-	-- hover grows it a little; tap selects it
-	frame.MouseEnter:Connect(function()
-		TweenService:Create(c.Scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = if Ui.reduced() then 1 else 1.05 }):Play()
-	end)
-	frame.MouseLeave:Connect(function()
-		TweenService:Create(c.Scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = 1 }):Play()
-	end)
 	frame.Activated:Connect(function()
 		Effects.play("Click", 1.2, 0.04)
 		select(name)
 	end)
 	return c
+end
+
+-- the equipped tiles along the top (tap one for its details)
+local function drawTeam(data)
+	PetView.releaseAll(teamRow)
+	for _, child in ipairs(teamRow:GetChildren()) do
+		if child:IsA("GuiObject") then
+			child:Destroy()
+		end
+	end
+	for slot, name in ipairs(data.Equipped) do
+		if Config.petInfo(name) then
+			local tile = PetTile.new({ Name = name, Width = TEAM_TILE, LayoutOrder = slot, Parent = teamRow })
+			tile.Frame.Activated:Connect(function()
+				Effects.play("Click", 1.2, 0.04)
+				select(name)
+			end)
+		end
+	end
+	equippedTitle.Text = #data.Equipped .. "/" .. Config.maxEquipped(data) .. " Equipped"
 end
 
 -- Details (slides in on the right) ------------------------------------------------------------
@@ -608,11 +612,13 @@ function select(name)
 			detail.Position = if Ui.reduced() then DETAIL_SHOWN else DETAIL_HIDDEN
 			TweenService:Create(detail, EASE, { Position = DETAIL_SHOWN }):Play()
 			fitGrid(INNER_W - DETAIL_W - GAP)
+			rebuild() -- the tiles get the narrower size
 		end
 	elseif detail.Visible then
 		detail.Visible = false
 		shownPet = nil
 		fitGrid(INNER_W)
+		rebuild()
 	end
 end
 Inventory.select = select
@@ -621,6 +627,14 @@ Inventory.showDetails = select
 -- Building the grid ------------------------------------------------------------------------------
 
 local lastSignature = nil
+
+-- redraws the tiles (after the grid changed width), without the grow-in
+function rebuild()
+	if modal.Visible then
+		lastSignature = nil
+		refresh(false)
+	end
+end
 
 function refresh(force)
 	local data = State.Data
@@ -682,7 +696,8 @@ function refresh(force)
 	end
 	empty.Visible = #list == 0
 	empty.Text = if total == 0 then FILTERS[1].Empty else filter.Empty
-	hint.Text = "Team " .. #data.Equipped .. "/" .. Config.maxEquipped(data) .. "  ·  " .. Config.formatNumber(total) .. " pets"
+	hint.Text = Config.formatNumber(total) .. " pets"
+	drawTeam(data)
 	-- keep the details current (or close them if that pet is gone)
 	select(Inventory.Selected)
 end

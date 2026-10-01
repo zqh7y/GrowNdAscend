@@ -111,18 +111,39 @@ function Screen.modal(width, height, theme)
 		Parent = holder,
 	}, { Ui.corner(22), Ui.padding(24) })
 	themes[box] = theme
-	Ui.button({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 6, 0, -8),
-		Size = UDim2.fromOffset(36, 36),
-		Radius = 18,
-		Icon = "close",
-		IconSize = 12,
-		ZIndex = 36,
+	-- a big red X sitting on the panel's top-right corner
+	local close = Ui.new("TextButton", {
+		Name = "Close",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, 18, 0, -18),
+		Size = UDim2.fromOffset(58, 58),
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Text = "",
+		ZIndex = 40,
 		Parent = box,
-	}, function()
+	})
+	for _, angle in ipairs({ 45, -45 }) do
+		Ui.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, 0, 0, 16),
+			Rotation = angle,
+			BackgroundColor3 = Color3.fromRGB(240, 52, 60),
+			ZIndex = 41,
+			Parent = close,
+		}, { Ui.corner(5), Ui.new("UIStroke", { Color = Ui.OUTLINE, Thickness = 3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }) })
+	end
+	local closeScale = Ui.new("UIScale", { Parent = close })
+	close.MouseEnter:Connect(function()
+		closeScale.Scale = if Ui.reduced() then 1 else 1.1
+	end)
+	close.MouseLeave:Connect(function()
+		closeScale.Scale = 1
+	end)
+	close.Activated:Connect(function()
 		Screen.close(shade)
-	end, "disabled")
+	end)
 	return shade, box
 end
 
@@ -185,32 +206,22 @@ function Screen.close(shade)
 	end)
 end
 
--- The panel's heading, top left: a small rounded icon tile in the theme's
--- colour and the title in the friendly display font. Returns the title's
--- text label.
+-- The panel's heading. Returns the title's text label.
 function Screen.title(box, text)
-	local theme = themes[box] or Screen.THEMES.Default
-	local tile = Ui.new("Frame", {
-		Name = "TitleIcon",
-		Position = UDim2.fromOffset(0, -6),
-		Size = UDim2.fromOffset(34, 34),
-		BackgroundColor3 = theme.Color,
-		ZIndex = 35,
-		Parent = box,
-	}, { Ui.corner(10) })
-	Ui.icon(theme.Icon, 20, Ui.WHITE, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 36, Parent = tile })
-	return Ui.new("TextLabel", {
+	-- big chunky white letters with a dark outline, tilted a little and
+	-- sitting over the panel's top-left corner
+	local _ = themes[box]
+	return Ui.chunky({
 		Name = "Title",
-		Position = UDim2.fromOffset(46, -6),
-		Size = UDim2.new(0.6, -46, 0, 34),
-		Font = Ui.FONT_DISPLAY,
-		TextScaled = false,
-		TextSize = 28,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromOffset(-30, -2),
+		Size = UDim2.fromOffset(420, 60),
+		Rotation = -3,
+		TextSize = 54,
 		Text = text,
-		TextColor3 = Ui.TEXT,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-		ZIndex = 35,
+		Outline = 4,
+		ZIndex = 40,
 		Parent = box,
 	})
 end

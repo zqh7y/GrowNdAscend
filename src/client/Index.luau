@@ -1,5 +1,7 @@
--- The Animal Index: every animal there is, in three categories picked with
--- the buttons down the right side: NORMAL (the 70 animals, the collection
+-- The Animal Index: every animal there is, as hexagon tiles (PetTile) on
+-- the right; on the left, how many you've found, the three categories and
+-- the collection rewards. Hover (or tap) a tile for its card: name,
+-- rarity, the chance here, power and stats. Categories: NORMAL (the 70 animals, the collection
 -- count), HUGE and TITANIC (the same 70 in those sizes, tracked separately;
 -- they don't add to the 70). Found ones show in full colour; the rest are
 -- dark silhouettes marked "???". Every animal can hatch in every world, so
@@ -12,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Effects = require(script.Parent.Effects)
+local PetTile = require(script.Parent.PetTile)
 local PetView = require(script.Parent.PetView)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
@@ -19,7 +22,9 @@ local Ui = require(script.Parent.Ui)
 
 local Index = {}
 
-local SIDE = 168 -- the category column on the right
+local SIDE = 200 -- the info column on the left
+local GRID_X = SIDE + 14
+local TILE_W = 100
 local modal, box = Screen.modal(940, 640, "Index")
 Screen.title(box, "Animal Index")
 local hint = Screen.subtitle(box, "")
@@ -30,8 +35,8 @@ Index.Tab = 0 -- 0 = all worlds
 Index.Size = 1 -- 1 Normal, 2 Huge, 3 Titanic
 local refresh
 local tabRow = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 56),
-	Size = UDim2.new(1, -SIDE - 12, 0, 38),
+	Position = UDim2.fromOffset(GRID_X, 0),
+	Size = UDim2.new(1, -GRID_X, 0, 38),
 	BackgroundTransparency = 1,
 	ZIndex = 32,
 	Parent = box,
@@ -47,7 +52,7 @@ for tab = 1, #Config.AREAS + 1 do
 	local world = tab - 1 -- 0 is "All"
 	tabs[world] = Ui.button({
 		LayoutOrder = world,
-		Size = UDim2.fromOffset(if world == 0 then 70 else 142, 38),
+		Size = UDim2.fromOffset(if world == 0 then 60 else 136, 38),
 		Radius = 19,
 		Text = "",
 		TextSize = 15,
@@ -59,35 +64,39 @@ for tab = 1, #Config.AREAS + 1 do
 	end, "glass")
 end
 
--- Categories down the right side ------------------------------------------------------------
+-- The info column on the left -------------------------------------------------------------
 
 local side = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, 0, 0, 56),
-	Size = UDim2.new(0, SIDE, 1, -56),
-	BackgroundColor3 = Ui.GLASS_LIGHT,
-	BackgroundTransparency = 0.3,
+	Position = UDim2.fromOffset(0, 0),
+	Size = UDim2.new(0, SIDE, 1, 0),
+	BackgroundTransparency = 1,
 	ZIndex = 32,
 	Parent = box,
 }, {
-	Ui.corner(8),
-	Ui.stroke(Ui.LINE, 1, 0.5),
-	Ui.padding(12),
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 12),
+		Padding = UDim.new(0, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
-Ui.new("TextLabel", {
+Ui.chunky({
 	LayoutOrder = 0,
-	Size = UDim2.new(1, 0, 0, 22),
-	Font = Ui.FONT_TITLE,
-	TextScaled = false,
-	TextSize = 14,
-	Text = "Category",
-	TextColor3 = Ui.MUTED,
+	Size = UDim2.new(1, 0, 0, 30),
+	TextSize = 26,
+	Text = "Animal Index",
+	Outline = 2.5,
+	ZIndex = 33,
+	Parent = side,
+})
+local foundCount = Ui.chunky({
+	Name = "FoundCount",
+	LayoutOrder = 1,
+	Size = UDim2.new(1, 0, 0, 34),
+	TextSize = 30,
+	Text = "[0/70]",
+	TextColor3 = Color3.fromRGB(235, 230, 245),
+	Outline = 2.5,
 	ZIndex = 33,
 	Parent = side,
 })
@@ -95,9 +104,9 @@ local SIZE_STYLES = { "blue", "gold", "purple" }
 local categories = {}
 for i, size in ipairs(Config.SIZES) do
 	local b = Ui.button({
-		LayoutOrder = i,
-		Size = UDim2.new(1, 0, 0, 86),
-		Radius = 6,
+		LayoutOrder = 1 + i,
+		Size = UDim2.new(1, 0, 0, 58),
+		Radius = 14,
 		Text = "",
 		ZIndex = 33,
 		Parent = side,
@@ -106,8 +115,8 @@ for i, size in ipairs(Config.SIZES) do
 		refresh(true)
 	end, "glass")
 	local name = Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(0, 12),
-		Size = UDim2.new(1, 0, 0, 30),
+		Position = UDim2.fromOffset(0, 6),
+		Size = UDim2.new(1, 0, 0, 22),
 		Font = Ui.FONT_TITLE,
 		TextScaled = false,
 		TextSize = 15,
@@ -116,7 +125,7 @@ for i, size in ipairs(Config.SIZES) do
 		Parent = b,
 	})
 	local count = Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(0, 46),
+		Position = UDim2.fromOffset(0, 28),
 		Size = UDim2.new(1, 0, 0, 24),
 		TextScaled = false,
 		TextSize = 20,
@@ -214,12 +223,13 @@ claimButton = Ui.button({
 end, "gold")
 local claimScale = claimButton:FindFirstChildOfClass("UIScale")
 
-local grid = Screen.scrollList(box, 106, Ui.new("UIGridLayout", {
-	CellSize = UDim2.fromOffset(134, 178),
-	CellPadding = UDim2.fromOffset(10, 10),
+local grid = Screen.scrollList(box, 48, Ui.new("UIGridLayout", {
+	CellSize = UDim2.fromOffset(TILE_W, math.floor(TILE_W * PetTile.ASPECT)),
+	CellPadding = UDim2.fromOffset(8, 8),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 }))
-grid.Size = UDim2.new(1, -SIDE - 12, 1, -106)
+grid.Position = UDim2.fromOffset(GRID_X, 48)
+grid.Size = UDim2.new(1, -GRID_X, 1, -48)
 Index.Side, Index.Grid = side, grid -- (for the simulator)
 
 -- The world the player is standing in (for "odds here")
@@ -231,94 +241,94 @@ local function currentWorld(data)
 end
 Index.currentWorld = currentWorld
 
--- Cards ------------------------------------------------------------------------------------
+-- The card that pops up over a tile ---------------------------------------------------------------
+
+local tip = Ui.new("Frame", {
+	Name = "Tooltip",
+	Size = UDim2.fromOffset(230, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	BackgroundColor3 = Ui.WHITE,
+	Visible = false,
+	ZIndex = 60,
+	Parent = box,
+}, {
+	Ui.corner(18),
+	Ui.padding(14),
+	Ui.new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+})
+local tipEdge = Ui.stroke(Ui.GOLD, 4, 0)
+tipEdge.Parent = tip
+Index.Tooltip = tip
+local function tipLabel(order, props)
+	props.LayoutOrder = order
+	props.Size = props.Size or UDim2.new(1, 0, 0, (props.TextSize or 14) + 6)
+	props.TextScaled = false
+	props.ZIndex = 61
+	props.Parent = tip
+	return Ui.new("TextLabel", props)
+end
+local tipName = tipLabel(1, { Font = Ui.FONT_DISPLAY, TextSize = 26, TextColor3 = Ui.INK })
+local tipRarity = tipLabel(2, {
+	Size = UDim2.fromOffset(0, 24),
+	AutomaticSize = Enum.AutomaticSize.X,
+	BackgroundTransparency = 0,
+	Font = Ui.FONT_DISPLAY,
+	TextSize = 16,
+	TextColor3 = Ui.WHITE,
+})
+Ui.corner(12).Parent = tipRarity
+Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 14), Parent = tipRarity })
+Ui.new("UIStroke", { Color = Ui.OUTLINE, Thickness = 1.5, Parent = tipRarity })
+local tipOdds = tipLabel(3, { Font = Ui.FONT_DISPLAY, TextSize = 20, TextColor3 = Color3.fromRGB(190, 120, 20) })
+local tipPower = tipLabel(4, { Font = Ui.FONT, TextSize = 17, TextColor3 = Ui.INK })
+local tipStats = tipLabel(5, { Font = Ui.FONT_MEDIUM, TextSize = 13, TextColor3 = Ui.MUTED, TextWrapped = true, Size = UDim2.new(1, 0, 0, 34) })
+local tipWorlds = tipLabel(6, { Name = "Worlds", Font = Ui.FONT_MEDIUM, TextSize = 12, TextColor3 = Ui.MUTED, Text = "Hatches in every world" })
+local tipOwner = nil
+
+-- shows the card for a tile (or hides it with nil)
+function Index.showTip(frame, info)
+	if not frame then
+		tip.Visible = false
+		tipOwner = nil
+		return
+	end
+	tipOwner = frame
+	local pet, sizeIndex, found = info.Pet, info.Size, info.Found
+	local rarity = Config.rarity(pet.Odds)
+	local name = Config.petName(pet.Name, sizeIndex)
+	tipName.Text = if found then name else "???"
+	tipRarity.Text = rarity.Name
+	tipRarity.BackgroundColor3 = rarity.Color
+	tipOdds.Text = info.Odds .. " here"
+	tipPower.Text = if found then "⚔ " .. Config.formatNumber(Config.petPower(name)) .. " power" else "Not found yet"
+	local parts = {}
+	if found then
+		for _, stat in ipairs({ "Luck", "Coins", "Damage", "Exp" }) do
+			local value = Config.petStat(name, stat)
+			if value > 1.001 then
+				table.insert(parts, stat .. " " .. Config.formatStat(value))
+			end
+		end
+	end
+	tipStats.Text = table.concat(parts, "  ·  ")
+	tipStats.Visible = #parts > 0
+	tipWorlds.Text = "Hatches in every world"
+	tipEdge.Color = rarity.Color
+	-- next to the tile, inside the panel
+	local holder = box.Parent
+	local ratio = if holder and holder.Size.X.Offset > 0 then math.max(box.AbsoluteSize.X / holder.Size.X.Offset, 0.01) else 1
+	local rel = (frame.AbsolutePosition - box.AbsolutePosition) / ratio
+	local x = rel.X + frame.AbsoluteSize.X / ratio + 6
+	if x + 230 > box.AbsoluteSize.X / ratio - 24 then
+		x = rel.X - 236
+	end
+	tip.Position = UDim2.fromOffset(math.max(x, 0), math.clamp(rel.Y - 10, 0, 420))
+	tip.Visible = true
+end
+
+-- Tiles ------------------------------------------------------------------------------------
 
 local function card(pet, sizeIndex, found, world)
-	local rarity = Config.rarity(pet.Odds)
-	local size = Config.SIZES[sizeIndex]
-	local accent = if sizeIndex > 1 then size.Color else rarity.Color
-	local frame = Ui.card({
-		LayoutOrder = pet.Index,
-		BackgroundColor3 = if found then Ui.GLASS_LIGHT else Color3.fromRGB(236, 238, 244),
-		ZIndex = 32,
-		Parent = grid,
-	}, if found then accent else Ui.LINE, { Ui.padding(8) })
-	-- a holo pad under the pet
-	Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 72),
-		Size = UDim2.fromOffset(80, 14),
-		BackgroundColor3 = if found then accent else Ui.LINE,
-		BackgroundTransparency = if found then 0.75 else 0.85,
-		ZIndex = 32,
-		Parent = frame,
-	}, { Ui.corner(0.5), Ui.stroke(if found then accent else Ui.LINE, 1, 0.4) })
-	local view = PetView.take(Config.petName(pet.Name, sizeIndex), not found)
-	view.AnchorPoint = Vector2.new(0.5, 0)
-	view.Position = UDim2.new(0.5, 0, 0, -2)
-	view.Size = UDim2.fromOffset(92, 86)
-	view.ZIndex = 33
-	view.Parent = frame
-
-	Ui.new("TextLabel", {
-		Size = UDim2.fromOffset(34, 16),
-		TextScaled = false,
-		Font = Ui.FONT_TITLE,
-		TextSize = 11,
-		Text = string.format("#%02d", pet.Index),
-		TextColor3 = Ui.MUTED,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 34,
-		Parent = frame,
-	})
-	if found then
-		Ui.new("TextLabel", {
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 0),
-			Size = UDim2.fromOffset(18, 18),
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Ui.SUCCESS,
-			TextScaled = false,
-			TextSize = 13,
-			Text = "✓",
-			TextColor3 = Ui.INK,
-			ZIndex = 34,
-			Parent = frame,
-		}, { Ui.corner(3) })
-	end
-	if sizeIndex > 1 then
-		Ui.new("TextLabel", {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 70),
-			Size = UDim2.fromOffset(70, 16),
-			BackgroundTransparency = 0,
-			BackgroundColor3 = size.Color,
-			Font = Ui.FONT_TITLE,
-			TextScaled = false,
-			TextSize = 11,
-			Text = string.upper(size.Name),
-			TextColor3 = Ui.INK,
-			ZIndex = 35,
-			Parent = frame,
-		}, { Ui.corner(3) })
-	end
-
-	local function line(y, textSize, font, text, color)
-		return Ui.new("TextLabel", {
-			Position = UDim2.fromOffset(0, y),
-			Size = UDim2.new(1, 0, 0, textSize + 2),
-			Font = font,
-			TextScaled = false,
-			TextSize = textSize,
-			Text = text,
-			TextColor3 = color,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			ZIndex = 33,
-			Parent = frame,
-		})
-	end
-	line(88, 16, Ui.FONT, if found then pet.Name else "???", if found then Ui.TEXT else Ui.MUTED)
-	line(108, 11, Ui.FONT_TITLE, string.upper(rarity.Name), rarity.Color)
 	-- the exact chance of your next roll here (your luck, size luck and this
 	-- world: the same numbers the server rolls with); every animal can hatch
 	-- in every world, it's just rarer in worlds before its home world
@@ -329,11 +339,33 @@ local function card(pet, sizeIndex, found, world)
 		local sizeLuck = Config.sizeLuck(data) * (if nextIsBonus then Config.BONUS_LUCK else 1)
 		chance = Config.chanceOf(Config.petName(pet.Name, sizeIndex), Config.luck(data, nextIsBonus, world), sizeLuck, world)
 	end
-	local here = line(123, 12, Ui.FONT_MEDIUM, Config.formatChance(chance) .. " here", Ui.INK)
-	here.Name = "ChanceHere"
-	local every = line(141, 11, Ui.FONT_MEDIUM, "Hatches in every world", Ui.MUTED)
-	every.Name = "Worlds"
-	return frame
+	local odds = if chance > 0 then Config.shortOdds(1 / chance) else "-"
+	local tile = PetTile.new({
+		Name = Config.petName(pet.Name, sizeIndex),
+		Width = TILE_W,
+		LayoutOrder = pet.Index,
+		Silhouette = not found,
+		Odds = odds,
+		Parent = grid,
+	})
+	tile.Odds.Name = "ChanceHere"
+	local info = { Pet = pet, Size = sizeIndex, Found = found, Odds = odds }
+	tile.Frame.MouseEnter:Connect(function()
+		Index.showTip(tile.Frame, info)
+	end)
+	tile.Frame.MouseLeave:Connect(function()
+		if tipOwner == tile.Frame then
+			Index.showTip(nil)
+		end
+	end)
+	tile.Frame.Activated:Connect(function()
+		if tipOwner == tile.Frame and tip.Visible then
+			Index.showTip(nil)
+		else
+			Index.showTip(tile.Frame, info)
+		end
+	end)
+	return tile.Frame
 end
 
 local lastSignature = nil
@@ -376,6 +408,7 @@ function refresh(force)
 	end
 	local total = #Config.PETS
 	hint.Text = perSize[1] .. " / " .. total .. " Animals Discovered"
+	foundCount.Text = "[" .. perSize[Index.Size] .. "/" .. total .. "]"
 	for i, c in ipairs(categories) do
 		Ui.setStyle(c.Button, if i == Index.Size then SIZE_STYLES[i] else "glass")
 		c.Count.Text = perSize[i] .. "/" .. total
@@ -389,9 +422,10 @@ function refresh(force)
 			else Config.AREAS[w].Name .. " " .. (perWorld[w] or 0) .. "/" .. sizeOf[w])
 	end
 
+	Index.showTip(nil)
 	PetView.releaseAll(grid)
 	for _, child in ipairs(grid:GetChildren()) do
-		if child:IsA("Frame") then
+		if child:IsA("GuiObject") then
 			child:Destroy()
 		end
 	end

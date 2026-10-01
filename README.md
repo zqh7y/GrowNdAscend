@@ -85,7 +85,7 @@ chase Huge and Titanic pets.**
   huge luck can't make any animal impossible. Index cards show the exact
   chance of your next roll where you stand and say "Hatches in every
   world".
-- **Inventory (My Pets):** a dense collection grid of small cards (about
+- **Inventory (My Pets):** a dense collection grid of hexagon tiles (about
   5-8 per row, worked out from the space available): the pet, its name, an
   "x3" badge for copies and a green check when equipped; the card's soft
   colour is its rarity. Cards grow a little on hover. Tap one and a details
@@ -221,12 +221,20 @@ and a faint shine; nothing drawn behind them. The compact/full hatch
 choice lives in Settings, so the middle stays clear for the fights. The
 top-left corner is left for Roblox's own menu buttons.
 
-Every screen shares one clean, friendly style: white rounded panels with
-soft shadows and lots of space, a coloured icon tile and a rounded title
-on each screen, solid colourful buttons with soft gradients, and no neon,
-glow or tech decoration. The upgrade tree shows nodes with level bars,
-costs, padlocks and MAX tags, with a detail panel and a pop on every
-purchase. The rebirth screen shows REBIRTH X / 8 as a segment bar, what
+Every screen shares one friendly collection look: white rounded panels, a
+big tilted title in outlined letters over the top-left corner and a big
+red X on the top-right one. Pets everywhere are **hexagon tiles**
+(`PetTile.luau`): the pet standing on a hexagon in its rarity's colours,
+HUGE/TITANIC under it and its odds in big outlined letters ("1/430K").
+The Inventory shows "3/5 Equipped" with your team's tiles along the top,
+then the collection grid. The Index has its info on the left (found
+count, categories, rewards) and the hexagon grid on the right; hover or tap
+a tile for its card (name, rarity, chance here, power, stats). The upgrade
+tree is hexagon nodes on a teal board joined by paths (level badge and
+price under each, "?" when locked, gold when maxed); tapping one opens a
+card next to it with BUY. After a roll the pets you got float big near the
+top of the screen with their odds and names. The luck sign is a green bar
+with a clover and "x12.5". The rebirth screen shows REBIRTH X / 8 as a segment bar, what
 resets vs what you gain, and both requirements as MET / LOCKED with
 progress bars. Under the coins a small chip shows your luck ("Luck x2.50
 · 2x in 4"). **Auto roll is free.** Settings: damage numbers, full hatch

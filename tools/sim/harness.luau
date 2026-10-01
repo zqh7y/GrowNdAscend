@@ -805,7 +805,7 @@ if ok then
 			frames(2)
 			local cards, silhouettes, shown = 0, 0, 0
 			for _, child in ipairs(Index.Grid:GetChildren()) do
-				if child:IsA("Frame") then
+				if child:IsA("GuiObject") then
 					cards += 1
 					local view = child:FindFirstChildWhichIsA("ViewportFrame")
 					if view and string.sub(view:GetAttribute("Key"), -1) == "#" then
@@ -818,7 +818,7 @@ if ok then
 			indexReport[size] = { Cards = cards, Silhouettes = silhouettes, Shown = shown, Found = Index.found(size) }
 			print(string.format("index %s: %d cards, %d found (%d in colour), %d silhouettes", Cfg.SIZES[size].Name, cards, indexReport[size].Found, shown, silhouettes))
 		end
-		indexReport.SideOnRight = Index.Side.AnchorPoint.X == 1 and Index.Side.Position.X.Scale == 1
+		indexReport.SideOnLeft = Index.Side.Position.X.Scale == 0 and Index.Side.Position.X.Offset == 0
 		Index.Size = 1
 		STATS.Index = indexReport
 
@@ -944,19 +944,23 @@ if ok then
 		local luckNow = Cfg.luck(idxData, nextIsBonus, idxWorld)
 		local sizeLuckNow = Cfg.sizeLuck(idxData) * (if nextIsBonus then Cfg.BONUS_LUCK else 1)
 		for _, cardFrame in ipairs(Index.Grid:GetChildren()) do
-			if cardFrame:IsA("Frame") then
+			if cardFrame:IsA("GuiObject") then
 				for _, d in ipairs(cardFrame:GetDescendants()) do
 					if d:IsA("TextLabel") then
 						if string.find(d.Text, "Best in") then bestIn += 1 end
-						if d.Name == "Worlds" and d.Text == "Hatches in every world" then everyWorld += 1 end
 						if d.Name == "ChanceHere" then
 							checkedCards += 1
 							local pet = Cfg.PETS[cardFrame.LayoutOrder]
-							local want = Cfg.formatChance(Cfg.chanceOf(pet.Name, luckNow, sizeLuckNow, idxWorld)) .. " here"
+							local want = Cfg.shortOdds(1 / Cfg.chanceOf(pet.Name, luckNow, sizeLuckNow, idxWorld))
 							if d.Text == want then chanceOk += 1 end
 						end
 					end
 				end
+				-- hovering shows its card, which says it hatches in every world
+				cardFrame.MouseEnter:Fire()
+				local tipWorlds = Index.Tooltip:FindFirstChild("Worlds")
+				if Index.Tooltip.Visible and tipWorlds and tipWorlds.Text == "Hatches in every world" then everyWorld += 1 end
+				cardFrame.MouseLeave:Fire()
 			end
 		end
 		b14.Index = { BestIn = bestIn, EveryWorld = everyWorld, ChanceOk = chanceOk, Cards = checkedCards }
@@ -974,7 +978,7 @@ if ok then
 		local statsInGrid, simpleCards, tigerCard = 0, 0, nil
 		for _, cardFrame in ipairs(Inv.Grid:GetChildren()) do
 			if cardFrame:IsA("GuiObject") then
-				if cardFrame:FindFirstChild("PetName") and not cardFrame:FindFirstChild("Power") and not cardFrame:FindFirstChild("Action") then
+				if cardFrame:FindFirstChild("Odds") and not cardFrame:FindFirstChild("Power") and not cardFrame:FindFirstChild("Action") then
 					simpleCards += 1
 				end
 				if cardFrame.Name == "Tiger" then tigerCard = cardFrame end
@@ -1145,6 +1149,51 @@ if ok then
 		local back = spawnRoot.Position
 		b15.Spawn = { Y = back.Y, OnPad = math.abs(back.X - pad.Position.X) < 1 and math.abs(back.Z - pad.Position.Z) < 1 and back.Y > pad.Position.Y and back.Y < pad.Position.Y + 8 }
 		spawnRoot.CFrame = before
+		-- build 22: the collection look
+		do
+			local look = {}
+			data.Pets = { Tiger = 1, ["Huge Fox"] = 2 }
+			data.Equipped = { "Tiger" }
+			data.Upgrades = {}
+			PlayerData.sync(player)
+			Inv.select(nil)
+			Inv.open()
+			frames(2)
+			local foxTile = Inv.Grid:FindFirstChild("Huge Fox")
+			look.TileOdds = foxTile and foxTile:FindFirstChild("Odds") and foxTile.Odds.Text
+			look.WantOdds = Cfg.shortOdds(Cfg.oddsOf("Huge Fox"))
+			look.TileHex = foxTile ~= nil and foxTile:FindFirstChild("Hex") ~= nil and foxTile:FindFirstChild("SizeTag") ~= nil
+			local teamTiles = 0
+			for _, child in ipairs(Inv.TeamRow:GetChildren()) do
+				if child:IsA("GuiObject") then teamTiles += 1 end
+			end
+			look.Team = teamTiles
+			look.TeamTitle = Inv.TeamRow.Parent.EquippedTitle.Text
+			C("Screen").close(Inv.Detail.Parent.Parent.Parent)
+			-- the floating results after a roll
+			Hatch.showResults({ { Pet = "Tiger", Size = 1 }, { Kind = "Boost", Multiplier = 2 }, { Pet = "Fox", Size = 2 } }, true)
+			local lr = Hatch.LastResults or {}
+			look.Results = table.concat(lr.Names or {}, ",")
+			look.ResultOdds = table.concat(lr.Odds or {}, ",")
+			look.ResultsVisible = Hatch.ResultsRow.Visible
+			STEP(3)
+			look.ResultsGone = not Hatch.ResultsRow.Visible
+			-- the upgrade tree: hexagon nodes, the card only after a tap
+			local Tree = C("UpgradeTree")
+			Tree.open()
+			frames(1)
+			look.CardBefore = Tree.Card.Visible
+			Tree.select("Luck")
+			frames(1)
+			look.CardAfter = Tree.Card.Visible
+			look.NodeHex = Tree.Nodes.Luck.Hex ~= nil and Tree.Nodes.Luck.Hex:FindFirstChild("Fill") ~= nil
+			C("Screen").close(Tree.Modal)
+			-- the luck sign
+			look.Luck = C("Roll").LuckPill.Value.Text
+			b15.Look = look
+		end
+		data.Equipped = {}
+		PlayerData.sync(player)
 		STATS.B15 = b15
 		print(string.format("build 15: inventory %d cols full (%dpx) -> %d with details; equip best %s (%d/%d slots), second call changed=%s; dupes %d tigers; power/damage pick %s over %s",
 			fullColumns or -1, fullWidth or -1, narrowColumns or -1, b15.Best.Team, b15.Best.Count, slots, tostring(not b15.Best.Changed2),
@@ -1470,7 +1519,7 @@ if ok then
 	item(25, "Index: all 70 normal animals", ix and ix[1].Cards == 70, ix and (ix[1].Cards .. " cards, " .. ix[1].Found .. " found"))
 	item(26, "Index: Huge category works", ix and ix[2].Cards == 70 and ix[2].Found == 2 and ix[2].Shown == 2, ix and string.format("%d cards, %d/70 found", ix[2].Cards, ix[2].Found))
 	item(27, "Index: Titanic category works", ix and ix[3].Cards == 70 and ix[3].Found == 1 and ix[3].Shown == 1, ix and string.format("%d cards, %d/70 found", ix[3].Cards, ix[3].Found))
-	item(28, "Index: category buttons on the right", ix and ix.SideOnRight)
+	item(28, "Index: info and categories on the left", ix and ix.SideOnLeft)
 	item(29, "Index: unfound pets are silhouettes", ix and ix[1].Silhouettes == 70 - ix[1].Found and ix[2].Silhouettes == 68, ix and (ix[1].Silhouettes .. " silhouettes in Normal"))
 	-- every pet in every world; the world changes the odds
 	local rng = Random.new(5)
@@ -1935,7 +1984,7 @@ if ok then
 		item(88, "dense inventory grid, details only on selection", inv.Cards == 3 and inv.StatsInGrid == 0 and (inv.FullColumns or 0) >= 7 and inv.Hidden == true
 			and inv.Shown == true and (inv.NarrowColumns or 0) >= 5 and inv.GridVisible == true and inv.Fits == true and inv.Amount == "x2"
 			and inv.Small == 5 and inv.Wide >= 10 and inv.Closed == true,
-			string.format("%d small cards (picture, name, x2, check), no stats; %d per row full width, %d with the details open beside it; 560px -> %d, 1200px -> %d; details hidden until a pet is picked",
+			string.format("%d hexagon tiles (pet, odds, x2, check), no stats; %d per row full width, %d with the details open beside it; 560px -> %d, 1200px -> %d; details hidden until a pet is picked",
 				inv.Cards or 0, inv.FullColumns or 0, inv.NarrowColumns or 0, inv.Small or 0, inv.Wide or 0))
 		local t = b.Team or {}
 		item(89, "team DPS shares add up to 100%", t.N3 == 3 and t.Sum3 == 100 and t.Ok3 and t.N2 == 2 and t.Sum2 == 100 and t.Ok2 and t.N0 == 0 and t.ZeroOk,
@@ -1966,6 +2015,13 @@ if ok then
 		local sp = (STATS.B15 or {}).Spawn or {}
 		item(96, "never stuck on top of the map", sp.OnPad == true,
 			string.format("a character on the lid (Y 134) was back on the spawn pad within 1.5s (Y %.1f)", sp.Y or -1))
+		local lk = (STATS.B15 or {}).Look or {}
+		item(98, "collection tiles: hexagon, size, odds", lk.TileOdds == lk.WantOdds and lk.TileHex == true and lk.Team == 1 and lk.TeamTitle == "1/" .. Config.maxEquipped({ Upgrades = {} }) .. " Equipped",
+			string.format("Huge Fox tile says %s (its odds), on a hexagon with its size; %d equipped tile on top ('%s')", tostring(lk.TileOdds), lk.Team or 0, tostring(lk.TeamTitle)))
+		item(99, "roll results float big with odds and name", lk.Results == "Tiger,Huge Fox" and lk.ResultOdds == Config.shortOdds(Config.oddsOf("Tiger")) .. "," .. Config.shortOdds(Config.oddsOf("Huge Fox")) and lk.ResultsVisible == true and lk.ResultsGone == true,
+			string.format("%s (%s), the boost left out; shown %s, gone after a moment %s", tostring(lk.Results), tostring(lk.ResultOdds), tostring(lk.ResultsVisible), tostring(lk.ResultsGone)))
+		item(100, "hexagon upgrade tree, luck sign", lk.CardBefore == false and lk.CardAfter == true and lk.NodeHex == true and string.sub(lk.Luck or "", 1, 1) == "x",
+			string.format("nodes are hexagons; the card shows only after a tap; luck sign '%s'", tostring(lk.Luck)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))
