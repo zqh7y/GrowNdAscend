@@ -183,7 +183,8 @@ chase Huge and Titanic pets.**
   upgrades, the Index and your level stay. Each one gives, forever and
   stacking: **Luck x1.5** and **Money +200%** (rebirth 3 = luck x3.4 and
   coins x7; rebirth 8 = x25.6 and x17).
-- **Leaderboards:** Strongest Pet, Playtime and Rebirths in the Forest;
+- **Leaderboards:** each row shows the player's round avatar next to their
+  name. Strongest Pet, Playtime and Rebirths in the Forest;
   Most Rolls in the Top panel.
 
 ### Progression (balanced with `tools/economy/simulate.py`)
@@ -233,10 +234,12 @@ a tile for its card (name, rarity, chance here, power, stats). The upgrade
 tree is hexagon nodes on a teal board joined by paths (level badge and
 price under each, "?" when locked, gold when maxed); tapping one opens a
 card next to it with BUY. A normal roll (and auto) shows one slot per roll at the bottom of the
-screen: pets flicker by (each with its exact odds and name, slowing
-down), then the pet you got grows in and stays until the next roll; the reel at the bottom is only
+screen: pets scroll through it from top to bottom (each with its exact
+odds and name, slowing down); the pet you got comes down past the middle,
+bounces back up and zooms to 150%, and stays until the next roll; the reel at the bottom is only
 used with "Big hatch reveals" on. The luck sign is a green bar
-with a clover and "x12.5". The rebirth screen shows REBIRTH X / 8 as a segment bar, what
+with a clover and "x12.5". Over each pet following you: its odds in big
+outlined letters ("1/103K") with its name small under them. The rebirth screen shows REBIRTH X / 8 as a segment bar, what
 resets vs what you gain, and both requirements as MET / LOCKED with
 progress bars. Under the coins a small chip shows your luck ("Luck x2.50
 · 2x in 4"). **Auto roll is free.** Settings: damage numbers, full hatch

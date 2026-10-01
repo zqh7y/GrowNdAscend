@@ -70,7 +70,7 @@ end)
 local team = Ui.glass({
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 70),
-	Size = UDim2.fromOffset(0, 60),
+	Size = UDim2.fromOffset(0, 64),
 	AutomaticSize = Enum.AutomaticSize.X,
 	Radius = 20,
 	Parent = gui,

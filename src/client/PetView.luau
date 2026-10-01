@@ -35,10 +35,12 @@ local function build(name, silhouette)
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = 30
 	-- the model's pet size is already part of the model; frame it to fit
-	local _, size = model:GetBoundingBox()
+	-- aimed at the middle of the pet (not its pivot), so it sits centred
+	local box, size = model:GetBoundingBox()
+	local middle = box.Position
 	local radius = math.max(size.X, size.Y, size.Z) * 0.62
 	local distance = radius / math.tan(math.rad(camera.FieldOfView / 2))
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, radius * 0.25, -distance), Vector3.new(0, 0, 0))
+	camera.CFrame = CFrame.lookAt(middle + Vector3.new(0, radius * 0.25, -distance), middle)
 	camera.Parent = view
 	view.CurrentCamera = camera
 	view:SetAttribute("Key", key(name, silhouette))

@@ -40,7 +40,7 @@ local DETAIL_W = 300
 local VIEW_W, VIEW_H = WIDTH - 48, HEIGHT - 48 - 46
 local CARD_H = 96 -- a node's hexagon height
 local CARD_W = math.floor(CARD_H * Ui.HEX_RATIO + 0.5)
-local COL_GAP, ROW_GAP = 124, 150
+local COL_GAP, ROW_GAP = 210, 172
 local EASE = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TRACK = Color3.fromRGB(70, 140, 150)
 local BOARD = Color3.fromRGB(30, 98, 110)
@@ -132,7 +132,7 @@ end
 
 -- the board is as big as the tree (at least the view), the tree centred in it
 local BOARD_W = math.max(VIEW_W, columns * COL_GAP + 60)
-local BOARD_H = math.max(VIEW_H, (maxDepth + 1) * ROW_GAP + 150)
+local BOARD_H = math.max(VIEW_H, maxDepth * ROW_GAP + 250)
 view.CanvasSize = UDim2.fromOffset(BOARD_W, BOARD_H)
 local left = (BOARD_W - columns * COL_GAP) / 2
 local START = Vector2.new(BOARD_W / 2, BOARD_H - 40)
@@ -516,7 +516,8 @@ local function refresh(animate)
 			n.PriceText.TextColor3 = Ui.GOLD
 			n.Price.BackgroundColor3 = Color3.fromRGB(120, 80, 10)
 		elseif locked then
-			n.PriceText.Text = reason
+			-- short, so neighbours never overlap: "Coins Lv 1"
+			n.PriceText.Text = (string.gsub(string.gsub(reason or "", "^Needs ", ""), " level ", " Lv "))
 			n.PriceText.TextSize = 11
 			n.PriceText.TextColor3 = Ui.WHITE
 			n.Price.BackgroundColor3 = Color3.fromRGB(40, 46, 60)

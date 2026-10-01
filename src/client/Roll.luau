@@ -55,7 +55,7 @@ local meter = Ui.new("TextButton", {
 	Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 12) }),
 })
 Roll.LuckPill = meter
-local meterEdge = Ui.stroke(Color3.fromRGB(22, 110, 52), 2, 0)
+local meterEdge = Ui.stroke(Ui.GOLD, 2, 1) -- (no border; gold only on the bonus roll)
 meterEdge.Parent = meter
 local cloverTile = Ui.new("Frame", {
 	LayoutOrder = 0,
@@ -180,8 +180,9 @@ local function refreshLuck()
 	detailRows[6].Text = if nextIsBonus then "×" .. Config.BONUS_LUCK .. " now" else "×" .. Config.BONUS_LUCK .. " in " .. untilBonus
 	detailRows[99].Text = luckText.Text
 	-- a gold edge when the next roll is the bonus roll
-	meterEdge.Color = if nextIsBonus then Ui.GOLD else Color3.fromRGB(22, 110, 52)
-	meterEdge.Thickness = if nextIsBonus then 3 else 2
+	meterEdge.Color = Ui.GOLD
+	meterEdge.Thickness = 3
+	meterEdge.Transparency = if nextIsBonus then 0 else 1
 	for _, d in ipairs(luckIcon:GetDescendants()) do
 		if d:IsA("Frame") and d.BackgroundTransparency < 1 then
 			d.BackgroundColor3 = if nextIsBonus then Ui.GOLD else Color3.fromRGB(190, 255, 190)

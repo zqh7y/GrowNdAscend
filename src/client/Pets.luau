@@ -16,6 +16,7 @@ local Creature = require(script.Parent.Creature)
 local Effects = require(script.Parent.Effects)
 local Living = require(script.Parent.Living)
 local PetModels = require(script.Parent.PetModels)
+local Ui = require(script.Parent.Ui)
 
 local player = Players.LocalPlayer
 
@@ -34,25 +35,40 @@ local function build(name)
 	-- this pet's own Speed stat
 	rig.Speed *= Config.petStat(name, "Speed")
 
-	-- name tag: the size in its colour, then the name in the rarity colour
+	-- over its head: its odds in big outlined letters ("1/103K", in its
+	-- rarity's colours) and its name small under them (HUGE / TITANIC in
+	-- the size's colour)
 	local tag = Instance.new("BillboardGui")
-	tag.Size = UDim2.fromOffset(190, 26)
-	tag.StudsOffsetWorldSpace = Vector3.new(0, (head.Y + 1.6) * size.Scale, 0)
-	tag.MaxDistance = 70
+	tag.Name = "Tag"
+	tag.Size = UDim2.fromOffset(240, 52)
+	tag.StudsOffsetWorldSpace = Vector3.new(0, (head.Y + 1.9) * size.Scale, 0)
+	tag.MaxDistance = 80
+	tag.LightInfluence = 0
+	tag.AlwaysOnTop = false
 	tag.Adornee = model.PrimaryPart
 	tag.Parent = model
-	local label = Instance.new("TextLabel")
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 1)
-	label.Font = Enum.Font.GothamBold
-	label.TextScaled = true
-	label.RichText = true
-	label.Text = if size.Index > 1
-		then string.format('<font color="#%s">%s</font> %s', size.Color:ToHex(), size.Name, pet.Name)
-		else pet.Name
-	label.TextColor3 = rarity.Color
-	label.TextStrokeTransparency = 0.3
-	label.Parent = tag
+	Ui.chunky({
+		Name = "Odds",
+		Size = UDim2.new(1, 0, 0, 32),
+		TextSize = 30,
+		Text = Config.shortOdds(Config.oddsOf(name)),
+		Colors = { rarity.Color:Lerp(Color3.new(1, 1, 1), 0.45), rarity.Color },
+		Outline = 2.5,
+		Parent = tag,
+	})
+	Ui.chunky({
+		Name = "PetName",
+		Position = UDim2.fromOffset(0, 32),
+		Size = UDim2.new(1, 0, 0, 18),
+		Font = Enum.Font.GothamBold,
+		TextSize = 15,
+		RichText = true,
+		Text = if size.Index > 1
+			then string.format('<font color="#%s">%s</font> %s', size.Color:ToHex(), string.upper(size.Name), pet.Name)
+			else pet.Name,
+		Outline = 1.5,
+		Parent = tag,
+	})
 
 	model.Parent = folder
 	if size.Scale ~= 1 then

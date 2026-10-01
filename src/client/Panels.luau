@@ -66,9 +66,20 @@ State.remote("Leaderboard").OnClientEvent:Connect(function(entries)
 			ZIndex = 33,
 			Parent = row,
 		}, { Ui.corner(0.5) })
+		-- their avatar, round, next to the name
+		Ui.new("ImageLabel", {
+			Name = "Avatar",
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 48, 0.5, 0),
+			Size = UDim2.fromOffset(34, 34),
+			BackgroundColor3 = Color3.fromRGB(225, 230, 242),
+			Image = if type(entry.UserId) == "number" and entry.UserId > 0 then "rbxthumb://type=AvatarHeadShot&id=" .. entry.UserId .. "&w=150&h=150" else "",
+			ZIndex = 33,
+			Parent = row,
+		}, { Ui.corner(0.5) })
 		Ui.new("TextLabel", {
-			Position = UDim2.fromOffset(54, 0),
-			Size = UDim2.new(1, -200, 1, 0),
+			Position = UDim2.fromOffset(90, 0),
+			Size = UDim2.new(1, -236, 1, 0),
 			Font = Ui.FONT_MEDIUM,
 			TextScaled = false,
 			TextSize = 17,

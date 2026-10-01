@@ -346,7 +346,7 @@ local function signal()
 end
 
 local BASEPART = { Part = true, WedgePart = true, SpawnLocation = true, CornerWedgePart = true, MeshPart = true, TrussPart = true }
-local GUI = { Frame = true, TextLabel = true, TextButton = true, ScrollingFrame = true, ImageLabel = true, CanvasGroup = true, ImageButton = true }
+local GUI = { Frame = true, TextLabel = true, TextButton = true, ScrollingFrame = true, ImageLabel = true, CanvasGroup = true, ImageButton = true, ViewportFrame = true }
 local SIGNALS = {
 	MouseClick = true, Triggered = true, Event = true, OnServerEvent = true, OnClientEvent = true, PlayerAdded = true,
 	PlayerRemoving = true, Changed = true, Activated = true, MouseEnter = true, MouseLeave = true,

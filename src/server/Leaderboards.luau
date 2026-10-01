@@ -82,6 +82,15 @@ for _, board in ipairs(BOARDS) do
 end
 
 local nameCache = {}
+-- A player's round avatar picture (Roblox serves it from the user id; no
+-- web call needed, it works for offline players too)
+function Leaderboards.headshot(userId)
+	if type(userId) ~= "number" or userId <= 0 then
+		return ""
+	end
+	return "rbxthumb://type=AvatarHeadShot&id=" .. userId .. "&w=150&h=150"
+end
+
 local function userName(userId)
 	local online = Players:GetPlayerByUserId(userId)
 	if online then
@@ -217,10 +226,22 @@ local function makeWorldBoard(board, screen)
 		pad.PaddingBottom = UDim.new(0, 6)
 		pad.Parent = rank
 
+		-- the player's avatar headshot, round, next to the name
+		local avatar = Instance.new("ImageLabel")
+		avatar.Name = "Avatar"
+		avatar.Position = UDim2.fromOffset(42, 4)
+		avatar.Size = UDim2.fromOffset(34, 34)
+		avatar.BackgroundColor3 = Color3.fromRGB(225, 230, 242)
+		avatar.BorderSizePixel = 0
+		avatar.Parent = row
+		local avatarRound = Instance.new("UICorner")
+		avatarRound.CornerRadius = UDim.new(0.5, 0)
+		avatarRound.Parent = avatar
+
 		local name = Instance.new("TextLabel")
 		name.BackgroundTransparency = 1
-		name.Position = UDim2.fromOffset(44, 9)
-		name.Size = UDim2.new(1, -170, 0, 24)
+		name.Position = UDim2.fromOffset(84, 9)
+		name.Size = UDim2.new(1, -210, 0, 24)
 		name.Font = Enum.Font.GothamBold
 		name.TextScaled = true
 		name.TextXAlignment = Enum.TextXAlignment.Left
@@ -238,7 +259,7 @@ local function makeWorldBoard(board, screen)
 		value.TextColor3 = board.Color:Lerp(Color3.new(0, 0, 0), 0.15)
 		value.Parent = row
 
-		rows[i] = { Frame = row, Name = name, Value = value }
+		rows[i] = { Frame = row, Avatar = avatar, Name = name, Value = value }
 	end
 
 	-- shown until someone is on the board
@@ -263,6 +284,7 @@ local function drawWorldBoard(board, list)
 		row.Frame.Visible = entry ~= nil
 		if entry then
 			row.Name.Text = entry.Name
+			row.Avatar.Image = Leaderboards.headshot(entry.UserId)
 			row.Value.Text = board.Text(entry.Value)
 		end
 	end

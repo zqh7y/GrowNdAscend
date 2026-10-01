@@ -1402,12 +1402,14 @@ local function makeSlot(order)
 		ZIndex = 20,
 		Parent = resultsRow,
 	})
+	-- a window the pets scroll through, top to bottom (it clips them)
 	local viewHolder = Ui.new("Frame", {
 		Name = "Pet",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0),
 		Size = UDim2.fromOffset(150, 132),
 		BackgroundTransparency = 1,
+		ClipsDescendants = true,
 		ZIndex = 21,
 		Parent = holder,
 	})
@@ -1436,22 +1438,80 @@ local function makeSlot(order)
 	return { Holder = holder, View = viewHolder, Pop = pop, Odds = odds, Name = label, Shows = nil }
 end
 
--- Puts a pet (or the boost tile) in a slot with its odds and name. While
--- cycling each one pops in quickly; when it lands (`landed` true) the
--- result grows in from small.
-local function setSlot(slot, name, oddsText, landed)
-	if slot.Shows ~= name then
-		PetView.releaseAll(slot.View)
-		clear(slot.View)
+-- Where a pet sits in its window: above it (coming in), in the middle,
+-- below it (leaving)
+local ABOVE, MIDDLE, BELOW = UDim2.fromScale(0.5, -0.6), UDim2.fromScale(0.5, 0.5), UDim2.fromScale(0.5, 1.6)
+Hatch.ZOOM = 1.5 -- the pet you got ends up this big
+
+-- Puts a pet (or the boost tile) in a slot with its odds and name. Pets
+-- scroll top to bottom: the new one slides in from above while the old one
+-- drops out below. When it lands (`landed` true) the pet you got comes
+-- down past the middle, comes back up to the middle and zooms to 150%.
+local function setSlot(slot, name, oddsText, landed, step)
+	if slot.Shows ~= name or landed then
+		local reduced = Ui.reduced()
+		local time = math.min(step or 0.14, 0.16)
+		-- the old one drops out below
+		for _, old in ipairs(slot.View:GetChildren()) do
+			if old:IsA("GuiObject") then
+				if reduced then
+					if old:IsA("ViewportFrame") then PetView.release(old) else old:Destroy() end
+				else
+					TweenService:Create(old, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = BELOW }):Play()
+					task.delay(time, function()
+						if old.Parent == slot.View then
+							if old:IsA("ViewportFrame") then PetView.release(old) else old:Destroy() end
+						end
+					end)
+				end
+			end
+		end
+		-- the new one comes in from above
+		local view
 		if name == BOOST then
-			boostTile(slot.View, 100).ZIndex = 21
+			view = boostTile(slot.View, 100)
+			view.ZIndex = 21
 		else
-			local view = PetView.take(name)
+			view = PetView.take(name)
 			view.Size = UDim2.fromScale(1, 1)
 			view.ZIndex = 21
 			view.Parent = slot.View
 		end
+		view.AnchorPoint = Vector2.new(0.5, 0.5)
+		if name ~= BOOST then
+			view.Size = UDim2.fromScale(1, 1)
+		end
 		slot.Shows = name
+		if reduced then
+			view.Position = MIDDLE
+		elseif not landed then
+			view.Position = ABOVE
+			TweenService:Create(view, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = MIDDLE }):Play()
+		else
+			-- past the middle to the bottom, back up to the middle, then the zoom
+			view.Position = ABOVE
+			TweenService:Create(view, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.fromScale(0.5, 0.85) }):Play()
+			task.delay(0.22, function()
+				if view.Parent ~= slot.View then
+					return
+				end
+				TweenService:Create(view, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = MIDDLE }):Play()
+				task.delay(0.25, function()
+					if view.Parent ~= slot.View then
+						return
+					end
+					-- out of the window, bigger, lifted so it doesn't cover the text
+					slot.View.ClipsDescendants = false
+					TweenService:Create(slot.Pop, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = Hatch.ZOOM }):Play()
+					TweenService:Create(slot.View, TweenInfo.new(0.3, Enum.EasingStyle.Quint), { Position = UDim2.new(0.5, 0, 0, -34) }):Play()
+				end)
+			end)
+		end
+		if landed and reduced then
+			slot.View.ClipsDescendants = false
+			slot.Pop.Scale = Hatch.ZOOM
+			slot.View.Position = UDim2.new(0.5, 0, 0, -34)
+		end
 	end
 	local color
 	if name == BOOST then
@@ -1463,10 +1523,6 @@ local function setSlot(slot, name, oddsText, landed)
 	end
 	slot.Odds.Text = oddsText
 	slot.Odds.Tint.Color = ColorSequence.new(color:Lerp(Ui.WHITE, 0.45), color)
-	if not Ui.reduced() then
-		slot.Pop.Scale = if landed then 0.25 else 0.75
-		TweenService:Create(slot.Pop, TweenInfo.new(if landed then 0.3 else 0.12, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	end
 end
 
 -- the odds shown for a result: the exact chance it was rolled at (the
@@ -1578,7 +1634,7 @@ local function cycle(results, best, fast)
 					local chance = Config.chanceOf(name, slot.Context.Luck, slot.Context.SizeLuck, slot.Context.World)
 					return if chance > 0 then Config.shortOdds(1 / chance) else "-"
 				end)()
-				setSlot(slot, name, oddsText, false)
+				setSlot(slot, name, oddsText, false, interval)
 				if slot.Result == best then
 					table.insert(shownForBest, { Name = name, Text = oddsText })
 					table.insert(intervals, interval)

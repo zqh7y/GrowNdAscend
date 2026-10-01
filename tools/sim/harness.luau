@@ -1174,6 +1174,14 @@ if ok then
 			end
 			look.Team = teamTiles
 			look.TeamTitle = Inv.TeamRow.Parent.EquippedTitle.Text
+			-- over the equipped pet in the world: its odds, then its name
+			look.WorldTag = nil
+			for _, model in ipairs(workspace.Pets:GetChildren()) do
+				local tag = model:FindFirstChild("Tag")
+				if tag and tag:FindFirstChild("Odds") and tag:FindFirstChild("PetName") then
+					look.WorldTag = tag.Odds.Text .. " / " .. tag.PetName.Text
+				end
+			end
 			C("Screen").close(Inv.Detail.Parent.Parent.Parent)
 			-- the floating results after a roll
 			Hatch.showResults({ { Pet = "Tiger", Size = 1 }, { Kind = "Boost", Multiplier = 2 }, { Pet = "Fox", Size = 2 } }, true)
@@ -2028,6 +2036,18 @@ if ok then
 			string.format("%s (%s), the boost left out; shown %s, gone after a moment %s", tostring(lk.Results), tostring(lk.ResultOdds), tostring(lk.ResultsVisible), tostring(lk.ResultsGone)))
 		item(100, "hexagon upgrade tree, luck sign", lk.CardBefore == false and lk.CardAfter == true and lk.NodeHex == true and string.sub(lk.Luck or "", 1, 1) == "x",
 			string.format("nodes are hexagons; the card shows only after a tap; luck sign '%s'", tostring(lk.Luck)))
+		item(101, "pets show their odds over their heads", lk.WorldTag == Config.shortOdds(Config.oddsOf("Tiger")) .. " / Tiger",
+			"the equipped Tiger shows '" .. tostring(lk.WorldTag) .. "' above it")
+		-- the world leaderboards show each player's avatar next to their name
+		local avatars, shownRows = 0, 0
+		for _, d in ipairs(workspace:GetDescendants()) do
+			if d.Name == "Avatar" and d.ClassName == "ImageLabel" and d.Parent and d.Parent.Visible then
+				shownRows += 1
+				if string.find(d.Image or "", "AvatarHeadShot&id=%d+") then avatars += 1 end
+			end
+		end
+		item(102, "leaderboards show player avatars", shownRows >= 1 and avatars == shownRows,
+			string.format("%d/%d board rows show the player's headshot", avatars, shownRows))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))
