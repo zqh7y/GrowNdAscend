@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 19 (AUTO left, ROLL right)"
+Config.BUILD = "build 20 (no skipping, new AUTO icon)"
 
 -- Pets -------------------------------------------------------------------------
 

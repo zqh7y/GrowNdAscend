@@ -217,6 +217,21 @@ function Ui.icons.loop(parent, color)
 	dot(parent, 0.8, 0.38, 0.2, color)
 end
 
+-- two bold chevrons ">>" (auto / fast forward)
+function Ui.icons.auto(parent, color)
+	for _, cx in ipairs({ 0.43, 0.73 }) do
+		for _, side in ipairs({ -1, 1 }) do
+			bar(parent, {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(cx - 0.08, 0.5 + side * 0.14),
+				Size = UDim2.fromScale(0.42, 0.15),
+				Rotation = side * 45,
+				BackgroundColor3 = color,
+			})
+		end
+	end
+end
+
 -- padlock (locked)
 function Ui.icons.lock(parent, color)
 	local shackle = outline(parent, 0.5, 0.36, 0.46, 0.5, color)

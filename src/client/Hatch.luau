@@ -24,8 +24,10 @@
 --                between, a short reveal.
 --   CRAZY PULLS  (Mythic/Secret animals) their own show before the reveal.
 --
--- Clicking (or pressing Roll) skips ahead. It always cleans up (camera,
--- bush, spinner), so rolling never gets stuck.
+-- The player can't skip it (clicks and Roll presses are ignored while it
+-- plays). It always cleans up (camera, bush, spinner), so rolling never
+-- gets stuck. Hatch.skip() is only used internally (switching the hatch
+-- mode in Settings).
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
@@ -659,9 +661,7 @@ local shade = Ui.new("TextButton", {
 	Parent = gui,
 })
 Hatch.Shade = shade -- (for the simulator)
-shade.Activated:Connect(function()
-	Hatch.skip()
-end)
+-- (clicking it does nothing: a roll can't be skipped)
 local stage = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.48),
@@ -677,7 +677,7 @@ local hint = Ui.new("TextLabel", {
 	Font = Ui.FONT_MEDIUM,
 	TextScaled = false,
 	TextSize = 14,
-	Text = "Click to skip",
+	Text = "",
 	TextColor3 = Ui.WHITE,
 	TextTransparency = 0.35,
 	ZIndex = 52,
@@ -1012,7 +1012,7 @@ local function showReveal(result, fast, others, opts)
 	newChip.Visible = result.First or (result.Size > 1 and result.FirstOfSize) or false
 	newChip.Text = if result.First then "NEW" else "NEW " .. string.upper(size.Name)
 	nameText.Text = name
-	hint.Visible = not fast
+	hint.Visible = false
 	-- the exact chance this roll had (the same numbers the server rolled with)
 	rarityChip.Text = chanceText(name, rollContext(result))
 	rarityChip.BackgroundColor3 = rarity.Color
@@ -1132,7 +1132,7 @@ end
 -- onto a bush a little ahead of you, the bush rustles harder and harder for
 -- about 2 seconds, then your pet (built from the exact result) bursts out
 -- and jumps towards the screen, and the reveal shows it with its exact
--- chance. Click (or press Roll) to skip. While auto rolling it plays at
+-- chance. It can't be skipped. While auto rolling it plays at
 -- most once every CUTSCENE_COOLDOWN seconds; in between, a short reveal.
 Hatch.CUTSCENE_COOLDOWN = 90
 Hatch.LastCutscene = nil -- for the simulator
@@ -1163,7 +1163,7 @@ local captionHint = Ui.new("TextLabel", {
 	TextColor3 = Ui.WHITE,
 	TextTransparency = 0.25,
 	TextStrokeTransparency = 0.7,
-	Text = "Click to skip",
+	Text = "",
 	Visible = false,
 	ZIndex = 58,
 	Parent = gui,
@@ -1334,7 +1334,7 @@ local function special(best, others, fast, auto)
 			lastCutscene = os.clock()
 		end
 		if best.Size >= 2 then
-			-- a transparent catcher, so a click anywhere skips
+			-- a transparent layer over the world while it plays
 			openShade(1)
 			played = bushCutscene(best, name)
 		end

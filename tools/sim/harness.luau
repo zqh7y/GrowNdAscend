@@ -653,12 +653,13 @@ if ok then
 			print(string.format("hatch %s: tier %d, %d pets, landed %s, early speed %.1f px/frame -> late %.2f, silhouette %.2fs, rays %s, banner '%s', power '%s', %.1fs in all, extra pets %d",
 				case.Key, last.Tier or -1, last.Pets or 0, tostring(last.Landed), last.SpeedEarly or 0, last.SpeedLate or 0, last.Silhouette or 0, tostring(last.Rays), last.Banner or "", tostring(last.Power), last.Seconds, last.Others or 0))
 		end
-		-- skipping: clicking through a titanic show ends it quickly
+		-- no skipping: clicking and pressing Roll through a titanic show don't end it early
 		local skipStart = CLOCK
 		local co = task.spawn(Hatch.play, { { Pet = "Glitch", Size = 3 } }, false, 1)
-		for _ = 1, 400 do
+		for _ = 1, 2000 do
 			if coroutine.status(co) == "dead" then break end
-			Hatch.skip()
+			Hatch.Shade.Activated:Fire()
+			task.spawn(C("Roll").roll)
 			frames(1)
 		end
 		hatchReport.SkipSeconds = CLOCK - skipStart
@@ -701,7 +702,7 @@ if ok then
 		hatchReport.RapidRolls = data.Rolls - rollsBefore
 		hatchReport.RapidErrors = #STATS.Errors - errorsBefore
 		hatchReport.EndedClean = not Hatch.busy()
-		print(string.format("hatch skip: titanic done in %.1fs when clicking | rapid rolling: 30 presses -> %d rolls, %d errors, finished %s",
+		print(string.format("no skip: titanic still took %.1fs while clicking | rapid rolling: 30 presses -> %d rolls, %d errors, finished %s",
 			hatchReport.SkipSeconds, hatchReport.RapidRolls, hatchReport.RapidErrors, tostring(not Hatch.busy())))
 		-- flex rolls: showstoppers fly past, but the real result is what lands and is revealed
 		Hatch.ForceFlex = true
@@ -1578,8 +1579,8 @@ if ok then
 	item(49, "hatch: effects grow with rarity", common.Tier == 0 and rare.Tier == 2 and common.Rays == false and rare.Rays == true and (rare.Hold or 0) > (common.Hold or 0), string.format("common %.1fs, rare %.1fs with rays", common.Hold or 0, rare.Hold or 0))
 	item(50, "hatch: Huge has its own reveal", huge.Tier == 4 and huge.Banner == "HUGE" and (huge.Hold or 0) > (rare.Hold or 0), "banner " .. tostring(huge.Banner))
 	item(51, "hatch: Titanic is the jackpot", titanic.Tier == 5 and string.find(titanic.Banner or "", "TITANIC") ~= nil and (titanic.Hold or 0) > (huge.Hold or 0) and (titanic.Seconds or 0) > (huge.Seconds or 0), string.format("%.1fs show vs %.1fs Huge", titanic.Seconds or 0, huge.Seconds or 0))
-	item(52, "hatch: can skip, rapid rolls safe", (h.SkipSeconds or 99) < 3 and h.RapidErrors == 0 and h.EndedClean == true and (h.RapidRolls or 0) >= 1 and (h.RapidRolls or 0) <= 10,
-		string.format("titanic skipped in %.1fs; 30 presses -> %d rolls, no errors", h.SkipSeconds or 0, h.RapidRolls or 0))
+	item(52, "hatch can't be skipped, rapid rolls safe", (h.SkipSeconds or 0) >= 6 and h.RapidErrors == 0 and h.EndedClean == true and (h.RapidRolls or 0) >= 1 and (h.RapidRolls or 0) <= 10,
+		string.format("clicking + pressing Roll all through a titanic show: it still ran %.1fs; 30 presses -> %d rolls, no errors", h.SkipSeconds or 0, h.RapidRolls or 0))
 
 	local flexH, realT = h.Flex or {}, h.RealTitanic or {}
 	local ah = STATS.AutoHide or {}
@@ -1695,8 +1696,8 @@ if ok then
 			and titanC.Name == "Titanic Cat" and titanC.Jumped == true and commonC == nil and rareC == nil and (hh.huge or {}).Revealed == "Huge Lion",
 			string.format("Huge Lion: shook %.1fs, jumped out, revealed %s at %s; none for normal pets", hugeC.Shake or 0, tostring((hh.huge or {}).Revealed), tostring((hh.huge or {}).RevealChance)))
 		local sk = hh.SkipCutscene or {}
-		item(71, "cutscene can be skipped, camera comes back", sk.Skipped == true and (hh.SkipSeconds or 99) < 3 and hh.CameraBack == true and hh.BushesLeft == 0,
-			string.format("skipped in %.1fs, camera restored, %s bushes left", hh.SkipSeconds or 0, tostring(hh.BushesLeft)))
+		item(71, "cutscene can't be skipped, camera comes back", sk.Skipped == false and sk.Jumped == true and (hh.SkipSeconds or 0) >= 6 and hh.CameraBack == true and hh.BushesLeft == 0,
+			string.format("clicked all through: still played in full (%.1fs, pet jumped out), camera restored, %s bushes left", hh.SkipSeconds or 0, tostring(hh.BushesLeft)))
 		local a = hh.AutoCutscenes or {}
 		local first, second = a[1] or {}, a[2] or {}
 		item(72, "auto: one cutscene, then short reveals", first.Bush == true and second.Abbreviated == true and (second.Seconds or 99) < (first.Seconds or 0),

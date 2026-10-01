@@ -117,8 +117,9 @@ for how it plays and where the code lives.
   (`rebirthLuck`, `coinMultiplier`), so they always stack. Rerun
   `simulate.py 0 --rebirth 70` after changing them.
 - The hatch (`Hatch.luau`) must never get stuck: it runs protected and
-  always cleans up (camera, bush, spinner). Pressing Roll during a hatch
-  skips; it never stacks. The server decides every result first and sends
+  always cleans up (camera, bush, spinner). The player can't skip a
+  hatch (the user asked): Roll presses and clicks during one do nothing;
+  it never stacks. The server decides every result first and sends
   the exact luck/size luck/world it used; the client only shows it. Each
   roll is a pet or a luck boost (`Config.rollResult`); boosts multiply
   into `data.LuckChain` (`Config.nextChain`), are used up by the next spin,
@@ -136,8 +137,8 @@ for how it plays and where the code lives.
   animal has a non-zero chance in every world at any luck (tested).
 - Roll controls: `Roll.buildControls` makes two `Ui.dockButton`s side by
   side (AUTO left, ROLL right in the corner), same style as the left navigation (`Roll.DOCK_SIZE` is the row):
-  ROLL slightly bigger, blue (ready bar inside, R key, caption SKIP during
-  a hand hatch) and AUTO (white / green with `Roll.AutoDot`, caption
+  ROLL slightly bigger, blue (ready bar inside, R key) and AUTO (">>" icon
+  `Ui.icons.auto`, white / green with `Roll.AutoDot`, caption
   `Roll.AutoCaption`); both get a soft shadow and shine (`finish`). Invisible row, no panel. The user wants them like
   the other buttons, only a little special; don't build a panel or dock. While auto rolls the button stays still and says ROLL.
   Compact/full is the "Big hatch reveals" setting (`State.Settings.FullHatch`).

@@ -51,8 +51,8 @@ chase Huge and Titanic pets.**
     it's waiting for your next roll; it pops when it grows and shrinks
     away when it's used up.
   - **Controls:** a big blue **ROLL** button (or the R key) with a slim bar
-    that fills while the next roll gets ready (it says SKIP while a hatch
-    is showing), and an **AUTO** on/off switch above it. Bigger hatch
+    that fills while the next roll gets ready, and an **AUTO** on/off button
+    (">>" icon) to its left. A hatch can't be skipped. Bigger hatch
     reveals can be turned on in Settings ("Big hatch reveals"). The server keeps the waiting boost in
     your saved data, so rejoining doesn't lose it, and rapid presses can't
     use it twice.
@@ -65,7 +65,7 @@ chase Huge and Titanic pets.**
     a little ahead of you, the bush rustles harder and harder for about 2
     seconds, then your pet jumps out towards the screen with light and
     sound, and the reveal shows it with its exact chance. Only for a pet
-    you really rolled; click (or press Roll) to skip. On auto it plays at
+    you really rolled; it can't be skipped. On auto it plays at
     most once every 90 seconds; in between, a short reveal.
   - **Crazy pulls** (a Mythic or Secret animal) get their own show: dark
     screen, heartbeats with rings of light, rainbow cracks, a flash, then

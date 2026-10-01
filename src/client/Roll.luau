@@ -1,8 +1,8 @@
 -- Rolling: the Roll button's action (the server picks the results, then the
 -- hatch plays: Hatch.luau), the luck pill (next to the coins), the luck
 -- boost badge (next to the Roll button), auto roll (free for everyone) and
--- the compact/full hatch switch. Pressing Roll while a hatch is
--- playing skips ahead instead of rolling again, so rolling fast never
+-- the compact/full hatch switch. A hatch can't be skipped:
+-- pressing Roll while one plays does nothing, so rolling fast never
 -- breaks it.
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -281,8 +281,7 @@ local hatchedOnce = false
 function Roll.roll()
 	local data = State.Data
 	if Hatch.busy() then
-		Hatch.skip() -- pressing Roll during the show skips ahead
-		return
+		return -- the show always plays out; pressing Roll meanwhile does nothing
 	end
 	if rolling or not data then
 		return
@@ -303,9 +302,6 @@ function Roll.roll()
 		-- bush cutscene and a crazy pull its own show (Hatch decides, from the
 		-- results the server already rolled; the animation never changes them)
 		local mode = if State.Settings.FullHatch and not autoRoll then "full" else "compact"
-		if not autoRoll then
-			setRollLabel("Skip") -- pressing it now skips the show
-		end
 		Hatch.play(results, fast, results[1].World or world, mode, autoRoll)
 		setRollLabel("Roll")
 		local discovered = discoveredBefore
@@ -391,7 +387,7 @@ end
 -- bold captions.
 -- AUTO sits on the left and ROLL on the right, in the corner.
 --   ROLL   a little bigger, blue. A slim bar inside fills while the next
---          roll gets ready; its caption says SKIP while a hatch shows (by hand).
+--          roll gets ready; its the show can't be skipped.
 --   AUTO   left of it: white with a dark icon and "AUTO OFF", or green with
 --          "AUTO ON" and a small status dot in its corner.
 -- The R key (or a gamepad's X) rolls too. The compact/full hatch choice
@@ -478,7 +474,7 @@ function Roll.buildControls(parent)
 	local autoHolder, auto = Ui.dockButton({
 		Name = "Auto",
 		Label = "AUTO OFF",
-		Icon = "loop",
+		Icon = "auto",
 		IconSize = 26,
 		Size = AUTO_SIZE,
 		Style = "glass",
