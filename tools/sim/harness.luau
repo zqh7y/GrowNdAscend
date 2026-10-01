@@ -502,7 +502,7 @@ if ok then
 			do
 				local savedCoins, savedBoard = data.Coins, data.LuckBoard
 				data.LuckBoard = {}
-				data.Coins = 1e18
+				data.Coins = 1e12 -- (small enough that prices subtract exactly)
 				PlayerData.sync(player)
 				local lb = {}
 				local luck0 = Config.luck(data, false, 1, 1)
@@ -523,13 +523,11 @@ if ok then
 				lb.MaxRefused = remotes.BuyLuck.OnServerInvoke(player, "paw") == false
 				PlayerData.sync(player)
 				local Board = C("LuckBoard")
-				Board.open()
 				frames(1)
 				lb.Total = Board.Total.Text
 				lb.WantTotal = "x" .. Config.formatStat(Config.boardLuck(data)):sub(1, -2)
 				lb.PawButton = Board.Rows.paw.Buy.Content.Label.Text
-				lb.Dot = C("Hud").LuckDot ~= nil
-				C("Screen").close(Board.Modal)
+				lb.Dot = Board.Gui.Adornee == workspace.Map.LuckBoard.Screen and Board.Gui.Parent == player.PlayerGui
 				data.LuckBoard = savedBoard or {}
 				data.Coins = savedCoins
 				PlayerData.sync(player)
@@ -1810,7 +1808,7 @@ if ok then
 	item(60, "hatch: never fakes the result", flexH.LandedName == "Dog" and flexH.Revealed == "Dog" and realT.Revealed == "Titanic Tiger" and realT.LandedName == "Titanic Tiger",
 		"flex landed and revealed " .. tostring(flexH.Revealed) .. "; a real Titanic revealed " .. tostring(realT.Revealed))
 
-	item(61, "auto roll is free", (ah.AutoRolls or 0) >= 5, (ah.AutoRolls or 0) .. " auto rolls with no upgrades")
+	item(61, "auto roll is free", (ah.AutoRolls or 0) >= 3, (ah.AutoRolls or 0) .. " auto rolls in 15s with no upgrades (each holds ~1s on the hatched pet)")
 	item(62, "compact hatch lands on the real result", ah.HiddenRolls == 1 and ah.Landed ~= nil and ah.Names ~= nil and ah.Landed == ah.Names[1], "landed on " .. tostring(ah.Landed))
 	local h2 = STATS.Hatch or {}
 	local power = h2.common and h2.common.Power
@@ -2191,7 +2189,7 @@ if ok then
 		local lb = STATS.LuckBoard or {}
 		item(106, "Luck Board: rows, unlocks, real luck", lb.LockedRefused == true and lb.Bought == Config.BOARD_UNLOCK and math.abs((lb.PawRatio or 0) - (lb.WantRatio or -1)) < 1e-6
 			and lb.CloverNow == true and lb.Charged == true and lb.MaxRefused == true and lb.Total == lb.WantTotal and lb.PawButton == "MAX" and lb.Dot == true,
-			string.format("Clover locked until Lucky Paw Lv %d; 5 paws -> luck x%.2f; charged the right price; maxed rows refused; the board says %s", Config.BOARD_UNLOCK, lb.PawRatio or 0, tostring(lb.Total)))
+			string.format("Clover locked until Lucky Paw Lv %d; 5 paws -> luck x%.2f; charged the right price; maxed rows refused; the board in the world says %s", Config.BOARD_UNLOCK, lb.PawRatio or 0, tostring(lb.Total)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))

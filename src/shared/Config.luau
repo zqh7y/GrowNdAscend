@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 31 (Luck Board, Index shows x1 rarity)"
+Config.BUILD = "build 32 (Luck Board stands in the world)"
 
 -- Pets -------------------------------------------------------------------------
 

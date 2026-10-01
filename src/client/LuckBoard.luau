@@ -1,12 +1,13 @@
--- The Luck Board: an incremental board just for luck (the clover button on
--- the left). Six rows (Config.LUCK_BOARD), each a luck multiplier you level
--- up with coins; each unlocks when the row before reaches level 5. At the
--- top, everything the board gives together in big numbers ("x492").
+-- The Luck Board: a real board standing in the first area (like the
+-- upgrade walls in incremental games). Walk up to it and click its rows:
+-- six luck multipliers (Config.LUCK_BOARD) you level up with coins; each
+-- unlocks when the row before reaches level 5. At the top, everything the
+-- board gives together in big numbers ("x492"). The server builds the
+-- stand (World.buildLuckBoard); this draws on its screen part.
 local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Effects = require(script.Parent.Effects)
-local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
 local Ui = require(script.Parent.Ui)
 
@@ -14,11 +15,27 @@ local LuckBoard = {}
 
 local buyFunction = State.remote("BuyLuck")
 
-local WIDTH, HEIGHT = 620, 640
-local modal, box = Screen.modal(WIDTH, HEIGHT, "Upgrades")
-LuckBoard.Modal = modal
-Screen.title(box, "Luck Board")
-local coinsLine = Screen.subtitle(box, "")
+-- the board's screen in the world (16 x 12.5 studs; 40 pixels a stud)
+local screenPart = workspace:WaitForChild("Map"):WaitForChild("LuckBoard"):WaitForChild("Screen")
+local gui = Ui.new("SurfaceGui", {
+	Name = "LuckBoardGui",
+	Adornee = screenPart,
+	Face = Enum.NormalId.Front,
+	SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud,
+	PixelsPerStud = 40,
+	LightInfluence = 0,
+	MaxDistance = 90,
+	ResetOnSpawn = false,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),
+})
+LuckBoard.Gui = gui
+local box = Ui.new("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.fromRGB(246, 250, 247),
+	ZIndex = 31,
+	Parent = gui,
+}, { Ui.padding(14) })
 
 -- the board's total, big
 local total = Ui.new("Frame", {
@@ -41,6 +58,16 @@ Ui.chunky({
 	ZIndex = 33,
 	Parent = total,
 })
+local coinsLine = Ui.chunky({
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -14, 0, 6),
+	Size = UDim2.fromOffset(240, 20),
+	TextSize = 16,
+	TextXAlignment = Enum.TextXAlignment.Right,
+	Outline = 1.5,
+	ZIndex = 33,
+	Parent = total,
+})
 local totalText = Ui.chunky({
 	Name = "Total",
 	Position = UDim2.fromOffset(68, 24),
@@ -57,12 +84,12 @@ LuckBoard.Total = totalText
 
 -- the rows
 local list = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 76),
-	Size = UDim2.new(1, 0, 1, -76),
+	Position = UDim2.fromOffset(0, 72),
+	Size = UDim2.new(1, 0, 1, -72),
 	BackgroundTransparency = 1,
 	ZIndex = 32,
 	Parent = box,
-}, { Ui.new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+}, { Ui.new("UIListLayout", { Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder }) })
 
 local rows = {}
 LuckBoard.Rows = rows
@@ -70,7 +97,7 @@ for i, item in ipairs(Config.LUCK_BOARD) do
 	local row = Ui.new("Frame", {
 		Name = item.Id,
 		LayoutOrder = i,
-		Size = UDim2.new(1, 0, 0, 78),
+		Size = UDim2.new(1, 0, 0, 62),
 		BackgroundColor3 = Ui.GLASS_LIGHT,
 		ZIndex = 33,
 		Parent = list,
@@ -80,14 +107,14 @@ for i, item in ipairs(Config.LUCK_BOARD) do
 	local tile = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 12, 0.5, 0),
-		Size = UDim2.fromOffset(54, 54),
+		Size = UDim2.fromOffset(46, 46),
 		BackgroundColor3 = item.Color,
 		ZIndex = 34,
 		Parent = row,
 	}, { Ui.corner(14) })
-	Ui.icon(item.Icon, 32, Ui.WHITE, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 35, Parent = tile })
+	Ui.icon(item.Icon, 28, Ui.WHITE, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 35, Parent = tile })
 	local name = Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(78, 10),
+		Position = UDim2.fromOffset(70, 5),
 		Size = UDim2.new(1, -260, 0, 22),
 		Font = Ui.FONT_DISPLAY,
 		TextScaled = false,
@@ -100,7 +127,7 @@ for i, item in ipairs(Config.LUCK_BOARD) do
 	})
 	local info = Ui.new("TextLabel", {
 		Name = "Info",
-		Position = UDim2.fromOffset(78, 34),
+		Position = UDim2.fromOffset(70, 27),
 		Size = UDim2.new(1, -260, 0, 18),
 		Font = Ui.FONT,
 		TextScaled = false,
@@ -112,7 +139,7 @@ for i, item in ipairs(Config.LUCK_BOARD) do
 	})
 	-- level bar
 	local track = Ui.new("Frame", {
-		Position = UDim2.fromOffset(78, 58),
+		Position = UDim2.fromOffset(70, 47),
 		Size = UDim2.new(1, -260, 0, 8),
 		BackgroundColor3 = Color3.fromRGB(224, 228, 238),
 		ZIndex = 34,
@@ -128,7 +155,7 @@ for i, item in ipairs(Config.LUCK_BOARD) do
 		Name = "Buy",
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -12, 0.5, 0),
-		Size = UDim2.fromOffset(160, 50),
+		Size = UDim2.fromOffset(150, 44),
 		Radius = 16,
 		Icon = "coin",
 		Text = "",
@@ -147,7 +174,7 @@ local function refresh()
 	if not data then
 		return
 	end
-	coinsLine.Text = "You have " .. Config.formatNumber(data.Coins) .. " coins"
+	coinsLine.Text = Config.formatNumber(data.Coins) .. " coins"
 	local luck = Config.boardLuck(data)
 	totalText.Text = "x" .. (if luck < 1000 then Config.formatStat(luck):sub(1, -2) else Config.formatNumber(luck))
 	if shownTotal and luck > shownTotal + 1e-9 and not Ui.reduced() then
@@ -215,15 +242,6 @@ function LuckBoard.anyAffordable()
 	return false
 end
 
-function LuckBoard.open()
-	Screen.open(modal)
-	refresh()
-end
-
-State.watch(function()
-	if modal.Visible then
-		refresh()
-	end
-end)
+State.watch(refresh)
 
 return LuckBoard

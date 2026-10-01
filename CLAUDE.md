@@ -166,7 +166,9 @@ for how it plays and where the code lives.
   nodes, card pops up on tap (`UpgradeTree.Card`).
 - Luck Board: `Config.LUCK_BOARD` (one row per line, simulate.py parses
   them), levels in `data.LuckBoard`, `Config.boardLuck` multiplies
-  `Config.luck`; server BuyLuck in Upgrades.luau; client LuckBoard.luau.
+  `Config.luck`; server BuyLuck in Upgrades.luau; the stand is World.buildLuckBoard
+  (first area), the client draws the rows on it with a SurfaceGui
+  (LuckBoard.luau). The user wanted a board in the world, not a menu screen.
   The user wanted luck to grow much faster.
 - The Index shows each pet's rarity at x1 luck (`Config.oddsOf`), never
   luck-adjusted (the user asked).

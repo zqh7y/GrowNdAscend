@@ -17,7 +17,7 @@ local Roll = require(script.Parent.Roll)
 local Index = require(script.Parent.Index)
 local Inventory = require(script.Parent.Inventory)
 local UpgradeTree = require(script.Parent.UpgradeTree)
-local LuckBoard = require(script.Parent.LuckBoard)
+require(script.Parent.LuckBoard) -- the Luck Board drawn on its stand in the world
 local Panels = require(script.Parent.Panels)
 
 local Hud = {}
@@ -357,21 +357,8 @@ end
 button(nav, 1, "paw", "Inventory", Inventory.open, nil, "blue")
 local _, indexButton = button(nav, 2, "book", "Index", Index.open, nil, "purple")
 local _, upgradesButton = button(nav, 3, "tree", "Upgrades", UpgradeTree.open, nil, "green")
-local _, luckButton = button(nav, 4, "clover", "Luck", LuckBoard.open, nil, "green")
-button(nav, 5, "star", "Rebirth", Panels.openRebirth, nil, "magenta")
-button(nav, 6, "gear", "Settings", Panels.openSettings, nil, "gray")
-
--- a gold dot on Luck when a Luck Board row can be bought
-local luckDot = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.new(1, -4, 0, 4),
-	Size = UDim2.fromOffset(14, 14),
-	BackgroundColor3 = Ui.GOLD,
-	Visible = false,
-	ZIndex = 5,
-	Parent = luckButton,
-}, { Ui.corner(0.5), Ui.stroke(Ui.INK, 1.5) })
-Hud.LuckDot = luckDot
+button(nav, 4, "star", "Rebirth", Panels.openRebirth, nil, "magenta")
+button(nav, 5, "gear", "Settings", Panels.openSettings, nil, "gray")
 
 -- a gold dot on Index when a collection reward is ready
 local indexDot = Ui.new("Frame", {
@@ -503,7 +490,6 @@ State.watch(function()
 	refreshTeam(data)
 	refreshLevel(data)
 	upgradeDot.Visible = UpgradeTree.anyAffordable()
-	luckDot.Visible = LuckBoard.anyAffordable()
 	indexDot.Visible = Index.anyClaimable()
 end)
 
