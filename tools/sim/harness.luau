@@ -1150,9 +1150,9 @@ if ok then
 		local rollB, autoB = Roll.controls()
 		local wasOn = Roll.autoOn()
 		autoB.Activated:Fire()
-		local switchedOn = Roll.autoOn() ~= wasOn and autoB.State.Text == "ON"
+		local switchedOn = Roll.autoOn() ~= wasOn and Roll.AutoCaption.Text == "Auto ON"
 		-- while auto rolls, the big button keeps saying ROLL (no flicker to SKIP)
-		local rollLabel = rollB:FindFirstChild("Label", true) or rollB:FindFirstChild("Label")
+		local rollLabel = rollB.Parent:FindFirstChild("Caption")
 		local labelChanges = 0
 		for _ = 1, 120 do
 			frames(1)
@@ -1189,9 +1189,9 @@ if ok then
 		end
 		b14.Controls = { Roll = inControls, Auto = autoB ~= nil, Switched = switchedOn,
 			Back = Roll.autoOn() == wasOn, Compact = compactInControls, Setting = bigReveals,
-			Dock = dock ~= nil and rollB.Parent == dock and autoB.Parent == dock,
-			Above = rollB.LayoutOrder < autoB.LayoutOrder and rollB.Size.Y.Offset == autoB.Size.Y.Offset and panels == 0,
-			Bigger = rollB.Size.X.Offset > autoB.Size.X.Offset * 1.5,
+			Dock = dock ~= nil and rollB.Parent.Parent == dock and autoB.Parent.Parent == dock,
+			Above = rollB.Parent.LayoutOrder < autoB.Parent.LayoutOrder and panels == 0,
+			Bigger = rollB.Size.X.Offset > autoB.Size.X.Offset,
 			Label = rollLabel ~= nil, LabelChanges = labelChanges }
 		STATS.B14 = b14
 		print(string.format("build 14: index %d/%d chances exact, %d 'Best in'; inventory %d small cards, %d stat blocks in grid, %s -> %s; team %d pets %d%%, %d pets %d%%; controls switched %s, compact in controls %d",
@@ -1916,7 +1916,7 @@ if ok then
 			string.format("Equip -> equipped, button now '%s', card has a check; all 5 stats + DPS shown; switching pets keeps the grid; Normal = %s, Huge = %s",
 				tostring(inv.After), tostring(inv.Normal), tostring(inv.Huge)))
 		item(92, "just two buttons: ROLL, AUTO next to it", ctl.Dock == true and ctl.Above == true and ctl.Bigger == true and ctl.Label == true and ctl.LabelChanges == 0,
-			string.format("ROLL and AUTO side by side, no panel behind them, ROLL wider; label changed %d times in 120 auto-roll frames", ctl.LabelChanges or -1))
+			string.format("ROLL and AUTO side by side like the other buttons, no panel behind them, ROLL bigger; label changed %d times in 120 auto-roll frames", ctl.LabelChanges or -1))
 		local eb = (STATS.B15 or {}).Best or {}
 		local du = (STATS.B15 or {}).Dupes or {}
 		local od = (STATS.B15 or {}).Order or {}

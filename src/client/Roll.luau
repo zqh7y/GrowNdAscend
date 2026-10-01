@@ -340,18 +340,13 @@ local function refreshAuto(animate)
 	if not autoRow then
 		return
 	end
-	-- AUTO: white with "OFF", or green with "ON"
-	local on = autoRoll
-	local tween = TweenInfo.new(0.2, Enum.EasingStyle.Quint)
-	TweenService:Create(autoRow, tween, { BackgroundColor3 = if on then Ui.SUCCESS else Ui.WHITE }):Play()
-	TweenService:Create(autoRow.Edge, tween, { Color = if on then Color3.fromRGB(30, 150, 90) else Ui.LINE }):Play()
-	autoRow.Label.TextColor3 = if on then Ui.WHITE else Ui.INK
-	autoRow.State.Text = if on then "ON" else "OFF"
-	autoRow.State.TextColor3 = if on then Ui.WHITE else Ui.MUTED
-	if animate and not Ui.reduced() then
-		local scale = autoRow:FindFirstChildOfClass("UIScale")
-		scale.Scale = 0.92
-		TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	-- AUTO: grey "Auto OFF", or green "Auto ON"
+	Ui.setStyle(autoRow, if autoRoll then "green" else "gray")
+	if Roll.AutoCaption then
+		Roll.AutoCaption.Text = if autoRoll then "Auto ON" else "Auto OFF"
+	end
+	if animate then
+		Ui.pop(autoRow, 0.92)
 	end
 end
 
@@ -387,40 +382,17 @@ function Roll.controls()
 end
 
 -- The roll controls ---------------------------------------------------------------------------
--- Just two buttons side by side in the bottom-right corner, nothing around
--- them:
---   ROLL   a big blue rounded button. A thin bar inside it fills while the
---          next roll gets ready. While a hatch is showing (by hand), it says
---          SKIP. It presses in when YOU press it (never on its own on auto).
---   AUTO   a smaller button next to it: white with "OFF" under the word, or
---          green with "ON".
+-- Two buttons in the bottom-right corner, made like the navigation buttons
+-- on the left (a rounded square with an icon and a caption under it):
+--   ROLL   a bit bigger and gold, with a white ring, so it stands out. A
+--          thin bar inside fills while the next roll gets ready; its caption
+--          says SKIP while a hatch shows (by hand).
+--   AUTO   next to it, grey with "Auto OFF", green with "Auto ON".
 -- The R key (or a gamepad's X) rolls too. The compact/full hatch choice
 -- lives in Settings ("Big hatch reveals").
 
-local ROLL_W, AUTO_W, BUTTON_H, GAP = 150, 76, 64, 10
-Roll.DOCK_SIZE = Vector2.new(ROLL_W + GAP + AUTO_W, BUTTON_H)
-
-local function pressable(button, scale, onClick)
-	local hover = false
-	button.MouseEnter:Connect(function()
-		hover = true
-		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = if Ui.reduced() then 1 else 1.04 }):Play()
-	end)
-	button.MouseLeave:Connect(function()
-		hover = false
-		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = 1 }):Play()
-	end)
-	button.MouseButton1Down:Connect(function()
-		TweenService:Create(scale, TweenInfo.new(0.06), { Scale = if Ui.reduced() then 1 else 0.94 }):Play()
-	end)
-	button.MouseButton1Up:Connect(function()
-		TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = if hover and not Ui.reduced() then 1.04 else 1 }):Play()
-	end)
-	button.Activated:Connect(function()
-		Effects.play("Click", 1, 0.05)
-		onClick()
-	end)
-end
+local ROLL_SIZE, AUTO_SIZE, GAP = 76, 60, 12
+Roll.DOCK_SIZE = Vector2.new(ROLL_SIZE + GAP + AUTO_SIZE, ROLL_SIZE + 18)
 
 function Roll.buildControls(parent)
 	-- an invisible row that just lines the two buttons up
@@ -434,46 +406,43 @@ function Roll.buildControls(parent)
 		Ui.new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
 			HorizontalAlignment = Enum.HorizontalAlignment.Right,
-			VerticalAlignment = Enum.VerticalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Bottom,
 			Padding = UDim.new(0, GAP),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
 
-	-- ROLL
-	local roll = Ui.new("TextButton", {
-		Name = "RollButton",
+	-- ROLL: like the other buttons, just bigger, gold and with a white ring
+	local rollHolder, roll = Ui.dockButton({
+		Name = "Roll",
+		Label = "ROLL",
+		Icon = "dice",
+		Size = ROLL_SIZE,
+		Style = "gold",
 		LayoutOrder = 1,
-		Size = UDim2.fromOffset(ROLL_W, BUTTON_H),
-		BackgroundColor3 = Ui.WHITE,
-		AutoButtonColor = false,
-		Text = "",
-		ZIndex = 3,
 		Parent = row,
-	}, {
-		Ui.corner(18),
-		Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(96, 164, 255), Color3.fromRGB(56, 112, 245)) }),
-	})
-	Ui.stroke(Color3.fromRGB(40, 90, 210), 2, 0).Parent = roll
-	local rollScale = Ui.new("UIScale", { Parent = roll })
-	rollLabel = Ui.new("TextLabel", {
-		Name = "Label",
-		Size = UDim2.new(1, 0, 1, -6),
-		Font = Ui.FONT_DISPLAY,
-		TextScaled = false,
-		TextWrapped = false,
-		TextSize = 32,
-		Text = "ROLL",
-		TextColor3 = Ui.WHITE,
-		ZIndex = 5,
+	}, function()
+		Effects.play("Click", 1, 0.05)
+		task.spawn(Roll.roll)
+	end)
+	roll.Name = "RollButton"
+	Ui.new("Frame", {
+		Name = "Ring",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 8, 1, 8),
+		BackgroundTransparency = 1,
+		ZIndex = 0,
 		Parent = roll,
-	})
-	-- the ready bar near the bottom
+	}, { Ui.corner(math.floor(ROLL_SIZE * 0.32) + 4), Ui.stroke(Ui.WHITE, 3, 0.15) })
+	rollLabel = rollHolder.Caption
+	rollLabel.TextSize = 14
+	-- the ready bar near the bottom of the button
 	local bar = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -8),
-		Size = UDim2.new(1, -40, 0, 4),
-		BackgroundColor3 = Color3.fromRGB(30, 70, 190),
+		Position = UDim2.new(0.5, 0, 1, -7),
+		Size = UDim2.new(1, -26, 0, 4),
+		BackgroundColor3 = Color3.fromRGB(190, 120, 10),
 		BackgroundTransparency = 0.4,
 		ZIndex = 4,
 		Parent = roll,
@@ -485,50 +454,22 @@ function Roll.buildControls(parent)
 		ZIndex = 5,
 		Parent = bar,
 	}, { Ui.corner(2) })
-	pressable(roll, rollScale, function()
-		task.spawn(Roll.roll)
-	end)
 
-	-- AUTO
-	local auto = Ui.new("TextButton", {
-		Name = "AutoButton",
+	-- AUTO: a normal button next to it
+	local autoHolder, auto = Ui.dockButton({
+		Name = "Auto",
+		Label = "Auto OFF",
+		Icon = "loop",
+		Size = AUTO_SIZE,
+		Style = "gray",
 		LayoutOrder = 2,
-		Size = UDim2.fromOffset(AUTO_W, BUTTON_H),
-		BackgroundColor3 = Ui.WHITE,
-		AutoButtonColor = false,
-		Text = "",
-		ZIndex = 3,
 		Parent = row,
-	}, { Ui.corner(18) })
-	local autoEdge = Ui.stroke(Ui.LINE, 2, 0)
-	autoEdge.Name = "Edge"
-	autoEdge.Parent = auto
-	local autoScale = Ui.new("UIScale", { Parent = auto })
-	Ui.new("TextLabel", {
-		Name = "Label",
-		Position = UDim2.fromOffset(0, 12),
-		Size = UDim2.new(1, 0, 0, 22),
-		Font = Ui.FONT_DISPLAY,
-		TextScaled = false,
-		TextSize = 20,
-		Text = "AUTO",
-		TextColor3 = Ui.INK,
-		ZIndex = 4,
-		Parent = auto,
-	})
-	Ui.new("TextLabel", {
-		Name = "State",
-		Position = UDim2.fromOffset(0, 36),
-		Size = UDim2.new(1, 0, 0, 14),
-		Font = Ui.FONT,
-		TextScaled = false,
-		TextSize = 12,
-		Text = "OFF",
-		TextColor3 = Ui.MUTED,
-		ZIndex = 4,
-		Parent = auto,
-	})
-	pressable(auto, autoScale, Roll.toggleAuto)
+	}, function()
+		Effects.play("Click", 1, 0.05)
+		Roll.toggleAuto()
+	end)
+	auto.Name = "AutoButton"
+	Roll.AutoCaption = autoHolder.Caption
 
 	rollButton, autoButton, autoRow = roll, auto, auto
 	refreshAuto(false)

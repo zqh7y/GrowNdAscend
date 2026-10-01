@@ -134,10 +134,12 @@ for how it plays and where the code lives.
   made it drift and snap when rolls came quickly.
 - Odds: every step of a roll hits at most `Config.MAX_HIT` (99%), so every
   animal has a non-zero chance in every world at any luck (tested).
-- Roll controls: `Roll.buildControls` makes just two buttons side by side
-  (`Roll.DOCK_SIZE` is the row): ROLL (ready bar inside, R key) and AUTO
-  (OFF white / ON green), in an invisible row, no panel. The user wants it
-  that simple. While auto rolls the button stays still and says ROLL.
+- Roll controls: `Roll.buildControls` makes two `Ui.dockButton`s side by
+  side, same style as the left navigation (`Roll.DOCK_SIZE` is the row):
+  ROLL slightly bigger, gold with a white ring (ready bar inside, R key,
+  caption SKIP during a hand hatch) and AUTO (grey / green, caption
+  `Roll.AutoCaption`). Invisible row, no panel. The user wants them like
+  the other buttons, only a little special; don't build a panel or dock. While auto rolls the button stays still and says ROLL.
   Compact/full is the "Big hatch reveals" setting (`State.Settings.FullHatch`).
 - Inventory: columns come from the width (`Inventory.columnsFor`); the
   details panel only exists while a pet is selected (`Inventory.select`)
