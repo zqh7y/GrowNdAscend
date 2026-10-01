@@ -161,7 +161,7 @@ for how it plays and where the code lives.
   `Ui.chunky` (outlined display text) are the building blocks. Panel titles
   are big tilted outlined text, close is a big red X (Screen.modal). Normal and auto
   rolls cycle in place at the bottom (Hatch `cycle`, `Hatch.ROW_POSITION`, landing zoom `Hatch.ZOOM`, speed `Hatch.CYCLE_START`/
-  `CYCLE_END`; the user wanted it slower than their reference video); the
+  `CYCLE_END`; pets scroll fast (0.09s -> 0.3s each) but a roll still takes ~2.6s); the
   bottom reel is only for "Big hatch reveals". Upgrade tree: hexagon
   nodes, card pops up on tap (`UpgradeTree.Card`).
 - Animation: use `Ui.appear`, `Ui.pop`, `Effects.flash` and quick Quint

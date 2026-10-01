@@ -1438,6 +1438,86 @@ local function makeSlot(order)
 	return { Holder = holder, View = viewHolder, Pop = pop, Odds = odds, Name = label, Shows = nil }
 end
 
+-- The pet you hatched shines: light rays turning slowly behind it, a soft
+-- glow and sparkles bursting out, all in its rarity's colour (bigger and
+-- brighter for rarer pets). They stay as long as the result is shown.
+local function landedEffect(slot, color, tier)
+	local holder = slot.Holder
+	local centre = UDim2.new(0.5, 0, 0, 32) -- the zoomed pet's middle
+	local size = 200 + math.min(tier, 6) * 22
+	local glow = Ui.new("Frame", {
+		Name = "Glow",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = centre,
+		Size = UDim2.fromOffset(size * 0.7, size * 0.7),
+		BackgroundColor3 = color,
+		BackgroundTransparency = 0.55,
+		ZIndex = 19,
+		Parent = holder,
+	}, {
+		Ui.corner(0.5),
+		Ui.new("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) }), Rotation = 90 }),
+	})
+	if Ui.reduced() then
+		return
+	end
+	local rays = Ui.new("Frame", {
+		Name = "Rays",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = centre,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+		ZIndex = 19,
+		Parent = holder,
+	})
+	local count = if tier >= 3 then 8 else 6
+	for k = 0, count - 1 do
+		Ui.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(0, 26, 1, 0),
+			Rotation = k * (180 / count),
+			BackgroundColor3 = color:Lerp(Ui.WHITE, 0.35),
+			BackgroundTransparency = 0.35,
+			ZIndex = 19,
+			Parent = rays,
+		}, { Ui.new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0.15), NumberSequenceKeypoint.new(1, 1) }) }) })
+	end
+	local raysScale = Ui.new("UIScale", { Scale = 0.2, Parent = rays })
+	TweenService:Create(raysScale, TweenInfo.new(0.4, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	glow.Size = UDim2.fromOffset(20, 20)
+	TweenService:Create(glow, TweenInfo.new(0.35, Enum.EasingStyle.Quint), { Size = UDim2.fromOffset(size * 0.7, size * 0.7) }):Play()
+	-- sparkles burst out
+	for k = 1, 10 + math.min(tier, 6) * 2 do
+		local a = math.random() * math.pi * 2
+		local star = Ui.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = centre,
+			Size = UDim2.fromOffset(9, 9),
+			Rotation = 45,
+			BackgroundColor3 = if k % 3 == 0 then Ui.WHITE elseif k % 3 == 1 then Ui.GOLD else color,
+			ZIndex = 24,
+			Parent = holder,
+		}, { Ui.corner(2) })
+		local distance = 70 + math.random() * 60
+		TweenService:Create(star, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			Position = centre + UDim2.fromOffset(math.cos(a) * distance, math.sin(a) * distance),
+			Rotation = 225,
+			BackgroundTransparency = 1,
+		}):Play()
+		task.delay(0.65, function()
+			star:Destroy()
+		end)
+	end
+	-- the rays turn slowly while the result is shown
+	task.spawn(function()
+		while rays.Parent do
+			rays.Rotation = (rays.Rotation + 0.6) % 360
+			task.wait()
+		end
+	end)
+end
+
 -- Where a pet sits in its window: above it (coming in), in the middle,
 -- below it (leaving)
 local ABOVE, MIDDLE, BELOW = UDim2.fromScale(0.5, -0.6), UDim2.fromScale(0.5, 0.5), UDim2.fromScale(0.5, 1.6)
@@ -1448,6 +1528,7 @@ Hatch.ZOOM = 1.5 -- the pet you got ends up this big
 -- drops out below. When it lands (`landed` true) the pet you got comes
 -- down past the middle, comes back up to the middle and zooms to 150%.
 local function setSlot(slot, name, oddsText, landed, step)
+	local color = if name == BOOST then Ui.SUCCESS else Config.rarity(Config.PETS_BY_NAME[(Config.petInfo(name)).Name].Odds).Color
 	if slot.Shows ~= name or landed then
 		local reduced = Ui.reduced()
 		local time = math.min(step or 0.14, 0.16)
@@ -1504,6 +1585,7 @@ local function setSlot(slot, name, oddsText, landed, step)
 					slot.View.ClipsDescendants = false
 					TweenService:Create(slot.Pop, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = Hatch.ZOOM }):Play()
 					TweenService:Create(slot.View, TweenInfo.new(0.3, Enum.EasingStyle.Quint), { Position = UDim2.new(0.5, 0, 0, -34) }):Play()
+					landedEffect(slot, color, if name == BOOST then 1 else Hatch.tier({ Pet = (Config.petInfo(name)).Name, Size = (select(2, Config.petInfo(name))).Index }))
 				end)
 			end)
 		end
@@ -1511,16 +1593,10 @@ local function setSlot(slot, name, oddsText, landed, step)
 			slot.View.ClipsDescendants = false
 			slot.Pop.Scale = Hatch.ZOOM
 			slot.View.Position = UDim2.new(0.5, 0, 0, -34)
+			landedEffect(slot, color, 1)
 		end
 	end
-	local color
-	if name == BOOST then
-		color = Ui.SUCCESS
-		slot.Name.Text = "Luck Boost"
-	else
-		color = Config.rarity(Config.PETS_BY_NAME[(Config.petInfo(name)).Name].Odds).Color
-		slot.Name.Text = name
-	end
+	slot.Name.Text = if name == BOOST then "Luck Boost" else name
 	slot.Odds.Text = oddsText
 	slot.Odds.Tint.Color = ColorSequence.new(color:Lerp(Ui.WHITE, 0.45), color)
 end
@@ -1585,7 +1661,7 @@ end
 -- Each flickers through pets that can come out of this roll (with their
 -- exact odds and names), slower and slower, then lands on what the server
 -- gave. Returns what happened, in the same shape as the reel's spin.
-Hatch.CYCLE_START, Hatch.CYCLE_END = 0.18, 0.5 -- seconds per pet, at the start / near the end
+Hatch.CYCLE_START, Hatch.CYCLE_END = 0.09, 0.3 -- seconds per pet, at the start / near the end
 local function cycle(results, best, fast)
 	local ctx = rollContext(best)
 	local tier = Hatch.tier(best)

@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 26 (scrolling rolls, odds over pets, roomier tree, avatars)"
+Config.BUILD = "build 27 (hatch effect, faster scrolling)"
 
 -- Pets -------------------------------------------------------------------------
 

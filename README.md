@@ -236,7 +236,8 @@ price under each, "?" when locked, gold when maxed); tapping one opens a
 card next to it with BUY. A normal roll (and auto) shows one slot per roll at the bottom of the
 screen: pets scroll through it from top to bottom (each with its exact
 odds and name, slowing down); the pet you got comes down past the middle,
-bounces back up and zooms to 150%, and stays until the next roll; the reel at the bottom is only
+bounces back up and zooms to 150% with light rays, a glow and sparkles in
+its rarity's colour behind it, and stays until the next roll; the reel at the bottom is only
 used with "Big hatch reveals" on. The luck sign is a green bar
 with a clover and "x12.5". Over each pet following you: its odds in big
 outlined letters ("1/103K") with its name small under them. The rebirth screen shows REBIRTH X / 8 as a segment bar, what
