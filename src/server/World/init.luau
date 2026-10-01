@@ -211,27 +211,31 @@ function World.buildUpgradeBoard(center)
 	local facing = CFrame.lookAt(center, Vector3.new(center.X, center.Y, 0))
 	local WIDTH, HEIGHT = 20, 15
 	local white = Color3.fromRGB(250, 250, 255)
-	-- a stage to stand it on
-	Build.part(model, { Size = Vector3.new(WIDTH + 4, 1, 6), CFrame = facing * CFrame.new(0, 0.5, 0), Color = white })
-	Build.part(model, { Size = Vector3.new(WIDTH + 4.2, 0.3, 6.2), CFrame = facing * CFrame.new(0, 1.05, 0), Color = GREEN })
-	-- wide stairs up to the stage from the path side, and a green carpet
-	-- running from the path to the bottom step
-	for k, step in ipairs({ { Top = 0.8, Z = -3.6 }, { Top = 0.4, Z = -4.6 } }) do
-		Build.part(model, { Name = "Stair" .. k, Size = Vector3.new(WIDTH + 2, step.Top, 1.05), CFrame = facing * CFrame.new(0, step.Top / 2, step.Z), Color = white })
-		Build.part(model, { Size = Vector3.new(WIDTH + 2.1, 0.08, 0.25), CFrame = facing * CFrame.new(0, step.Top + 0.04, step.Z - 0.42), Color = GREEN })
+	-- a raised stage to stand it on (tall enough to show above the grass)
+	local STAGE = 2.4
+	local lift = STAGE - 1.2 -- (the frame below was laid out for a 1.2 stage)
+	Build.part(model, { Name = "Stage", Size = Vector3.new(WIDTH + 4, STAGE - 0.3, 7), CFrame = facing * CFrame.new(0, (STAGE - 0.3) / 2, 0), Color = white })
+	Build.part(model, { Size = Vector3.new(WIDTH + 4.2, 0.3, 7.2), CFrame = facing * CFrame.new(0, STAGE - 0.15, 0), Color = GREEN })
+	-- wide stairs up to it from the path side (each step 0.6 high, green
+	-- edges), and a green carpet from the path to the bottom step
+	for k = 1, 3 do
+		local top = STAGE - k * 0.6
+		local z = -3.5 - (k - 0.5) * 1.2
+		Build.part(model, { Name = "Stair" .. k, Size = Vector3.new(WIDTH + 2, top, 1.2), CFrame = facing * CFrame.new(0, top / 2, z), Color = white })
+		Build.part(model, { Size = Vector3.new(WIDTH + 2.1, 0.1, 0.3), CFrame = facing * CFrame.new(0, top + 0.05, z - 0.45), Color = GREEN })
 	end
-	Build.part(model, { Name = "Carpet", Size = Vector3.new(6, 0.1, 10), CFrame = facing * CFrame.new(0, 0.05, -10.1), Color = GREEN, Material = Enum.Material.Fabric })
+	Build.part(model, { Name = "Carpet", Size = Vector3.new(6, 0.12, 10), CFrame = facing * CFrame.new(0, 0.06, -12.1), Color = GREEN, Material = Enum.Material.Fabric })
 	-- the frame, the cap, the posts
-	Build.part(model, { Size = Vector3.new(WIDTH + 1, HEIGHT + 1, 0.8), CFrame = facing * CFrame.new(0, 1.2 + (HEIGHT + 1) / 2, 0.2), Color = white })
-	Build.part(model, { Size = Vector3.new(WIDTH + 1.4, 1.2, 1.2), CFrame = facing * CFrame.new(0, 1.8 + HEIGHT + 0.6, 0.2), Color = GREEN })
+	Build.part(model, { Size = Vector3.new(WIDTH + 1, HEIGHT + 1, 0.8), CFrame = facing * CFrame.new(0, lift + 1.2 + (HEIGHT + 1) / 2, 0.2), Color = white })
+	Build.part(model, { Size = Vector3.new(WIDTH + 1.4, 1.2, 1.2), CFrame = facing * CFrame.new(0, lift + 1.8 + HEIGHT + 0.6, 0.2), Color = GREEN })
 	for _, x in ipairs({ -WIDTH / 2 - 1, WIDTH / 2 + 1 }) do
-		Build.part(model, { Size = Vector3.new(0.8, HEIGHT + 5, 0.8), CFrame = facing * CFrame.new(x, (HEIGHT + 5) / 2 + 1, 0.2), Color = white })
-		Build.ball(model, (facing * CFrame.new(x, HEIGHT + 6.2, 0.2)).Position, 1.3, { Color = GREEN, Material = Enum.Material.Neon })
+		Build.part(model, { Size = Vector3.new(0.8, HEIGHT + 5 + lift, 0.8), CFrame = facing * CFrame.new(x, (HEIGHT + 5 + lift) / 2 + 1, 0.2), Color = white })
+		Build.ball(model, (facing * CFrame.new(x, lift + HEIGHT + 6.2, 0.2)).Position, 1.3, { Color = GREEN, Material = Enum.Material.Neon })
 	end
-	Build.sign(model, facing * CFrame.new(0, HEIGHT + 4.2, 0.2), Vector3.new(14, 2.8, 0.6), "UPGRADES", Color3.new(1, 1, 1), GREEN)
+	Build.sign(model, facing * CFrame.new(0, lift + HEIGHT + 4.2, 0.2), Vector3.new(14, 2.8, 0.6), "UPGRADES", Color3.new(1, 1, 1), GREEN)
 	-- three big clovers on top
 	for k = -1, 1 do
-		local at = facing * CFrame.new(k * 6.5, HEIGHT + 7.2, 0.2)
+		local at = facing * CFrame.new(k * 6.5, lift + HEIGHT + 7.2, 0.2)
 		for _, o in ipairs({ { -0.5, 0.5 }, { 0.5, 0.5 }, { -0.5, -0.5 }, { 0.5, -0.5 } }) do
 			Build.ball(model, (at * CFrame.new(o[1], o[2], 0)).Position, 1.1, { Color = GREEN })
 		end
@@ -239,7 +243,7 @@ function World.buildUpgradeBoard(center)
 	local screen = Build.part(model, {
 		Name = "Screen",
 		Size = Vector3.new(WIDTH, HEIGHT, 0.2),
-		CFrame = facing * CFrame.new(0, 1.8 + HEIGHT / 2, -0.3),
+		CFrame = facing * CFrame.new(0, lift + 1.8 + HEIGHT / 2, -0.3),
 		Color = Color3.fromRGB(255, 255, 255),
 	})
 	return screen
@@ -285,14 +289,14 @@ for i, area in ipairs(Config.AREAS) do
 	-- the Upgrade Board stands in the first area, on the right of the path
 	-- near the spawn (the leaderboards are on the left), facing the middle
 	if i == 1 then
-		local center = Vector3.new(x0 + 22, 0, HALF - 5)
+		local center = Vector3.new(x0 + 22, 0, HALF - 9) -- (back from the edge)
 		World.UpgradeBoard = World.buildUpgradeBoard(center)
 		for dx = -12, 12, 6 do
 			space:add(center + Vector3.new(dx, 0, 0), 5.5)
 			-- and the stairs and the carpet in front, kept clear
-			space:add(center + Vector3.new(dx, 0, -6), 4)
+			space:add(center + Vector3.new(dx, 0, -7), 4.5)
 		end
-		space:add(center + Vector3.new(0, 0, -12), 4.5)
+		space:add(center + Vector3.new(0, 0, -13), 5)
 	end
 
 	local ctx = {

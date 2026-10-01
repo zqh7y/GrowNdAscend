@@ -555,6 +555,9 @@ function Forest.build(ctx)
 	local stageWidth = leaderboardStage(deco, ctx.World, stageCenter)
 	for dx = -stageWidth / 2, stageWidth / 2, 6 do
 		space:add(stageCenter + Vector3.new(dx, 0, 0), 5.5)
+		-- and keep the ground in front of the boards open (no trees blocking them)
+		space:add(stageCenter + Vector3.new(dx, 0, 8), 5)
+		space:add(stageCenter + Vector3.new(dx, 0, 14), 5)
 	end
 
 	-- a fountain on each side
