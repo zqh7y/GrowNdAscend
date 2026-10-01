@@ -1150,7 +1150,7 @@ if ok then
 		local rollB, autoB = Roll.controls()
 		local wasOn = Roll.autoOn()
 		autoB.Activated:Fire()
-		local switchedOn = Roll.autoOn() ~= wasOn and Roll.AutoCaption.Text == "Auto ON"
+		local switchedOn = Roll.autoOn() ~= wasOn and Roll.AutoCaption.Text == "AUTO ON"
 		-- while auto rolls, the big button keeps saying ROLL (no flicker to SKIP)
 		local rollLabel = rollB.Parent:FindFirstChild("Caption")
 		local labelChanges = 0

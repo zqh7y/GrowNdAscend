@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 17 (ROLL + AUTO like the side buttons)"
+Config.BUILD = "build 18 (cleaner ROLL + AUTO buttons)"
 
 -- Pets -------------------------------------------------------------------------
 

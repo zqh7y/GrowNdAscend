@@ -340,10 +340,13 @@ local function refreshAuto(animate)
 	if not autoRow then
 		return
 	end
-	-- AUTO: grey "Auto OFF", or green "Auto ON"
-	Ui.setStyle(autoRow, if autoRoll then "green" else "gray")
+	-- AUTO: white "AUTO OFF", or green "AUTO ON" with its status dot lit
+	Ui.setStyle(autoRow, if autoRoll then "green" else "glass")
 	if Roll.AutoCaption then
-		Roll.AutoCaption.Text = if autoRoll then "Auto ON" else "Auto OFF"
+		Roll.AutoCaption.Text = if autoRoll then "AUTO ON" else "AUTO OFF"
+	end
+	if Roll.AutoDot then
+		Roll.AutoDot.Visible = autoRoll
 	end
 	if animate then
 		Ui.pop(autoRow, 0.92)
@@ -383,16 +386,39 @@ end
 
 -- The roll controls ---------------------------------------------------------------------------
 -- Two buttons in the bottom-right corner, made like the navigation buttons
--- on the left (a rounded square with an icon and a caption under it):
---   ROLL   a bit bigger and gold, with a white ring, so it stands out. A
---          thin bar inside fills while the next roll gets ready; its caption
---          says SKIP while a hatch shows (by hand).
---   AUTO   next to it, grey with "Auto OFF", green with "Auto ON".
+-- on the left (a rounded square with an icon and a caption under it), with
+-- a cleaner finish: a soft shadow under each, a faint shine on top, small
+-- bold captions.
+--   ROLL   a little bigger, blue. A slim bar inside fills while the next
+--          roll gets ready; its caption says SKIP while a hatch shows (by hand).
+--   AUTO   next to it: white with a dark icon and "AUTO OFF", or green with
+--          "AUTO ON" and a small status dot in its corner.
 -- The R key (or a gamepad's X) rolls too. The compact/full hatch choice
 -- lives in Settings ("Big hatch reveals").
 
-local ROLL_SIZE, AUTO_SIZE, GAP = 76, 60, 12
+local ROLL_SIZE, AUTO_SIZE, GAP = 72, 58, 12
 Roll.DOCK_SIZE = Vector2.new(ROLL_SIZE + GAP + AUTO_SIZE, ROLL_SIZE + 18)
+
+-- the shared finish: shadow under the button, shine on top, neat caption
+local function finish(holder, button, size)
+	local radius = math.floor(size * 0.32)
+	button.ZIndex = 2
+	Ui.shadow(button, radius, 4)
+	Ui.new("Frame", {
+		Name = "Shine",
+		Position = UDim2.fromOffset(4, 3),
+		Size = UDim2.new(1, -8, 0.42, 0),
+		BackgroundColor3 = Ui.WHITE,
+		BackgroundTransparency = 0.88,
+		ZIndex = 3,
+		Parent = button,
+	}, { Ui.corner(radius - 3) })
+	local caption = holder.Caption
+	caption.Font = Ui.FONT_TITLE
+	caption.TextSize = 12
+	caption.TextStrokeTransparency = 0.7
+	return caption
+end
 
 function Roll.buildControls(parent)
 	-- an invisible row that just lines the two buttons up
@@ -412,13 +438,14 @@ function Roll.buildControls(parent)
 		}),
 	})
 
-	-- ROLL: like the other buttons, just bigger, gold and with a white ring
+	-- ROLL
 	local rollHolder, roll = Ui.dockButton({
 		Name = "Roll",
 		Label = "ROLL",
 		Icon = "dice",
+		IconSize = 34,
 		Size = ROLL_SIZE,
-		Style = "gold",
+		Style = "primary",
 		LayoutOrder = 1,
 		Parent = row,
 	}, function()
@@ -426,24 +453,15 @@ function Roll.buildControls(parent)
 		task.spawn(Roll.roll)
 	end)
 	roll.Name = "RollButton"
-	Ui.new("Frame", {
-		Name = "Ring",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, 8, 1, 8),
-		BackgroundTransparency = 1,
-		ZIndex = 0,
-		Parent = roll,
-	}, { Ui.corner(math.floor(ROLL_SIZE * 0.32) + 4), Ui.stroke(Ui.WHITE, 3, 0.15) })
-	rollLabel = rollHolder.Caption
-	rollLabel.TextSize = 14
-	-- the ready bar near the bottom of the button
+	rollLabel = finish(rollHolder, roll, ROLL_SIZE)
+	rollLabel.TextSize = 13
+	-- the slim ready bar near the bottom of the button
 	local bar = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -7),
-		Size = UDim2.new(1, -26, 0, 4),
-		BackgroundColor3 = Color3.fromRGB(190, 120, 10),
-		BackgroundTransparency = 0.4,
+		Size = UDim2.new(1, -30, 0, 3),
+		BackgroundColor3 = Color3.fromRGB(28, 66, 180),
+		BackgroundTransparency = 0.3,
 		ZIndex = 4,
 		Parent = roll,
 	}, { Ui.corner(2) })
@@ -455,13 +473,14 @@ function Roll.buildControls(parent)
 		Parent = bar,
 	}, { Ui.corner(2) })
 
-	-- AUTO: a normal button next to it
+	-- AUTO
 	local autoHolder, auto = Ui.dockButton({
 		Name = "Auto",
-		Label = "Auto OFF",
+		Label = "AUTO OFF",
 		Icon = "loop",
+		IconSize = 26,
 		Size = AUTO_SIZE,
-		Style = "gray",
+		Style = "glass",
 		LayoutOrder = 2,
 		Parent = row,
 	}, function()
@@ -469,7 +488,18 @@ function Roll.buildControls(parent)
 		Roll.toggleAuto()
 	end)
 	auto.Name = "AutoButton"
-	Roll.AutoCaption = autoHolder.Caption
+	Roll.AutoCaption = finish(autoHolder, auto, AUTO_SIZE)
+	-- a small status dot, lit while auto is on
+	Roll.AutoDot = Ui.new("Frame", {
+		Name = "Dot",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -9, 0, 9),
+		Size = UDim2.fromOffset(8, 8),
+		BackgroundColor3 = Ui.WHITE,
+		Visible = false,
+		ZIndex = 5,
+		Parent = auto,
+	}, { Ui.corner(0.5) })
 
 	rollButton, autoButton, autoRow = roll, auto, auto
 	refreshAuto(false)
