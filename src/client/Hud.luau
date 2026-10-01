@@ -152,9 +152,12 @@ local function refreshTeam(data)
 			BackgroundTransparency = 1,
 			Parent = chips,
 		})
+		-- an equipped pet sits at the top with its DPS under it; an empty
+		-- slot has nothing under it, so it sits in the middle
 		local chip = Ui.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0),
+			Name = "Chip",
+			AnchorPoint = Vector2.new(0.5, if pet then 0 else 0.5),
+			Position = UDim2.fromScale(0.5, if pet then 0 else 0.5),
 			Size = UDim2.fromOffset(32, 32),
 			BackgroundColor3 = if pet then pet.Color:Lerp(Ui.WHITE, 0.55) else Ui.GLASS_LIGHT,
 			BackgroundTransparency = if pet then 0 else 0.3,

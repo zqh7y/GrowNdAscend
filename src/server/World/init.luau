@@ -310,4 +310,57 @@ spawn.CFrame = CFrame.new(World.SPAWN.X, (World.groundAt(World.SPAWN.X, 0) or 0)
 terrain:FillBlock(CFrame.new(TOTAL + 32, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.LeafyGrass)
 terrain:FillBlock(CFrame.new(-32, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.Grass)
 
+-- Landing on the spawn pad -----------------------------------------------------------
+-- When something stands on the pad (another player, a pet, an enemy),
+-- Roblox lifts a new character above it, sometimes all the way onto the
+-- invisible lid over the map. So every new character is put on the pad
+-- itself, and anyone who ends up above the play space (on the lid or
+-- falling off) is brought back to the pad.
+local Players = game:GetService("Players")
+local LID_Y = 110 -- above every hill and prop, below the lid (Y 132)
+
+local function placeOnPad(character)
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local lift = (if humanoid then humanoid.HipHeight else 2) + root.Size.Y / 2 + 0.5
+	character:PivotTo(CFrame.new(spawn.Position + Vector3.new(0, spawn.Size.Y / 2 + lift, 0)) * spawn.CFrame.Rotation)
+	root.AssemblyLinearVelocity = Vector3.zero
+end
+World.placeOnPad = placeOnPad
+
+local function watch(player)
+	player.CharacterAdded:Connect(function(character)
+		-- wait for the body to be assembled, then set it on the pad
+		for _ = 1, 50 do
+			if character:FindFirstChild("HumanoidRootPart") then
+				break
+			end
+			task.wait(0.1)
+		end
+		task.wait()
+		if character.Parent then
+			placeOnPad(character)
+		end
+	end)
+end
+Players.PlayerAdded:Connect(watch)
+for _, player in ipairs(Players:GetPlayers()) do
+	watch(player)
+end
+task.spawn(function()
+	while true do
+		task.wait(1)
+		for _, player in ipairs(Players:GetPlayers()) do
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+			if root and (root.Position.Y > LID_Y or root.Position.Y < -40) then
+				placeOnPad(character)
+			end
+		end
+	end
+end)
+
 return World

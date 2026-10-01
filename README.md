@@ -178,8 +178,8 @@ chase Huge and Titanic pets.**
   worlds 1-4). Levels get steeper (8 x level^1.5 EXP each) and never reset.
   The level and an EXP bar sit under your team; levelling up shows a big
   "LEVEL UP!" with sparkles and a jingle.
-- **Rebirth (8 levels):** needs the coins AND a level (50, 75, 110, 160, 225,
-  310, 425, 575). It's a prestige: only your coins reset; worlds, pets,
+- **Rebirth (8 levels):** needs the coins AND a level (16, 34, 52, 64, 70,
+  75, 82, 88): the first after about 10 minutes, the 8th after about 3 hours. It's a prestige: only your coins reset; worlds, pets,
   upgrades, the Index and your level stay. Each one gives, forever and
   stacking: **Luck x1.5** and **Money +200%** (rebirth 3 = luck x3.4 and
   coins x7; rebirth 8 = x25.6 and x17).
@@ -190,12 +190,13 @@ chase Huge and Titanic pets.**
 
 | | Time for an active player |
 | --- | --- |
-| World 2 (Sahara) | ~25 min |
-| World 3 (Frozen Peaks) | ~1.5 h |
-| Rebirth 1 (level 50) | ~3 h |
-| World 4 (Sakura Jungle) | ~6 h, a real milestone |
-| Rebirths 2 / 3 / 4 | ~6 / 8 / 14 h |
-| Rebirths 5 / 6 / 7 / 8 | ~28 / 52 / 110 / 230 h |
+| Rebirth 1 (level 16) | ~11 min |
+| World 2 (Sahara) | ~16 min |
+| Rebirths 2 / 3 | ~26 / 48 min |
+| World 3 (Frozen Peaks) | ~37 min |
+| Rebirths 4 / 5 / 6 | ~1.1 / 1.5 / 1.9 h |
+| World 4 (Sakura Jungle) | ~2 h |
+| Rebirths 7 / 8 | ~2.3 / 2.9 h |
 | Best pet | **Titanic Glitch ~4.8T** |
 
 Enemy health, coin rewards, EXP, upgrade costs, world costs and rebirths

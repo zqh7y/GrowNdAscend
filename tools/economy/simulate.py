@@ -164,6 +164,7 @@ def run(hours=8, seed=1, verbose=False):
                 coins = 0.0
                 rebirths += 1
                 log["R%d" % rebirths] = t
+                log["levelR%d" % rebirths] = level
                 if verbose:
                     print(f"  Rebirth {rebirths} at {hm(t)}  (level {level}, world {unlocked})")
         # upgrades: the cheapest one, never more than half of the next goal

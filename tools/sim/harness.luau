@@ -1114,6 +1114,37 @@ if ok then
 		data.Equipped = {}
 		PlayerData.sync(player)
 		frames(1)
+		-- team bar: an empty slot's circle sits in the vertical middle
+		data.Pets = { Tiger = 1 }
+		data.Equipped = { "Tiger" }
+		data.Upgrades = { Slots = 2 }
+		PlayerData.sync(player)
+		frames(2)
+		local fullTop, emptyMid, emptyCount = 0, 0, 0
+		for _, d in ipairs(player.PlayerGui.GameGui:GetDescendants()) do
+			if string.match(d.Name, "^Slot%d+$") and d:FindFirstChild("Chip") then
+				local chip = d.Chip
+				if d:FindFirstChild("Share") then
+					if chip.AnchorPoint.Y == 0 and chip.Position.Y.Scale == 0 then fullTop += 1 end
+				else
+					emptyCount += 1
+					if chip.AnchorPoint.Y == 0.5 and chip.Position.Y.Scale == 0.5 then emptyMid += 1 end
+				end
+			end
+		end
+		b15.TeamChips = { Full = fullTop, Empty = emptyCount, Mid = emptyMid }
+		data.Equipped = {}
+		data.Upgrades = {}
+		PlayerData.sync(player)
+		-- spawn: a character that ends up on the lid over the map is put back on the pad
+		local spawnRoot = player.Character.HumanoidRootPart
+		local before = spawnRoot.CFrame
+		local pad = workspace.Map.Spawn
+		spawnRoot.CFrame = CFrame.new(pad.Position.X, 134, 0)
+		STEP(1.5)
+		local back = spawnRoot.Position
+		b15.Spawn = { Y = back.Y, OnPad = math.abs(back.X - pad.Position.X) < 1 and math.abs(back.Z - pad.Position.Z) < 1 and back.Y > pad.Position.Y and back.Y < pad.Position.Y + 8 }
+		spawnRoot.CFrame = before
 		STATS.B15 = b15
 		print(string.format("build 15: inventory %d cols full (%dpx) -> %d with details; equip best %s (%d/%d slots), second call changed=%s; dupes %d tigers; power/damage pick %s over %s",
 			fullColumns or -1, fullWidth or -1, narrowColumns or -1, b15.Best.Team, b15.Best.Count, slots, tostring(not b15.Best.Changed2),
@@ -1479,17 +1510,17 @@ if ok then
 	data.Unlocked = 4
 	local okBoth, after = tryRebirth(0, cost1, level1)
 	item(33, "rebirth needs the cash", okNoCoins == false, "no coins -> refused")
-	item(34, "rebirth needs the level", okNoLevel == false and level1 == 50, "level " .. (level1 - 2) .. " of " .. level1 .. " -> refused")
+	item(34, "rebirth needs the level", okNoLevel == false and level1 > 1, "level " .. (level1 - 2) .. " of " .. level1 .. " -> refused")
 	item(35, "rebirth needs both", okNone == false and okBoth == true and after == 1, "both -> Rebirth " .. tostring(after))
 	item(53, "rebirth keeps worlds and levels", okBoth and data.Unlocked == 4 and data.Level == level1 and data.Coins == 0, "World " .. data.Unlocked .. " still open, level " .. data.Level .. ", coins " .. data.Coins)
 	local okMax, stillMax = tryRebirth(8, 1e30, 10000)
 	item(36, "at most 8 rebirths", Config.MAX_REBIRTHS == 8 and okMax == false and stillMax == 8, "at 8 -> refused")
 	local levelsUp = true
 	for k = 2, #Config.REBIRTHS do
-		local jump, previousJump = Config.REBIRTHS[k].Level - Config.REBIRTHS[k - 1].Level, if k > 2 then Config.REBIRTHS[k - 1].Level - Config.REBIRTHS[k - 2].Level else 0
-		if jump <= previousJump then levelsUp = false end
+		if Config.REBIRTHS[k].Level <= Config.REBIRTHS[k - 1].Level or Config.REBIRTHS[k].Cost <= Config.REBIRTHS[k - 1].Cost then levelsUp = false end
 	end
-	item(54, "each rebirth needs more levels", levelsUp, "levels 50, 75, 110 ... " .. Config.REBIRTHS[8].Level)
+	item(54, "each rebirth needs a higher level and more coins", levelsUp,
+		string.format("levels %d, %d, %d ... %d", Config.REBIRTHS[1].Level, Config.REBIRTHS[2].Level, Config.REBIRTHS[3].Level, Config.REBIRTHS[8].Level))
 	local base = { Upgrades = { Luck = 3 }, Equipped = {}, Rebirths = 0 }
 	local ratios = {}
 	for r = 1, 8 do
@@ -1929,6 +1960,15 @@ if ok then
 		item(94, "Equip Best picks by damage, not shown power; says when already best", od.Found == true and od.Picked == od.Want and eb.Changed2 == true and fb.Optimized == true
 			and fb.TreeButton == true and fb.InvButton == true,
 			string.format("%s (lower power, more damage) beats %s; second press: 'Team already optimized'; buttons in Inventory and Upgrade Tree", tostring(od.Picked), tostring(od.Other)))
+		local tc = (STATS.B15 or {}).TeamChips or {}
+		item(95, "team bar: empty slot circles centred", tc.Full == 1 and (tc.Empty or 0) >= 1 and tc.Mid == tc.Empty,
+			string.format("%d equipped circle on top of its DPS, %d/%d empty circles in the vertical middle", tc.Full or 0, tc.Mid or 0, tc.Empty or 0))
+		local sp = (STATS.B15 or {}).Spawn or {}
+		item(96, "never stuck on top of the map", sp.OnPad == true,
+			string.format("a character on the lid (Y 134) was back on the spawn pad within 1.5s (Y %.1f)", sp.Y or -1))
+		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
+		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
+			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))
 	end
 
 	local passed = 0

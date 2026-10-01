@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 20 (no skipping, new AUTO icon)"
+Config.BUILD = "build 21 (faster rebirths, centred team slots, spawn fix)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -900,19 +900,20 @@ end
 -- needs the coins AND a player level (levels come from EXP for defeating
 -- enemies, see Levels below), and gives, for good: Luck x1.5 and +200%
 -- coins. They stack: rebirth 3 is luck x1.5^3 = x3.4 and coins
--- x(1 + 3 x 2) = x7. There are 8 rebirths, each needing much more than the
--- last (balanced with tools/economy/simulate.py).
+-- x(1 + 3 x 2) = x7. There are 8 rebirths: the first after about 10
+-- minutes of play, the 8th after about 3 hours (balanced with
+-- tools/economy/simulate.py).
 Config.REBIRTH_LUCK = 1.5 -- luck is multiplied by this per rebirth
 Config.REBIRTH_COINS = 2 -- +200% coins per rebirth
 Config.REBIRTHS = {
-	{ Cost = 1.5e8, Level = 50 },
-	{ Cost = 1e11, Level = 75 },
-	{ Cost = 3e12, Level = 110 },
-	{ Cost = 1e14, Level = 160 },
-	{ Cost = 6e14, Level = 225 },
-	{ Cost = 1.2e15, Level = 310 },
-	{ Cost = 2e15, Level = 425 },
-	{ Cost = 3.5e15, Level = 575 },
+	{ Cost = 1.2e4, Level = 16 },
+	{ Cost = 3e6, Level = 34 },
+	{ Cost = 3e9, Level = 52 },
+	{ Cost = 1.5e10, Level = 64 },
+	{ Cost = 4e10, Level = 70 },
+	{ Cost = 7.5e10, Level = 75 },
+	{ Cost = 1e13, Level = 82 },
+	{ Cost = 4e13, Level = 88 },
 }
 Config.MAX_REBIRTHS = #Config.REBIRTHS
 
