@@ -13,10 +13,7 @@ local Roll = require(script.Parent.Roll)
 local Panels = {}
 local player = Players.LocalPlayer
 
-local function commas(n)
-	local digits = tostring(math.floor(n))
-	return (digits:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", ""))
-end
+
 
 local function clear(list)
 	for _, child in ipairs(list:GetChildren()) do
@@ -86,7 +83,7 @@ State.remote("Leaderboard").OnClientEvent:Connect(function(entries)
 			Size = UDim2.new(0, 140, 1, 0),
 			TextScaled = false,
 			TextSize = 17,
-			Text = commas(entry.Rolls),
+			Text = Config.formatNumber(entry.Rolls),
 			TextColor3 = if mine then Ui.PRIMARY_A else Ui.TEXT,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			ZIndex = 33,

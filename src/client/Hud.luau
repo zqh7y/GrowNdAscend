@@ -46,10 +46,11 @@ local coinsText = Ui.new("TextLabel", {
 	LayoutOrder = 1,
 	AutomaticSize = Enum.AutomaticSize.X,
 	Size = UDim2.fromOffset(0, 32),
+	Font = Ui.FONT_DISPLAY,
 	TextScaled = false,
 	TextSize = 28,
 	Text = "0",
-	TextColor3 = Ui.GOLD,
+	TextColor3 = Ui.TEXT,
 	Parent = coinPill,
 })
 local coinScale = Ui.new("UIScale", { Parent = coinPill })
@@ -165,7 +166,7 @@ local levelBadge = Ui.new("TextLabel", {
 	BackgroundColor3 = Ui.VIOLET:Lerp(Ui.GLASS, 0.75),
 	Font = Ui.FONT_TITLE,
 	TextScaled = false,
-	TextSize = 11,
+	TextSize = 14,
 	Text = "LEVEL 1",
 	ZIndex = 3,
 	Parent = levelBar,
@@ -190,8 +191,6 @@ local expText = Ui.new("TextLabel", {
 	TextScaled = false,
 	TextSize = 13,
 	Text = "",
-	TextStrokeTransparency = 0.3,
-	TextStrokeColor3 = Ui.INK,
 	ZIndex = 3,
 	Parent = expTrack,
 })
@@ -351,7 +350,7 @@ local controls = Ui.new("Frame", {
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
-local _, hideButton = button(controls, 0, "eye", "Show", Roll.toggleHide, 44)
+local _, hideButton = button(controls, 0, "eye", "Compact", Roll.toggleHatchMode, 44)
 local _, autoButton = button(controls, 1, "loop", "Auto", Roll.toggleAuto, 56)
 local _, rollButton = button(controls, 2, "dice", "Roll", function()
 	task.spawn(Roll.roll)

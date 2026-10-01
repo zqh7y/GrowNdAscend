@@ -173,10 +173,11 @@ end)
 -- Damage ---------------------------------------------------------------------------------
 
 -- Living coins within `radius` of `position` in areas up to `unlocked`
-function Breakables.near(position, radius, unlocked)
+-- (only the targets of one area: pets fight in the world the player is in)
+function Breakables.near(position, radius, area)
 	local list = {}
 	for _, target in pairs(Breakables.Targets) do
-		if target.Area <= unlocked and (target.Pos - position).Magnitude <= radius then
+		if target.Area == area and (target.Pos - position).Magnitude <= radius then
 			table.insert(list, target)
 		end
 	end

@@ -142,7 +142,7 @@ local function card(order, name, owned, equipped, data)
 	local accent = if size.Index > 1 then size.Color else rarity.Color
 	local frame = Ui.card({
 		LayoutOrder = order,
-		BackgroundColor3 = if equipped > 0 then Color3.fromRGB(14, 40, 40) else Ui.GLASS_LIGHT,
+		BackgroundColor3 = if equipped > 0 then Color3.fromRGB(232, 248, 240) else Ui.GLASS_LIGHT,
 		ZIndex = 32,
 		Parent = grid,
 	}, if equipped > 0 then Ui.SUCCESS else accent, { Ui.padding(10) })
@@ -174,7 +174,7 @@ local function card(order, name, owned, equipped, data)
 			BackgroundColor3 = Ui.SUCCESS,
 			Font = Ui.FONT_TITLE,
 			TextScaled = false,
-			TextSize = 7,
+			TextSize = 10,
 			TextColor3 = Ui.INK,
 			Text = "EQUIPPED" .. (if equipped > 1 then " x" .. equipped else ""),
 			ZIndex = 34,
@@ -209,7 +209,7 @@ local function card(order, name, owned, equipped, data)
 		})
 	end
 	line(88, 15, Ui.FONT, name, if size.Index > 1 then size.Color else Ui.TEXT)
-	line(106, 8, Ui.FONT_TITLE, string.upper(rarity.Name) .. " · " .. string.upper(size.Name), rarity.Color)
+	line(106, 11, Ui.FONT_TITLE, string.upper(rarity.Name) .. " · " .. string.upper(size.Name), rarity.Color)
 	line(121, 12, Ui.FONT, Config.formatNumber(Config.petPower(name)) .. " PWR", Ui.CYAN)
 	line(137, 11, Ui.FONT_MEDIUM, Config.formatOdds(pet.Odds) .. "  ·  " .. Config.AREAS[pet.World].Name, Ui.MUTED)
 

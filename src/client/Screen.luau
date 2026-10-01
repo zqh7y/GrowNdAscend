@@ -30,14 +30,14 @@ local openModal = nil
 
 -- Every panel's colour and icon (its title ribbon, border glow and bubbles)
 Screen.THEMES = {
-	Default = { Color = Color3.fromRGB(0, 229, 255), Icon = "star", Tag = "SYSTEM" },
-	Inventory = { Color = Color3.fromRGB(0, 229, 255), Icon = "paw", Tag = "COLLECTION" },
-	Index = { Color = Color3.fromRGB(150, 110, 255), Icon = "book", Tag = "DATABASE" },
-	Upgrades = { Color = Color3.fromRGB(40, 240, 170), Icon = "tree", Tag = "SYSTEMS" },
-	Rebirth = { Color = Color3.fromRGB(255, 60, 200), Icon = "star", Tag = "PRESTIGE" },
-	Fusion = { Color = Color3.fromRGB(255, 120, 200), Icon = "grow", Tag = "LAB" },
-	Settings = { Color = Color3.fromRGB(160, 170, 210), Icon = "gear", Tag = "CONFIG" },
-	Top = { Color = Color3.fromRGB(255, 205, 70), Icon = "podium", Tag = "RANKS" },
+	Default = { Color = Color3.fromRGB(64, 132, 255), Icon = "star" },
+	Inventory = { Color = Color3.fromRGB(64, 132, 255), Icon = "paw" },
+	Index = { Color = Color3.fromRGB(140, 102, 240), Icon = "book" },
+	Upgrades = { Color = Color3.fromRGB(46, 196, 120), Icon = "tree" },
+	Rebirth = { Color = Color3.fromRGB(255, 104, 150), Icon = "star" },
+	Fusion = { Color = Color3.fromRGB(255, 150, 70), Icon = "grow" },
+	Settings = { Color = Color3.fromRGB(128, 136, 160), Icon = "gear" },
+	Top = { Color = Color3.fromRGB(255, 186, 40), Icon = "podium" },
 }
 
 local themes = {} -- [box] = theme
@@ -52,24 +52,24 @@ function Screen.blur(on)
 	game:GetService("TweenService"):Create(blur, TweenInfo.new(0.25), { Size = if blurUsers > 0 then 12 else 0 }):Play()
 end
 
--- A centred panel: dark glass with a thin edge in the theme's colour, a
--- neon line along the top, a faint tech grid, HUD corner brackets, a soft
--- shadow, and a square close button. `theme` is a name from Screen.THEMES
--- (or a { Color, Icon, Tag } table). Returns the background (show with
+-- A centred panel: white and rounded, with a soft shadow, over a gently
+-- dimmed screen, and a round close button. `theme` is a name from
+-- Screen.THEMES (or a { Color, Icon } table): its colour is only used for
+-- the small icon next to the heading. Returns the background (show with
 -- Screen.open) and the panel box (put content in it).
 function Screen.modal(width, height, theme)
 	theme = Screen.THEMES[theme] or theme or Screen.THEMES.Default
 	local shade = Ui.new("TextButton", {
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(2, 4, 12),
-		BackgroundTransparency = 0.4,
+		BackgroundColor3 = Color3.fromRGB(16, 20, 36),
+		BackgroundTransparency = 0.55,
 		Text = "",
 		AutoButtonColor = false,
 		Visible = false,
 		ZIndex = 30,
 		Parent = gui,
 	})
-	-- holder (scaled when it pops in) = glow + panel
+	-- holder (scaled when it pops in) = shadow + panel
 	local holder = Ui.new("Frame", {
 		Name = "Box",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -79,64 +79,36 @@ function Screen.modal(width, height, theme)
 		ZIndex = 30,
 		Parent = shade,
 	})
-	-- a soft glow in the theme colour behind the panel
 	Ui.new("Frame", {
 		Name = "Shadow",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, 24, 1, 24),
-		BackgroundColor3 = theme.Color,
-		BackgroundTransparency = 0.9,
+		Position = UDim2.fromOffset(0, 8),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(10, 14, 30),
+		BackgroundTransparency = 0.78,
 		ZIndex = 30,
 		Parent = holder,
-	}, { Ui.corner(16) })
+	}, { Ui.corner(22) })
 	local box = Ui.new("Frame", {
 		Name = "Panel",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.04,
-		ClipsDescendants = false,
+		BackgroundColor3 = Ui.GLASS,
+		BackgroundTransparency = 0,
 		ZIndex = 31,
 		Parent = holder,
-	}, {
-		Ui.corner(10),
-		Ui.padding(22),
-		Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(16, 20, 40), Color3.fromRGB(7, 9, 20)) }),
-	})
-	Ui.stroke(theme.Color, 1.2, 0.45).Parent = box
-	-- the faint grid
-	local grid = Ui.new("Frame", {
-		Name = "Grid",
-		Position = UDim2.fromOffset(-22, -22),
-		Size = UDim2.new(1, 44, 1, 44),
-		BackgroundTransparency = 1,
-		ClipsDescendants = true,
-		ZIndex = 31,
-		Parent = box,
-	})
-	for k = 1, math.floor(width / 48) do
-		Ui.new("Frame", { Position = UDim2.fromOffset(k * 48, 0), Size = UDim2.new(0, 1, 1, 0), BackgroundColor3 = theme.Color, BackgroundTransparency = 0.95, ZIndex = 31, Parent = grid })
-	end
-	for k = 1, math.floor(height / 48) do
-		Ui.new("Frame", { Position = UDim2.fromOffset(0, k * 48), Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = theme.Color, BackgroundTransparency = 0.95, ZIndex = 31, Parent = grid })
-	end
-	-- neon line on top, brackets in the corners
-	local line = Ui.accentLine(grid, theme.Color, 33)
-	line.Size = UDim2.new(1, -40, 0, 2)
-	Ui.brackets(grid, theme.Color, 16, 33)
+	}, { Ui.corner(22), Ui.padding(24) })
 	themes[box] = theme
 	Ui.button({
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 8, 0, -10),
-		Size = UDim2.fromOffset(34, 34),
-		Radius = 6,
+		Position = UDim2.new(1, 6, 0, -8),
+		Size = UDim2.fromOffset(36, 36),
+		Radius = 18,
 		Icon = "close",
 		IconSize = 12,
 		ZIndex = 36,
 		Parent = box,
 	}, function()
 		Screen.close(shade)
-	end, "glass")
+	end, "disabled")
 	return shade, box
 end
 
@@ -171,66 +143,42 @@ function Screen.close(shade)
 	end
 end
 
--- The panel's title, top left: a small "// TAG" in the theme's colour over
--- the title in the wide tech font, with a short neon underline. Returns the
--- title's text label.
+-- The panel's heading, top left: a small rounded icon tile in the theme's
+-- colour and the title in the friendly display font. Returns the title's
+-- text label.
 function Screen.title(box, text)
 	local theme = themes[box] or Screen.THEMES.Default
-	local holder = Ui.new("Frame", {
-		Name = "Title",
-		Position = UDim2.fromOffset(0, -10),
-		Size = UDim2.new(1, -60, 0, 44),
-		BackgroundTransparency = 1,
+	local tile = Ui.new("Frame", {
+		Name = "TitleIcon",
+		Position = UDim2.fromOffset(0, -6),
+		Size = UDim2.fromOffset(34, 34),
+		BackgroundColor3 = theme.Color,
 		ZIndex = 35,
 		Parent = box,
-	})
-	Ui.new("TextLabel", {
-		Size = UDim2.new(1, 0, 0, 12),
-		Font = Ui.FONT_TITLE,
+	}, { Ui.corner(10) })
+	Ui.icon(theme.Icon, 20, Ui.WHITE, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 36, Parent = tile })
+	return Ui.new("TextLabel", {
+		Name = "Title",
+		Position = UDim2.fromOffset(46, -6),
+		Size = UDim2.new(0.6, -46, 0, 34),
+		Font = Ui.FONT_DISPLAY,
 		TextScaled = false,
-		TextSize = 10,
-		Text = "// " .. (theme.Tag or "SYSTEM"),
-		TextColor3 = theme.Color,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 35,
-		Parent = holder,
-	})
-	local label = Ui.new("TextLabel", {
-		Position = UDim2.fromOffset(0, 14),
-		Size = UDim2.new(1, 0, 0, 26),
-		Font = Ui.FONT_TITLE,
-		TextScaled = false,
-		TextSize = 22,
+		TextSize = 28,
 		Text = text,
+		TextColor3 = Ui.TEXT,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 35,
-		Parent = holder,
+		Parent = box,
 	})
-	Ui.new("Frame", {
-		Position = UDim2.fromOffset(0, 43),
-		Size = UDim2.fromOffset(48, 2),
-		BackgroundColor3 = theme.Color,
-		ZIndex = 35,
-		Parent = holder,
-	})
-	-- titles are written in capitals
-	label:GetPropertyChangedSignal("Text"):Connect(function()
-		local upper = string.upper(label.Text)
-		if label.Text ~= upper then
-			label.Text = upper
-		end
-	end)
-	label.Text = string.upper(text)
-	return label
 end
 
--- A line of info under the title (right of it on wide panels)
+-- A line of info at the top right, next to the close button
 function Screen.subtitle(box, text)
 	return Ui.new("TextLabel", {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -46, 0, 6),
-		Size = UDim2.new(0.5, 0, 0, 18),
+		Position = UDim2.new(1, -48, 0, 2),
+		Size = UDim2.new(0.45, 0, 0, 18),
 		Font = Ui.FONT_MEDIUM,
 		TextScaled = false,
 		TextSize = 14,
@@ -260,10 +208,10 @@ end
 
 local toast = Ui.glass({
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 160),
+	Position = UDim2.new(0.5, 0, 0, 200),
 	Size = UDim2.fromOffset(0, 38),
 	AutomaticSize = Enum.AutomaticSize.X,
-	Radius = 6,
+	Radius = 19,
 	Visible = false,
 	ZIndex = 25,
 	Parent = gui,
@@ -285,7 +233,8 @@ function Screen.toast(text, style)
 	local id = toastId
 	toastText.Text = text
 	toast.Edge.Color = TOAST_COLORS[style] or Ui.ACCENT
-	toast.Edge.Transparency = 0.1
+	toast.Edge.Transparency = 0
+	toast.Edge.Thickness = 2
 	Ui.popIn(toast)
 	task.delay(2.4, function()
 		if toastId == id then

@@ -602,8 +602,18 @@ if ok then
 			local last = table.clone(Hatch.Last or {})
 			last.Seconds = CLOCK - startClock
 			hatchReport[case.Key] = last
-			print(string.format("hatch %s: tier %d, landed %s, early speed %.1f px/frame -> late %.2f, shakes %d (growing %s), silhouette %.2fs, rays %s, banner '%s', %.1fs in all, extra cards %d",
-				case.Key, last.Tier or -1, tostring(last.Landed), last.SpeedEarly or 0, last.SpeedLate or 0, last.Shakes or 0, tostring(last.ShakeGrows), last.Silhouette or 0, tostring(last.Rays), last.Banner or "", last.Seconds, last.Others or 0))
+			if case.Key == "common" then
+				-- no window: nothing big and solid behind the pets, only the soft dim
+				local panels = {}
+				for _, d in ipairs(Hatch.Shade:GetDescendants()) do
+					if d:IsA("GuiObject") and d.BackgroundTransparency < 0.5 and d.Size.X.Offset >= 300 and d.Size.Y.Offset >= 200 then
+						table.insert(panels, d.Name)
+					end
+				end
+				last.Panels = #panels
+			end
+			print(string.format("hatch %s: tier %d, %d pets, landed %s, early speed %.1f px/frame -> late %.2f, silhouette %.2fs, rays %s, banner '%s', power '%s', %.1fs in all, extra pets %d",
+				case.Key, last.Tier or -1, last.Pets or 0, tostring(last.Landed), last.SpeedEarly or 0, last.SpeedLate or 0, last.Silhouette or 0, tostring(last.Rays), last.Banner or "", tostring(last.Power), last.Seconds, last.Others or 0))
 		end
 		-- skipping: clicking through a titanic show ends it quickly
 		local skipStart = CLOCK
@@ -663,20 +673,21 @@ if ok then
 			if not Hatch.busy() then break end
 			frames(1)
 		end
-		-- HIDDEN hatches: no animation, results slide in at the side
-		C("Roll").toggleHide()
-		local hiddenBefore, everBusy = data.Rolls, false
+		-- COMPACT hatches (the default): a small row at the top, no dim, the
+		-- full show never opens for a normal pet
+		local State = C("State")
+		State.Settings.FullHatch = false
+		local hiddenBefore, everShaded = data.Rolls, false
 		Hatch.LastFeed = nil
 		task.spawn(C("Roll").roll)
-		for _ = 1, 120 do
+		for _ = 1, 240 do
 			frames(1)
-			if Hatch.busy() then everBusy = true end
+			if Hatch.Shade.Visible then everShaded = true end
 		end
-		local feed = Hatch.LastFeed
-		C("Roll").toggleHide()
-		STATS.AutoHide = { AutoRolls = autoRolls, HiddenRolls = data.Rolls - hiddenBefore, EverBusy = everBusy, Feed = feed and #feed.Names or 0 }
-		print(string.format("auto roll with no upgrades: %d rolls in 15s | hidden hatch: %d roll, animation shown %s, %d cards in the feed",
-			autoRolls, STATS.AutoHide.HiddenRolls, tostring(everBusy), STATS.AutoHide.Feed))
+		local feed = Hatch.LastFeed or {}
+		STATS.AutoHide = { AutoRolls = autoRolls, HiddenRolls = data.Rolls - hiddenBefore, EverShaded = everShaded, Landed = feed.Landed, Names = feed.Names, Backdrop = feed.Backdrop }
+		print(string.format("auto roll with no upgrades: %d rolls in 15s | compact hatch: %d roll, landed %s (shown %s), backdrop transparency %s, full screen dim %s",
+			autoRolls, STATS.AutoHide.HiddenRolls, tostring(feed.Landed), tostring(feed.Names and feed.Names[1]), tostring(feed.Backdrop), tostring(everShaded)))
 
 		-- LEVEL: the HUD shows level and EXP; a level-up shows the celebration
 		local Hud = C("Hud")
@@ -1082,27 +1093,29 @@ if ok then
 	-- 45-51. the hatch show
 	local h = STATS.Hatch or {}
 	local common, huge, titanic, rare = h.common or {}, h.huge or {}, h.titanic or {}, h.rare or {}
-	item(45, "hatch: pets fall top to bottom, land centred", common.Vertical == true and common.Landed == true and (common.StripCardsShown or 0) >= 20, (common.StripCardsShown or 0) .. " pets falling, result centred")
+	item(45, "full hatch: a carousel of pets lands centred", common.Mode == "full" and common.Landed == true and common.LandedName == common.Result and (common.Pets or 0) >= 20, (common.Pets or 0) .. " pets pass by, result centred")
 	item(46, "hatch: fast, then slows down", (common.SpeedEarly or 0) > 10 * (common.SpeedLate or math.huge), string.format("%.1f px/frame early, %.2f at the end", common.SpeedEarly or 0, common.SpeedLate or 0))
-	item(47, "hatch: shakes, more and more", (common.Shakes or 0) > 10 and common.ShakeGrows == true, (common.Shakes or 0) .. " shaking frames")
+	item(47, "full hatch: no window behind the pets", common.Panels == 0, tostring(common.Panels) .. " big solid panels")
 	item(48, "hatch: silhouette before the reveal", (common.Silhouette or 0) > 0 and (titanic.Silhouette or 0) > (common.Silhouette or 0), string.format("%.2fs common, %.2fs titanic", common.Silhouette or 0, titanic.Silhouette or 0))
 	item(49, "hatch: effects grow with rarity", common.Tier == 0 and rare.Tier == 2 and common.Rays == false and rare.Rays == true and (rare.Hold or 0) > (common.Hold or 0), string.format("common %.1fs, rare %.1fs with rays", common.Hold or 0, rare.Hold or 0))
-	item(50, "hatch: Huge has its own reveal", huge.Tier == 4 and huge.Banner == "HUGE!" and (huge.Hold or 0) > (rare.Hold or 0), "banner " .. tostring(huge.Banner))
+	item(50, "hatch: Huge has its own reveal", huge.Tier == 4 and huge.Banner == "HUGE" and (huge.Hold or 0) > (rare.Hold or 0), "banner " .. tostring(huge.Banner))
 	item(51, "hatch: Titanic is the jackpot", titanic.Tier == 5 and string.find(titanic.Banner or "", "TITANIC") ~= nil and (titanic.Hold or 0) > (huge.Hold or 0) and (titanic.Seconds or 0) > (huge.Seconds or 0), string.format("%.1fs show vs %.1fs Huge", titanic.Seconds or 0, huge.Seconds or 0))
 	item(52, "hatch: can skip, rapid rolls safe", (h.SkipSeconds or 99) < 3 and h.RapidErrors == 0 and h.EndedClean == true and (h.RapidRolls or 0) >= 1 and (h.RapidRolls or 0) <= 10,
 		string.format("titanic skipped in %.1fs; 30 presses -> %d rolls, no errors", h.SkipSeconds or 0, h.RapidRolls or 0))
 
 	local flexH, realT = h.Flex or {}, h.RealTitanic or {}
-	item(58, "hatch: only a light veil (0.1)", common.Veil == 0.9, "veil transparency " .. tostring(common.Veil))
+	local ah = STATS.AutoHide or {}
+	item(58, "compact hatch: at most a 10% backdrop", (ah.Backdrop or 0) >= 0.9 and ah.EverShaded == false, "backdrop transparency " .. tostring(ah.Backdrop) .. ", no dim")
 	item(59, "hatch: flex rolls flash showstoppers", flexH.Flex == true and (flexH.FlexShown or 0) >= 1, (flexH.FlexShown or 0) .. " showstoppers: " .. table.concat(flexH.FlexNames or {}, ", "))
 	item(60, "hatch: never fakes the result", flexH.LandedName == "Dog" and flexH.Revealed == "Dog" and realT.Revealed == "Titanic Tiger" and realT.LandedName == "Titanic Tiger",
 		"flex landed and revealed " .. tostring(flexH.Revealed) .. "; a real Titanic revealed " .. tostring(realT.Revealed))
 
-	local ah = STATS.AutoHide or {}
 	item(61, "auto roll is free", (ah.AutoRolls or 0) >= 5, (ah.AutoRolls or 0) .. " auto rolls with no upgrades")
-	item(62, "hatches can be hidden", ah.HiddenRolls == 1 and ah.EverBusy == false and (ah.Feed or 0) >= 1, "rolled without the animation; " .. tostring(ah.Feed) .. " result card(s) at the side")
+	item(62, "compact hatch lands on the real result", ah.HiddenRolls == 1 and ah.Landed ~= nil and ah.Names ~= nil and ah.Landed == ah.Names[1], "landed on " .. tostring(ah.Landed))
 	local h2 = STATS.Hatch or {}
-	item(63, "hatch reveal counts up power", (h2.common and h2.common.Tier == 0) == true, "power counter, holo pad, scan line")
+	local power = h2.common and h2.common.Power
+	local expected = h2.common and h2.common.Result and Config.formatNumber(Config.petPower(h2.common.Result)) .. " power"
+	item(63, "hatch reveal counts up to the pet's power", power ~= nil and power == expected, tostring(power) .. " for " .. tostring(h2.common and h2.common.Result))
 
 	local passed = 0
 	for _, r in ipairs(results) do

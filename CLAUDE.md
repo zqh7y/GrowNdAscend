@@ -12,7 +12,7 @@ for how it plays and where the code lives.
   required level and the max of 8 still apply); the real costs are in
   `Config.REBIRTHS`.
 - **BEFORE THE FINAL VERSION: All areas are currently free and their gates
-  are open for testing. Restore the normal area costs (4K / 600K / 220M
+  are open for testing. Restore the normal area costs (20K / 6M / 30B
   coins) before releasing the final version of the game.** Set
   `Config.AREAS_FREE_FOR_TESTING = false` in `src/shared/Config.luau`.
   Saves made while testing keep every area unlocked, so also reset player
@@ -33,7 +33,7 @@ for how it plays and where the code lives.
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
 - The sim ends with a 63-point player checklist (spawning, rolling, pets
-  fighting, levels and EXP, rebirth keeping worlds, the vertical hatch, flex
+  fighting, levels and EXP, rebirth keeping worlds, the full and compact hatches, flex
   rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
@@ -65,10 +65,21 @@ for how it plays and where the code lives.
   is 100 x 70 studs; keep new props inside that footprint.
 - Art direction: the world is bright, toy-like and highly detailed
   (`Build.part` turns every material except Glass, Neon and ForceField into
-  SmoothPlastic). The UI is sleek and futuristic: dark glass, thin neon
-  edges, the Michroma tech font for titles (`Ui.FONT_TITLE`), corner
-  brackets and accent lines (`Ui.card`, `Ui.brackets`, `Ui.accentLine`).
-  No cartoon outlines, bubbly fonts or big rounded pills.
+  SmoothPlastic). The UI is clean, minimal and friendly: white rounded
+  panels, soft shadows (`Ui.shadow`), whitespace, solid colourful buttons,
+  rounded titles (`Ui.FONT_DISPLAY`). No neon, glowing borders, menu
+  particles or tech decoration (`Ui.brackets`/`Ui.accentLine` are no-ops).
+- Numbers: always `Config.formatNumber` (K, M, B, T, Qd, Qn, Sx ...) for
+  coins, power, costs, rewards, damage, EXP, leaderboards. Never print long
+  digit strings.
+- Pets (`PetModels.luau`) are blocky: build them from `chunk` (rounded
+  blocks) and `box`, never balls. Keep the rig contract (Legs/Wings/Tail,
+  an accurate FootY) and the rarity/Huge/Titanic accessories in `dress`.
+  Friendly, original designs only.
+- Targeting: pets only fight enemies in the player's current world
+  (`Combat.pickTarget` → `Breakables.near(pos, radius, area)`); the client
+  hides other worlds' enemies (`Living.playerArea`). New worlds need nothing
+  extra.
 - No grass pieces on the ground in World 1 (flat or otherwise): the green
   terrain is the grass.
 - Areas call `ctx.reserveSpots()` after their big props and before small
@@ -98,8 +109,10 @@ for how it plays and where the code lives.
   `simulate.py 0 --rebirth 70` after changing them.
 - The hatch (`Hatch.luau`) must never get stuck: it runs protected and
   always cleans up. Pressing Roll during a hatch skips; it never stacks.
-  Flex rolls are visual only: the column always lands on and reveals the
-  real result (tested).
+  Two modes: `Hatch.compact` (default, a small row at the top, at most a
+  10% backdrop) and `Hatch.play` (full, `State.Settings.FullHatch`). No
+  panels or windows behind the pets (tested). Flex rolls are visual only:
+  the carousel always lands on and reveals the real result (tested).
 - UI style lives in `Ui.luau` (fonts, button styles incl. colours) and
   `Screen.modal(width, height, theme)` (ribbon, border, shadow, blur); new
   screens use those so everything looks the same.

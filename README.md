@@ -18,7 +18,9 @@ chase Huge and Titanic pets.**
   cactuses sway and double-bounce, ice cubes slide and spin, sushi flips.
   Five per area, always on the real ground.
 - **Pets fight for you:** equipped pets go after the living coin nearest to
-  you, all together, and hit it on their own. Stronger pets (rarer, bigger)
+  you in the world you are standing in (never one in another world), all
+  together, and hit it on their own. Walk into the next world and they
+  switch to its enemies; other worlds' enemies aren't shown. Stronger pets (rarer, bigger)
   hit harder. Hits show lunges, flashes and damage numbers; a broken coin
   bursts and its coins fly into your counter. No clicking needed.
 - **Rolling:** the Roll button gives a random animal (70 animals, 1 in 2 to
@@ -27,27 +29,39 @@ chase Huge and Titanic pets.**
   world**, but animals from worlds ahead of the one you stand in are 25x
   rarer per world (a World 4 animal in World 1: 15,625x rarer), and each
   world adds luck (x1 / x1.2 / x1.45 / x1.75), so later worlds hatch better.
-- **The hatch:** right over the game (only a 10% veil, no window), pets
-  stream down from the top of the screen, fast and motion-blurred at first,
-  bigger in the middle and fading at the edges, each with a rarity glow and
-  a shadow, with sparkles drifting up. It slows down, zooms gently, shakes
-  more and more, and stops exactly on your pet, which waits as a glowing
-  silhouette before popping out in 3D with its name, rarity, power and size.
-  Rare pets get rays and jingles, Huge a gold flash and a "HUGE!" banner,
-  and Titanic is an event (the lights go down, a heartbeat rise, then a
-  rainbow flash, "TITANIC", rings, confetti, screen shake). About 1 roll in
-  30 is a **flex roll**: a Huge, Titanic or Secret flies past on the way
-  down with a big label, then the column carries on to your real result
-  (it's only a show; you get exactly what you rolled). Click to skip; it's
-  quicker after the first few hatches and fastest when auto rolling. The
-  reveal stands the pet on a holo pad, sweeps a scan line over it and
-  counts its power up; a "SO CLOSE" tag marks a much rarer pet that
-  stopped right above yours. Every 10th roll
-  has 2x luck. Rare pets and big sizes get a full-screen reveal with rays,
-  confetti and a jingle (Titanic: rainbow).
+- **The hatch** has two modes (the eye button switches them):
+  - **Compact** (the default): a small row at the top of the screen, under
+    your coins. Pets glide in from the right, the middle one larger, and
+    ease to a stop on your pet, which pops with its name and a rarity chip.
+    Only a faint pill (10% opacity) sits behind it; the game stays fully
+    visible and playable underneath. A Huge or Titanic still gets its big
+    reveal.
+  - **Full**: the same idea, bigger and centred over a soft dim. A carousel
+    of large pets (smaller and fainter towards the sides, soft shadows
+    under each) slows down onto your pet, holds a short silhouette, then
+    your pet rises large with its name, rarity, odds and its power counting
+    up. No windows or boxes: the pets are the show. Effects stay calm and
+    grow with rarity: soft sparkles, gentle light rays, a gold glow and
+    confetti for Huge, a slow rise with a rainbow glow for Titanic. About 1
+    full hatch in 30 is a **flex roll**: a Huge or Titanic slides past the
+    middle with a small "Huge Dragon?!" label; it's only a show, the
+    carousel always stops on what you actually rolled.
+
+  Click (or press Roll) to skip; hatches get quicker after the first few
+  and when auto rolling. Every 10th roll has 2x luck.
 - **Upgrade tree** (the tree button): Coins, Damage, Luck, Roll Speed, Rolls
   at Once, Auto Hatch (auto roll → quick reveals → auto-equip best), Size
   Luck and Pet Slots. Some branches unlock after others.
+- **Pets are chunky collectibles:** every animal is built from soft
+  rounded blocks (a big head on a compact body, short sturdy legs) with its
+  own silhouette, ears, tail, markings and face (glossy layered eyes,
+  cheeks, a nose and its own mouth); paws have toes and chests layered fur.
+  Accessories grow with rarity: a collar with a gold tag, a bandana, an
+  adventure satchel, a cape, a gem tag with two gold stars circling, soft
+  feathered wings, rainbow trim. Huge pets wear gold (collar, paw cuffs,
+  badge, gold sparkles); Titanic pets are collector's trophies with a
+  jewelled crown, a gold chest plate with a big gem, a royal ermine cape
+  and a warm glow.
 - **Pets are animals:** every species moves like the real thing. Dogs and
   cats trot with their legs going, bunnies and frogs hop, ducks and penguins
   waddle, birds and dragons fly with flapping wings, fish and whales swim
@@ -110,21 +124,18 @@ Rebirth, Settings; the leaderboards live in the Forest), and the Roll and
 Auto buttons on the right, so the middle stays clear for the fights. The
 top-left corner is left for Roblox's own menu buttons.
 
-Every screen shares one sleek futuristic style: dark glass panels with a
-thin neon edge in the screen's colour, a neon line along the top, a faint
-tech grid, HUD corner brackets, titles in a wide tech font ("// DATABASE"
-over "ANIMAL INDEX"), crisp buttons (cyan -> violet on the main actions,
-dark glass with neon edges elsewhere), and pets standing on holo pads. The
-upgrade tree is a circuit board: neon traces run from a pulsing core to
-dark lens-like nodes with neon rings, level bars, costs, padlocks and MAX
-tags, with a detail panel and a pop, sparks and "+1 level" text on every
+Every screen shares one clean, friendly style: white rounded panels with
+soft shadows and lots of space, a coloured icon tile and a rounded title
+on each screen, solid colourful buttons with soft gradients, and no neon,
+glow or tech decoration. The upgrade tree shows nodes with level bars,
+costs, padlocks and MAX tags, with a detail panel and a pop on every
 purchase. The rebirth screen shows REBIRTH X / 8 as a segment bar, what
 resets vs what you gain, and both requirements as MET / LOCKED with
-progress bars. Above the Roll button a luck meter fills 10 segments
-towards the 2x bonus roll. **Auto roll is free.** The eye button hides
-the hatch animation: results slide in as small cards at the side (a Huge
-or Titanic still flashes). Settings: damage numbers, full hatch
-animation, sounds. Sounds use built-in Roblox sounds; swap them in
+progress bars. Under the coins a small chip shows your luck ("Luck x2.50
+· 2x in 4"). **Auto roll is free.** Settings: damage numbers, full hatch
+animation, sounds. Every number uses one short format everywhere
+(`Config.formatNumber`): 1.5K, 2M, 3B, 4T, 5Qd, 6Qn, 7Sx ... never long
+digit strings. Sounds use built-in Roblox sounds; swap them in
 `Effects.SOUNDS`.
 
 ## The map
@@ -138,9 +149,9 @@ accents (realistic materials are swapped out automatically in `Build.part`).
 | Area | What's there | Breakable | Unlock |
 | --- | --- | --- | --- |
 | 1 Forest | Dirt path through the grass, oaks, birches, fruit trees and poplars (root flares, bent trunks, branches, toon-shaded leaves), flower patches (daisies, tulips, bluebells, sunflowers), berry bushes, mushrooms, fallen logs, mossy rocks, two tiered fountains with water streams, hills with a cottage and a windmill, the 3 leaderboards side by side | Hopping fruit trees (5K HP, 20 coins) | Free |
-| 2 Sahara | Oasis with palms and reeds, pyramids with gold capstones and a sphinx, Cleopatra's temple (pylon gate with a winged sun disk, lotus columns, painted friezes, obelisks, fire braziers, guardian sphinxes, her statue), the fusion machine (spinning rings, glowing pipes, hopper, output pad, console with a screen), a camel, pottery, Western Wall-style walls with raised stone faces | Saguaro, barrel and prickly pear cactuses (60M HP, 400 coins) | 4K |
-| 3 Frozen Peaks | Snow with ice patches, a frozen sea (cracks, fishing holes, pressure ridges, floes, icebergs, penguins), a snow-brick igloo, a snowman and a sled, an ice arch with icicles, ice walls, crystal clusters, snow-laden pines, snowy rocks, snowfall | Ice cubes: clear, with a fish, with a gem, stacked (4B HP, 25K coins) | 600K |
-| 4 Sakura Jungle | Twisted and weeping cherry trees with falling petals, red maples, bamboo, ferns, hydrangeas and azaleas, stepping-stone path, torii gates, stone lanterns, koi pond with a red arched bridge and a bamboo spout, a five-tier pagoda, Japanese walls with tile roofs and round windows | Sushi with happy faces: salmon, tuna, egg, maki (250B HP, 1.5M coins) | 220M |
+| 2 Sahara | Oasis with palms and reeds, pyramids with gold capstones and a sphinx, Cleopatra's temple (pylon gate with a winged sun disk, lotus columns, painted friezes, obelisks, fire braziers, guardian sphinxes, her statue), the fusion machine (spinning rings, glowing pipes, hopper, output pad, console with a screen), a camel, pottery, Western Wall-style walls with raised stone faces | Saguaro, barrel and prickly pear cactuses (120M HP, 600 coins) | 20K |
+| 3 Frozen Peaks | Snow with ice patches, a frozen sea (cracks, fishing holes, pressure ridges, floes, icebergs, penguins), a snow-brick igloo, a snowman and a sled, an ice arch with icicles, ice walls, crystal clusters, snow-laden pines, snowy rocks, snowfall | Ice cubes: clear, with a fish, with a gem, stacked (30B HP, 40K coins) | 6M |
+| 4 Sakura Jungle | Twisted and weeping cherry trees with falling petals, red maples, bamboo, ferns, hydrangeas and azaleas, stepping-stone path, torii gates, stone lanterns, koi pond with a red arched bridge and a bamboo spout, a five-tier pagoda, Japanese walls with tile roofs and round windows | Sushi with happy faces: salmon, tuna, egg, maki (12T HP, 3M coins) | 30B |
 
 The fusion machine shows its state: slow rings when idle, fast rings and
 lots of sparkles while fusing (the orb takes the pet's colour and grows), and

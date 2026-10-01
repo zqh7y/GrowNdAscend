@@ -78,8 +78,8 @@ local function card(x, title, color)
 	label(frame, {
 		Size = UDim2.new(1, 0, 0, 14),
 		Font = Ui.FONT_TITLE,
-		TextSize = 10,
-		Text = "// " .. title,
+		TextSize = 13,
+		Text = title,
 		TextColor3 = color,
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
@@ -113,7 +113,7 @@ local function row(parent, y, icon, color)
 	return big, small
 end
 
-local lose = card(0, "RESETS", Ui.DANGER)
+local lose = card(0, "Resets", Ui.DANGER)
 local loseCoins, loseCoinsNote = row(lose, 24, "coin", Ui.DANGER)
 local keepText, keepNote = row(lose, 86, "star", Ui.SUCCESS)
 label(lose, {
@@ -127,7 +127,7 @@ label(lose, {
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
 
-local gain = card(0.5, "GAIN", Ui.SUCCESS)
+local gain = card(0.5, "You gain", Ui.SUCCESS)
 local gainLuck, gainLuckNote = row(gain, 24, "clover", Ui.SUCCESS)
 local gainCoins, gainCoinsNote = row(gain, 86, "coin", Ui.GOLD)
 label(gain, {
@@ -147,8 +147,8 @@ local reqTitle = label(box, {
 	Position = UDim2.fromOffset(0, 288),
 	Size = UDim2.new(1, 0, 0, 14),
 	Font = Ui.FONT_TITLE,
-	TextSize = 10,
-	Text = "// REQUIREMENTS",
+	TextSize = 13,
+	Text = "Requirements",
 	TextColor3 = Ui.MUTED,
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
@@ -168,7 +168,7 @@ local function requirement(x, title, icon, color)
 		Parent = frame,
 	}, { Ui.corner(6), Ui.stroke(color, 1.2, 0.2) })
 	Ui.icon(icon, 30, color, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 35, Parent = chip })
-	label(frame, { Position = UDim2.fromOffset(64, 0), Size = UDim2.new(1, -150, 0, 14), Font = Ui.FONT_TITLE, TextSize = 9, Text = title, TextColor3 = Ui.MUTED, TextXAlignment = Enum.TextXAlignment.Left })
+	label(frame, { Position = UDim2.fromOffset(64, 0), Size = UDim2.new(1, -150, 0, 14), Font = Ui.FONT_TITLE, TextSize = 15, Text = title, TextColor3 = Ui.MUTED, TextXAlignment = Enum.TextXAlignment.Left })
 	local value = label(frame, { Position = UDim2.fromOffset(64, 16), Size = UDim2.new(1, -64, 0, 32), TextSize = 28, TextColor3 = color, TextXAlignment = Enum.TextXAlignment.Left })
 	local note = label(frame, { Position = UDim2.fromOffset(64, 52), Size = UDim2.new(1, -64, 0, 16), Font = Ui.FONT_MEDIUM, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left })
 	local status = label(frame, {
@@ -177,7 +177,7 @@ local function requirement(x, title, icon, color)
 		Size = UDim2.fromOffset(78, 20),
 		BackgroundTransparency = 0,
 		Font = Ui.FONT_TITLE,
-		TextSize = 9,
+		TextSize = 12,
 		ZIndex = 35,
 	})
 	Ui.corner(3).Parent = status
@@ -185,7 +185,7 @@ local function requirement(x, title, icon, color)
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, 0),
 		Size = UDim2.new(1, 0, 0, 5),
-		BackgroundColor3 = Ui.INK,
+		BackgroundColor3 = Ui.LINE,
 		ZIndex = 34,
 		Parent = frame,
 	}, { Ui.corner(2) })
@@ -209,7 +209,7 @@ local testingNote = label(box, {
 	BackgroundTransparency = 0,
 	BackgroundColor3 = Color3.fromRGB(255, 150, 60),
 	Font = Ui.FONT_TITLE,
-	TextSize = 8,
+	TextSize = 11,
 	Text = "  TEST MODE: NO CASH COST  ",
 	TextColor3 = Ui.INK,
 	Visible = Config.REBIRTH_FREE_FOR_TESTING,
@@ -268,7 +268,7 @@ local function refresh()
 	gainCoinsNote.Text = "Coins x" .. Config.coinMultiplier(r) .. " → x" .. Config.coinMultiplier(after)
 
 	if not nextRow then
-		reqTitle.Text = "// MAX REBIRTH REACHED"
+		reqTitle.Text = "Max rebirth reached!"
 		reqTitle.TextColor3 = Ui.GOLD
 		cash.Frame.Visible, level.Frame.Visible, testingNote.Visible = false, false, false
 		Ui.setText(rebirthButton, "MAX REBIRTH " .. Config.MAX_REBIRTHS .. " / " .. Config.MAX_REBIRTHS)
@@ -278,7 +278,7 @@ local function refresh()
 	end
 	cash.Frame.Visible, level.Frame.Visible = true, true
 	testingNote.Visible = Config.REBIRTH_FREE_FOR_TESTING
-	reqTitle.Text = "// REQUIREMENTS FOR REBIRTH " .. (r + 1)
+	reqTitle.Text = "Requirements for rebirth " .. (r + 1)
 	reqTitle.TextColor3 = Ui.MUTED
 	local ok, hasCoins, hasLevel = Config.canRebirth(data)
 	local cost = Config.rebirthCost(r)

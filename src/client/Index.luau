@@ -82,8 +82,8 @@ Ui.new("TextLabel", {
 	Size = UDim2.new(1, 0, 0, 22),
 	Font = Ui.FONT_TITLE,
 	TextScaled = false,
-	TextSize = 11,
-	Text = "// CATEGORY",
+	TextSize = 14,
+	Text = "Category",
 	TextColor3 = Ui.MUTED,
 	ZIndex = 33,
 	Parent = side,
@@ -143,7 +143,7 @@ local progressText = Ui.new("TextLabel", {
 local track = Ui.new("Frame", {
 	Position = UDim2.fromOffset(0, 66),
 	Size = UDim2.new(1, 0, 0, 16),
-	BackgroundColor3 = Ui.INK,
+	BackgroundColor3 = Ui.LINE,
 	ZIndex = 33,
 	Parent = progressHolder,
 }, { Ui.corner(2), Ui.stroke(Ui.LINE, 1, 0.3) })
@@ -179,7 +179,7 @@ local function card(pet, sizeIndex, found, world)
 	local accent = if sizeIndex > 1 then size.Color else rarity.Color
 	local frame = Ui.card({
 		LayoutOrder = pet.Index,
-		BackgroundColor3 = if found then Ui.GLASS_LIGHT else Color3.fromRGB(10, 12, 24),
+		BackgroundColor3 = if found then Ui.GLASS_LIGHT else Color3.fromRGB(236, 238, 244),
 		ZIndex = 32,
 		Parent = grid,
 	}, if found then accent else Ui.LINE, { Ui.padding(8) })
@@ -204,7 +204,7 @@ local function card(pet, sizeIndex, found, world)
 		Size = UDim2.fromOffset(34, 16),
 		TextScaled = false,
 		Font = Ui.FONT_TITLE,
-		TextSize = 8,
+		TextSize = 11,
 		Text = string.format("#%02d", pet.Index),
 		TextColor3 = Ui.MUTED,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -235,7 +235,7 @@ local function card(pet, sizeIndex, found, world)
 			BackgroundColor3 = size.Color,
 			Font = Ui.FONT_TITLE,
 			TextScaled = false,
-			TextSize = 8,
+			TextSize = 11,
 			Text = string.upper(size.Name),
 			TextColor3 = Ui.INK,
 			ZIndex = 35,
@@ -258,7 +258,7 @@ local function card(pet, sizeIndex, found, world)
 		})
 	end
 	line(88, 16, Ui.FONT, if found then pet.Name else "???", if found then Ui.TEXT else Ui.MUTED)
-	line(108, 8, Ui.FONT_TITLE, string.upper(rarity.Name), rarity.Color)
+	line(108, 11, Ui.FONT_TITLE, string.upper(rarity.Name), rarity.Color)
 	-- odds where you stand (the size chance included for Huge/Titanic)
 	local odds = Config.worldOdds(pet, world) * size.Chance
 	line(123, 12, Ui.FONT_MEDIUM, Config.formatOdds(odds) .. " here", if pet.World > world then Color3.fromRGB(255, 170, 170) else Ui.MUTED)

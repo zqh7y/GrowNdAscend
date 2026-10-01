@@ -34,13 +34,16 @@ local function sameTeam(a, b)
 	return true
 end
 
+-- Current area -> valid targets in that area -> the nearest one. Pets never
+-- look at other worlds' targets, however close they are.
 local function pickTarget(root, data, current)
-	-- stay on the current one while it's alive and not too far
-	if current and Breakables.alive(current) and (current.Pos - root.Position).Magnitude <= Config.FIGHT_RADIUS * 1.3 then
+	local area = math.min(Config.areaAt(root.Position.X), data.Unlocked)
+	-- stay on the current one while it's alive, in this area and not too far
+	if current and Breakables.alive(current) and current.Area == area and (current.Pos - root.Position).Magnitude <= Config.FIGHT_RADIUS * 1.3 then
 		return current
 	end
 	local best, bestDistance = nil, math.huge
-	for _, target in ipairs(Breakables.near(root.Position, Config.FIGHT_RADIUS, data.Unlocked)) do
+	for _, target in ipairs(Breakables.near(root.Position, Config.FIGHT_RADIUS, area)) do
 		local distance = (target.Pos - root.Position).Magnitude
 		if distance < bestDistance then
 			best, bestDistance = target, distance

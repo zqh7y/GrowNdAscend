@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 8 (futuristic UI, free auto, hide hatches)"
+Config.BUILD = "build 9 (clean UI, new hatch, blocky pets)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -654,7 +654,9 @@ end
 
 -- Formatting -------------------------------------------------------------------
 
-local SUFFIXES = { "", "K", "M", "B", "T", "Qa", "Qi" }
+-- The one number format used everywhere in the game (coins, power, costs,
+-- odds, EXP, damage, leaderboards): 1K, 1M, 1B, 1T, 1Qd, 1Qn, 1Sx ...
+local SUFFIXES = { "", "K", "M", "B", "T", "Qd", "Qn", "Sx", "Sp", "Oc", "No", "Dc", "Ud", "Dd", "Td" }
 
 function Config.formatNumber(n)
 	if n < 1000 then
@@ -674,9 +676,7 @@ end
 
 -- "1 in 1,000,000"
 function Config.formatOdds(odds)
-	local digits = tostring(math.floor(odds))
-	local withCommas = digits:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
-	return "1 in " .. withCommas
+	return "1 in " .. Config.formatNumber(odds)
 end
 
 return Config

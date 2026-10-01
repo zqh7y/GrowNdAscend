@@ -167,6 +167,7 @@ local function add(data)
 		Shake = 0,
 		Phase = math.random() * 10,
 		Position = data:GetAttribute("HopTo"),
+		Area = area,
 		Bar = healthBar(model, area, height),
 		Highlight = highlight,
 		Parts = parts,
@@ -313,7 +314,20 @@ local function landing(since, style)
 	return bounce, 1 - math.exp(-since * 9) * math.sin(since * 20) * 0.13
 end
 
+local Players = game:GetService("Players")
+
+-- The world the player is in: only its targets are shown (each world is its
+-- own place; other worlds' targets are hidden until you walk in)
+local function playerArea()
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local x = if root then root.Position.X else Workspace.CurrentCamera.CFrame.Position.X
+	return Config.areaAt(x)
+end
+Living.playerArea = playerArea
+
 RunService.RenderStepped:Connect(function(dt)
+	local here = playerArea()
 	local now = Workspace:GetServerTimeNow()
 	local clock = os.clock()
 	local cameraPos = Workspace.CurrentCamera.CFrame.Position
@@ -346,6 +360,16 @@ RunService.RenderStepped:Connect(function(dt)
 		-- the path runs along the ground from one landing to the next
 		local ground = from:Lerp(to, math.clamp(along, 0, 1))
 		coin.Position = ground
+
+		-- other worlds' targets aren't shown
+		if coin.Area ~= here then
+			if coin.Model.Parent then
+				coin.Model.Parent = nil
+			end
+			continue
+		elseif not coin.Model.Parent then
+			coin.Model.Parent = visuals
+		end
 
 		-- far away coins only update now and then
 		coin.Skip = (coin.Skip or 0) + 1
