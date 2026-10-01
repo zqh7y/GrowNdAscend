@@ -36,6 +36,7 @@ local DEFAULT = {
 	Strongest = 0, -- power of the strongest pet ever owned
 	LuckChain = 1, -- the luck boost waiting for the next roll (x2, x4 ... x1024)
 	Milestones = {}, -- [Index milestone id] = true once its reward is claimed
+	Obtained = {}, -- [pet name] = the roll number it was last hatched on (newest first)
 }
 
 local sessionData = {} -- [player] = data while they're in game
@@ -76,6 +77,7 @@ local function load(player)
 	data.Upgrades = {}
 	data.Discovered = {}
 	data.Milestones = {}
+	data.Obtained = {}
 	if ok and saved then
 		for k, v in pairs(saved) do
 			data[k] = v
@@ -160,6 +162,7 @@ function PlayerData.sync(player)
 		Fusion = data.Fusion,
 		LuckChain = data.LuckChain or 1,
 		Milestones = data.Milestones or {},
+		Obtained = data.Obtained or {},
 		ServerTime = os.time(),
 	})
 end

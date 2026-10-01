@@ -1,13 +1,22 @@
--- The Inventory: the pets you own, made simple. Each card shows just what
--- matters at a glance: a big picture of the pet, its name, its power (a
--- sword and a number), its rarity as a coloured card edge and top stripe
--- (gold for Huge, pink for Titanic), how many you have, whether it's
--- equipped (green card with a check) and ONE button: Equip or Unequip.
--- Tap a card to open its details on the right: everything else (rarity,
--- size, power, how many you have and its five multipliers with plain words
--- and icons). Filters are four simple tabs; the sort button says what it
--- does ("Strongest first").
+-- The Inventory ("My Pets"): your pet collection.
+--
+--   THE GRID   many small cards at once (about 5-8 per row, worked out from
+--              the space available, so it adapts to the panel and screen).
+--              A card only answers "what pet is this, and do I have it on?":
+--              the pet, its name, "x3" if you have copies and a green check
+--              if it's equipped; its rarity is the card's soft colour.
+--   DETAILS    tapping a pet slides a details panel in on the right (the
+--              grid stays visible, just narrower): a big preview, name,
+--              rarity and size, power and damage per second, its five
+--              multipliers, how many you have and are using, and one
+--              Equip / Unequip button. Tapping another pet updates it in
+--              place; the X closes it and the grid takes the full width.
+--   TOOLBAR    compact tabs (All, Normal, Huge, Titanic, Equipped), a small
+--              Sort menu (Power, Newest, Rarity) and Equip Best.
+local TweenService = game:GetService("TweenService")
+
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local Effects = require(script.Parent.Effects)
 local PetView = require(script.Parent.PetView)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
@@ -18,121 +27,66 @@ local Inventory = {}
 local equipFunction = State.remote("Equip")
 local equipBestFunction = State.remote("EquipBest")
 
-local DETAIL_W = 270
-local modal, box = Screen.modal(900, 620, "Inventory")
-local title = Screen.title(box, "My Pets")
+local WIDTH, HEIGHT = 900, 620
+local INNER_W = WIDTH - 48
+local DETAIL_W, GAP = 268, 12
+local TOP = 98 -- where the grid starts
+local CARD_TARGET, CARD_GAP = 100, 10
+local EASE = TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+local modal, box = Screen.modal(WIDTH, HEIGHT, "Inventory")
+Screen.title(box, "My Pets")
 local hint = Screen.subtitle(box, "")
-Ui.button({
+hint.Position = UDim2.new(1, -188, 0, 8) -- left of Equip Best
+
+-- Equip Best (shared with the upgrade tree) -----------------------------------------------------
+
+Inventory.LastEquipBest = nil -- for the simulator: the server's answer
+
+-- Equips your best team (the server picks it: real damage, then luck,
+-- then coins) and says what happened in a small toast
+function Inventory.equipBest()
+	local result = equipBestFunction:InvokeServer()
+	Inventory.LastEquipBest = result
+	if type(result) ~= "table" then
+		return
+	end
+	if not result.Changed then
+		Screen.toast("Team already optimized ✓", "success")
+		return
+	end
+	-- "Equipped: Tiger x2, Huge Fox"
+	local counts, order = {}, {}
+	for _, name in ipairs(result.Added) do
+		if not counts[name] then
+			table.insert(order, name)
+		end
+		counts[name] = (counts[name] or 0) + 1
+	end
+	local parts = {}
+	for _, name in ipairs(order) do
+		table.insert(parts, name .. (if counts[name] > 1 then " x" .. counts[name] else ""))
+	end
+	Screen.toast("Equipped: " .. table.concat(parts, ", "), "success")
+	Effects.jingle(2)
+end
+
+local equipBestButton = Ui.button({
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -40, 0, 6),
-	Size = UDim2.fromOffset(150, 40),
-	Radius = 20,
+	Position = UDim2.new(1, -44, 0, 0),
+	Size = UDim2.fromOffset(132, 34),
+	Radius = 17,
 	Text = "Equip Best",
 	Icon = "star",
-	TextSize = 15,
-	ZIndex = 33,
-	Parent = box,
-}, function()
-	equipBestFunction:InvokeServer()
-end, "primary")
-
--- Filters and sorting ----------------------------------------------------------------------
-
-local FILTERS = {
-	{ Name = "All", Empty = "No pets yet. Roll to hatch your first one!", Keep = function() return true end },
-	{ Name = "Equipped", Empty = "Nothing equipped. Tap Equip on a pet!", Keep = function(_, equipped) return equipped > 0 end },
-	{ Name = "Huge", Empty = "No Huge pets yet.", Keep = function(name) return select(2, Config.petInfo(name)).Index == 2 end },
-	{ Name = "Titanic", Empty = "No Titanic pets yet.", Keep = function(name) return select(2, Config.petInfo(name)).Index == 3 end },
-}
-local SORTS = {
-	{ Name = "Strongest first", Before = function(a, b) return Config.petPower(a) > Config.petPower(b) end },
-	{ Name = "Rarest first", Before = function(a, b)
-		local pa, pb = Config.petInfo(a), Config.petInfo(b)
-		if pa.Odds ~= pb.Odds then return pa.Odds > pb.Odds end
-		return Config.petPower(a) > Config.petPower(b)
-	end },
-	{ Name = "Most owned", Before = function(a, b, data)
-		if data.Pets[a] ~= data.Pets[b] then return data.Pets[a] > data.Pets[b] end
-		return Config.petPower(a) > Config.petPower(b)
-	end },
-	{ Name = "A to Z", Before = function(a, b) return a < b end },
-}
-Inventory.FILTERS, Inventory.SORTS = FILTERS, SORTS
-Inventory.Filter = 1
-Inventory.Sort = 1
-Inventory.Selected = nil -- the pet whose details are open
-local refresh, showDetails
-
-local LIST_W = 900 - 48 - DETAIL_W - 16
-local toolbar = Ui.new("Frame", {
-	Position = UDim2.fromOffset(0, 56),
-	Size = UDim2.fromOffset(LIST_W, 40),
-	BackgroundTransparency = 1,
-	ZIndex = 32,
-	Parent = box,
-})
-local chipRow = Ui.new("Frame", {
-	Size = UDim2.new(1, -176, 1, 0),
-	BackgroundTransparency = 1,
-	Parent = toolbar,
-}, {
-	Ui.new("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		Padding = UDim.new(0, 8),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	}),
-})
-local chips = {}
-for i, filter in ipairs(FILTERS) do
-	chips[i] = Ui.button({
-		LayoutOrder = i,
-		Size = UDim2.fromOffset(if filter.Name == "Equipped" then 108 else 84, 40),
-		Radius = 20,
-		Text = filter.Name,
-		TextSize = 16,
-		ZIndex = 33,
-		Parent = chipRow,
-	}, function()
-		Inventory.Filter = i
-		refresh(true)
-	end, "glass")
-end
-local sortButton = Ui.button({
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, 0, 0, 0),
-	Size = UDim2.fromOffset(170, 40),
-	Radius = 20,
-	Icon = "sort",
-	Text = "Strongest first",
 	TextSize = 14,
 	ZIndex = 33,
-	Parent = toolbar,
-}, function()
-	Inventory.Sort = Inventory.Sort % #SORTS + 1
-	refresh(true)
-end, "glass")
-
-local grid = Screen.scrollList(box, 108, Ui.new("UIGridLayout", {
-	CellSize = UDim2.fromOffset(170, 228),
-	CellPadding = UDim2.fromOffset(12, 12),
-	SortOrder = Enum.SortOrder.LayoutOrder,
-}))
-grid.Size = UDim2.new(0, LIST_W, 1, -108)
-Inventory.Grid = grid -- (for the simulator)
-local empty = Ui.new("TextLabel", {
-	Position = UDim2.fromOffset(0, 170),
-	Size = UDim2.fromOffset(LIST_W, 24),
-	Font = Ui.FONT_MEDIUM,
-	TextScaled = false,
-	TextSize = 17,
-	TextColor3 = Ui.MUTED,
-	Text = "",
-	Visible = false,
-	ZIndex = 33,
 	Parent = box,
-})
+}, function()
+	Inventory.equipBest()
+end, "primary")
+Inventory.EquipBestButton = equipBestButton
 
--- Cards --------------------------------------------------------------------------------------
+-- Filters and sorting ----------------------------------------------------------------------
 
 local function count(list, name)
 	local n = 0
@@ -144,238 +98,405 @@ local function count(list, name)
 	return n
 end
 
+local function sizeOf(name)
+	return (select(2, Config.petInfo(name))).Index
+end
+
+local FILTERS = {
+	{ Name = "All", Empty = "No pets yet. Press ROLL to hatch your first one!", Keep = function() return true end },
+	{ Name = "Normal", Empty = "No normal pets.", Keep = function(name) return sizeOf(name) == 1 end },
+	{ Name = "Huge", Empty = "No Huge pets yet.", Keep = function(name) return sizeOf(name) == 2 end },
+	{ Name = "Titanic", Empty = "No Titanic pets yet.", Keep = function(name) return sizeOf(name) == 3 end },
+	{ Name = "Equipped", Empty = "Nothing equipped. Tap a pet, then Equip!", Keep = function(_, equipped) return equipped > 0 end },
+}
+local SORTS = {
+	{ Name = "Power", Before = function(a, b) return Config.petPower(a) > Config.petPower(b) end },
+	{ Name = "Newest", Before = function(a, b, data)
+		local na, nb = (data.Obtained or {})[a] or 0, (data.Obtained or {})[b] or 0
+		if na ~= nb then return na > nb end
+		return Config.petPower(a) > Config.petPower(b)
+	end },
+	{ Name = "Rarity", Before = function(a, b)
+		local pa, pb = Config.petInfo(a), Config.petInfo(b)
+		local sa, sb = sizeOf(a), sizeOf(b)
+		if sa ~= sb then return sa > sb end
+		if pa.Odds ~= pb.Odds then return pa.Odds > pb.Odds end
+		return a < b
+	end },
+}
+Inventory.FILTERS, Inventory.SORTS = FILTERS, SORTS
+Inventory.Filter = 1
+Inventory.Sort = 1
+Inventory.Selected = nil -- the pet whose details are open
+local refresh, select
+
+-- tabs: one compact segmented pill
+local tabs = Ui.new("Frame", {
+	Name = "Tabs",
+	Position = UDim2.fromOffset(0, 50),
+	Size = UDim2.fromOffset(0, 36),
+	AutomaticSize = Enum.AutomaticSize.X,
+	BackgroundColor3 = Ui.GLASS_LIGHT,
+	ZIndex = 32,
+	Parent = box,
+}, {
+	Ui.corner(18),
+	Ui.padding(3),
+	Ui.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }),
+})
+local tabButtons = {}
+for i, filter in ipairs(FILTERS) do
+	local tab = Ui.new("TextButton", {
+		Name = filter.Name,
+		LayoutOrder = i,
+		Size = UDim2.fromOffset(if filter.Name == "Equipped" then 92 else 76, 30),
+		BackgroundColor3 = Ui.WHITE,
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Font = Ui.FONT,
+		TextScaled = false,
+		TextSize = 14,
+		Text = filter.Name,
+		TextColor3 = Ui.MUTED,
+		ZIndex = 33,
+		Parent = tabs,
+	}, { Ui.corner(15) })
+	tab.Activated:Connect(function()
+		Effects.play("Click", 1.1, 0.05)
+		Inventory.Filter = i
+		refresh(true)
+	end)
+	tabButtons[i] = tab
+end
+
+-- sort: a small menu button
+local sortButton = Ui.new("TextButton", {
+	Name = "Sort",
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, 0, 0, 50),
+	Size = UDim2.fromOffset(140, 36),
+	BackgroundColor3 = Ui.GLASS_LIGHT,
+	AutoButtonColor = false,
+	Font = Ui.FONT,
+	TextScaled = false,
+	TextSize = 14,
+	Text = "Sort: Power  ▾",
+	TextColor3 = Ui.INK,
+	ZIndex = 33,
+	Parent = box,
+}, { Ui.corner(18) })
+local sortMenu = Ui.new("Frame", {
+	Name = "SortMenu",
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, 0, 0, 90),
+	Size = UDim2.fromOffset(140, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	BackgroundColor3 = Ui.WHITE,
+	Visible = false,
+	ZIndex = 50,
+	Parent = box,
+}, {
+	Ui.corner(14),
+	Ui.padding(4),
+	Ui.new("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }),
+})
+Ui.stroke(Ui.LINE, 1, 0).Parent = sortMenu
+for i, sort in ipairs(SORTS) do
+	local option = Ui.new("TextButton", {
+		LayoutOrder = i,
+		Size = UDim2.new(1, 0, 0, 30),
+		BackgroundColor3 = Ui.GLASS_LIGHT,
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Font = Ui.FONT,
+		TextScaled = false,
+		TextSize = 14,
+		Text = sort.Name,
+		TextColor3 = Ui.INK,
+		ZIndex = 51,
+		Parent = sortMenu,
+	}, { Ui.corner(10) })
+	option.MouseEnter:Connect(function()
+		option.BackgroundTransparency = 0
+	end)
+	option.MouseLeave:Connect(function()
+		option.BackgroundTransparency = 1
+	end)
+	option.Activated:Connect(function()
+		Inventory.Sort = i
+		sortMenu.Visible = false
+		refresh(true)
+	end)
+end
+sortButton.Activated:Connect(function()
+	sortMenu.Visible = not sortMenu.Visible
+end)
+
+-- The grid ---------------------------------------------------------------------------------
+
+local layout = Ui.new("UIGridLayout", {
+	CellSize = UDim2.fromOffset(CARD_TARGET, CARD_TARGET + 24),
+	CellPadding = UDim2.fromOffset(CARD_GAP, CARD_GAP),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+})
+local grid = Screen.scrollList(box, TOP, layout)
+grid.Size = UDim2.new(0, INNER_W, 1, -TOP)
+Inventory.Grid, Inventory.Layout = grid, layout -- (for the simulator)
+local empty = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(0, 180),
+	Size = UDim2.fromOffset(INNER_W, 24),
+	Font = Ui.FONT_MEDIUM,
+	TextScaled = false,
+	TextSize = 17,
+	TextColor3 = Ui.MUTED,
+	Text = "",
+	Visible = false,
+	ZIndex = 33,
+	Parent = box,
+})
+
+-- How many columns fit in a width, and the card size for it (cards about
+-- CARD_TARGET wide; never fewer than 3 or more than 10 per row)
+function Inventory.columnsFor(width)
+	local usable = width - 12 -- padding and the scroll bar
+	local columns = math.clamp(math.floor((usable + CARD_GAP) / (CARD_TARGET + CARD_GAP)), 3, 10)
+	local cell = math.floor((usable - (columns - 1) * CARD_GAP) / columns)
+	return columns, cell
+end
+
+local function fitGrid(width)
+	grid.Size = UDim2.new(0, width, 1, -TOP)
+	empty.Size = UDim2.fromOffset(width, 24)
+	local columns, cell = Inventory.columnsFor(width)
+	layout.CellSize = UDim2.fromOffset(cell, cell + 24)
+	Inventory.Columns = columns
+end
+
+-- Cards --------------------------------------------------------------------------------------
+
 -- the colour that stands for a pet's rarity (or its size, for Huge/Titanic)
 local function accentOf(name)
 	local pet, size = Config.petInfo(name)
 	return if size.Index > 1 then size.Color else Config.rarity(pet.Odds).Color
 end
 
+local cards = {} -- [name] = { Frame, Edge, Scale, Equipped }
 local staggering = false -- cards grow in one after another (when the screen opens)
 local shownEquipped = nil -- [name] = copies equipped when the cards were last drawn
 
 local function label(parent, props)
 	props.TextScaled = false
 	props.BackgroundTransparency = props.BackgroundTransparency or 1
-	props.ZIndex = props.ZIndex or 34
+	props.ZIndex = props.ZIndex or 35
 	props.Parent = parent
 	return Ui.new("TextLabel", props)
 end
 
-local function equip(name, unequip)
-	equipFunction:InvokeServer(name, unequip)
+-- how a card looks for its state (normal / equipped / selected)
+local function paintCard(c)
+	local selected = Inventory.Selected == c.Name
+	c.Edge.Color = if selected then Ui.INK elseif c.Equipped then Ui.SUCCESS else c.Accent:Lerp(Ui.WHITE, 0.35)
+	c.Edge.Thickness = if selected then 2.5 elseif c.Equipped then 2 else 1.5
+	c.Frame.BackgroundColor3 = if selected then Ui.WHITE else c.Tint
 end
 
-local function card(order, name, owned, equipped, data)
-	local _, size = Config.petInfo(name)
+local function card(order, name, owned, equipped)
 	local accent = accentOf(name)
-	local isEquipped = equipped > 0
-	local cardColor = if isEquipped then Color3.fromRGB(232, 249, 239) else Ui.WHITE
-	-- the whole card is a button (tap = details)
 	local frame = Ui.new("TextButton", {
 		Name = name,
 		LayoutOrder = order,
-		BackgroundColor3 = cardColor,
 		AutoButtonColor = false,
 		Text = "",
-		ZIndex = 32,
+		ZIndex = 33,
 		Parent = grid,
-	}, { Ui.corner(18) })
-	local edge = Ui.stroke(if isEquipped then Ui.SUCCESS else accent:Lerp(Ui.WHITE, 0.25), if isEquipped or size.Index > 1 then 3 else 2, 0)
-	edge.Parent = frame
+	}, { Ui.corner(16) })
+	local c = {
+		Name = name,
+		Frame = frame,
+		Accent = accent,
+		Tint = accent:Lerp(Ui.WHITE, 0.86),
+		Equipped = equipped > 0,
+		Edge = Ui.stroke(accent, 1.5, 0),
+		Scale = Ui.new("UIScale", { Parent = frame }),
+	}
+	c.Edge.Parent = frame
+	paintCard(c)
+	cards[name] = c
 	if staggering then
 		Ui.appear(frame, order)
 	elseif shownEquipped and (shownEquipped[name] or 0) ~= equipped then
-		-- this pet was just equipped or unequipped
-		Ui.pop(frame, if equipped > (shownEquipped[name] or 0) then 1.08 else 0.94)
+		Ui.pop(frame, if equipped > (shownEquipped[name] or 0) then 1.1 else 0.92)
 	end
-	frame.Activated:Connect(function()
-		showDetails(name)
-	end)
-	-- rarity stripe along the top
-	Ui.new("Frame", {
-		Size = UDim2.new(1, 0, 0, 10),
-		BackgroundColor3 = accent,
-		ZIndex = 33,
-		Parent = frame,
-	}, { Ui.corner(18) })
-	Ui.new("Frame", {
-		Position = UDim2.fromOffset(0, 5),
-		Size = UDim2.new(1, 0, 0, 6),
-		BackgroundColor3 = cardColor,
-		ZIndex = 33,
-		Parent = frame,
-	})
-	-- the pet, big
+	-- the pet
 	local view = PetView.take(name)
 	view.AnchorPoint = Vector2.new(0.5, 0)
-	view.Position = UDim2.new(0.5, 0, 0, 16)
-	view.Size = UDim2.fromOffset(120, 104)
+	view.Position = UDim2.new(0.5, 0, 0, 4)
+	view.Size = UDim2.new(1, -10, 1, -30)
 	view.ZIndex = 34
 	view.Parent = frame
-	-- equipped check (top left) and how many you have (top right)
-	if isEquipped then
-		local tick = label(frame, {
-			Name = "Equipped",
-			Position = UDim2.fromOffset(8, 16),
-			Size = UDim2.fromOffset(if equipped > 1 then 40 else 26, 26),
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Ui.SUCCESS,
-			Font = Ui.FONT,
-			TextSize = 14,
-			TextColor3 = Ui.WHITE,
-			Text = if equipped > 1 then "✓" .. equipped else "✓",
-			ZIndex = 35,
-		})
-		Ui.corner(13).Parent = tick
-	end
-	if owned > 1 then
-		local amount = label(frame, {
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -8, 0, 16),
-			Size = UDim2.fromOffset(42, 24),
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Ui.GLASS_LIGHT,
-			Font = Ui.FONT,
-			TextSize = 13,
-			TextColor3 = Ui.INK,
-			Text = "x" .. Config.formatNumber(owned),
-			ZIndex = 35,
-		})
-		Ui.corner(12).Parent = amount
-	end
-	-- name and power
+	-- its name
 	label(frame, {
 		Name = "PetName",
-		Position = UDim2.fromOffset(8, 122),
-		Size = UDim2.new(1, -16, 0, 22),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -5),
+		Size = UDim2.new(1, -8, 0, 16),
 		Font = Ui.FONT,
-		TextSize = 17,
+		TextSize = 12,
 		TextColor3 = Ui.INK,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Text = name,
 	})
-	local power = Ui.new("Frame", {
-		Name = "Power",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 148),
-		Size = UDim2.fromOffset(0, 22),
-		AutomaticSize = Enum.AutomaticSize.X,
-		BackgroundTransparency = 1,
-		ZIndex = 34,
-		Parent = frame,
-	}, {
-		Ui.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
-	})
-	Ui.icon("sword", 16, Ui.DANGER, { LayoutOrder = 0, ZIndex = 35, Parent = power })
-	label(power, {
-		LayoutOrder = 1,
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 22),
-		Font = Ui.FONT_DISPLAY,
-		TextSize = 19,
-		TextColor3 = Ui.INK,
-		Text = Config.formatNumber(Config.petPower(name)),
-		ZIndex = 35,
-	})
-	-- ONE clear action: Equip, or Unequip
-	local full = #data.Equipped >= Config.maxEquipped(data)
-	local canAdd = equipped < owned and not full
-	local action = Ui.button({
-		Name = "Action",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.new(1, -20, 0, 38),
-		Radius = 19,
-		Text = if isEquipped then "Unequip" else (if full then "Team full" else "Equip"),
-		TextSize = 16,
-		ZIndex = 35,
-		Parent = frame,
-	}, function()
-		if isEquipped then
-			equip(name, true)
-		elseif canAdd then
-			equip(name, false)
-		end
-	end, if isEquipped then "danger" elseif canAdd then "success" else "disabled")
-	return frame, action
+	-- equipped check (top left), copies (top right)
+	if equipped > 0 then
+		local tick = label(frame, {
+			Name = "Equipped",
+			Position = UDim2.fromOffset(5, 5),
+			Size = UDim2.fromOffset(20, 20),
+			BackgroundTransparency = 0,
+			BackgroundColor3 = Ui.SUCCESS,
+			Font = Ui.FONT,
+			TextSize = 12,
+			TextColor3 = Ui.WHITE,
+			Text = "✓",
+		})
+		Ui.corner(10).Parent = tick
+	end
+	if owned > 1 then
+		local amount = label(frame, {
+			Name = "Amount",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -5, 0, 5),
+			Size = UDim2.fromOffset(0, 18),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundTransparency = 0.1,
+			BackgroundColor3 = Ui.WHITE,
+			Font = Ui.FONT,
+			TextSize = 11,
+			TextColor3 = Ui.INK,
+			Text = "x" .. Config.formatNumber(owned),
+		})
+		Ui.corner(9).Parent = amount
+		Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5), Parent = amount })
+	end
+	-- hover grows it a little; tap selects it
+	frame.MouseEnter:Connect(function()
+		TweenService:Create(c.Scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = if Ui.reduced() then 1 else 1.05 }):Play()
+	end)
+	frame.MouseLeave:Connect(function()
+		TweenService:Create(c.Scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = 1 }):Play()
+	end)
+	frame.Activated:Connect(function()
+		Effects.play("Click", 1.2, 0.04)
+		select(name)
+	end)
+	return c
 end
 
--- Details (right side) -----------------------------------------------------------------------
+-- Details (slides in on the right) ------------------------------------------------------------
 
+local DETAIL_SHOWN = UDim2.new(1, 0, 0, TOP)
+local DETAIL_HIDDEN = UDim2.new(1, 40, 0, TOP)
 local detail = Ui.new("Frame", {
 	Name = "Details",
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, 0, 0, 56),
-	Size = UDim2.new(0, DETAIL_W, 1, -56),
+	Position = DETAIL_HIDDEN,
+	Size = UDim2.new(0, DETAIL_W, 1, -TOP),
 	BackgroundColor3 = Color3.fromRGB(246, 248, 252),
-	ZIndex = 32,
+	Visible = false,
+	ZIndex = 36,
 	Parent = box,
-}, { Ui.corner(18), Ui.padding(16) })
+}, { Ui.corner(18), Ui.padding(14) })
 Ui.stroke(Ui.LINE, 1, 0).Parent = detail
 Inventory.Detail = detail
-local detailHint = label(detail, {
-	Size = UDim2.new(1, 0, 1, 0),
-	Font = Ui.FONT_MEDIUM,
-	TextSize = 15,
-	TextWrapped = true,
-	TextColor3 = Ui.MUTED,
-	Text = "Tap a pet to see everything about it",
-	ZIndex = 33,
-})
-local detailBody = Ui.new("Frame", {
-	Size = UDim2.fromScale(1, 1),
-	BackgroundTransparency = 1,
-	Visible = false,
-	ZIndex = 33,
+local closeDetail = Ui.new("TextButton", {
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, 4, 0, -4),
+	Size = UDim2.fromOffset(28, 28),
+	BackgroundColor3 = Ui.WHITE,
+	AutoButtonColor = false,
+	Text = "",
+	ZIndex = 40,
 	Parent = detail,
-})
-local detailScale = Ui.new("UIScale", { Parent = detailBody })
+}, { Ui.corner(14) })
+Ui.icon("close", 10, Ui.MUTED, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 41, Parent = closeDetail })
+closeDetail.Activated:Connect(function()
+	select(nil)
+end)
 local detailView = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.fromScale(0.5, 0),
-	Size = UDim2.fromOffset(150, 130),
+	Size = UDim2.fromOffset(130, 112),
 	BackgroundTransparency = 1,
-	ZIndex = 34,
-	Parent = detailBody,
+	ZIndex = 37,
+	Parent = detail,
 })
-local detailName = label(detailBody, {
-	Position = UDim2.fromOffset(0, 132),
-	Size = UDim2.new(1, 0, 0, 28),
+local detailName = label(detail, {
+	Position = UDim2.fromOffset(0, 112),
+	Size = UDim2.new(1, 0, 0, 26),
 	Font = Ui.FONT_DISPLAY,
-	TextSize = 24,
+	TextSize = 22,
 	TextColor3 = Ui.INK,
 	TextTruncate = Enum.TextTruncate.AtEnd,
+	ZIndex = 37,
 })
-local detailTag = label(detailBody, {
+local detailTag = label(detail, {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 162),
-	Size = UDim2.fromOffset(0, 22),
+	Position = UDim2.new(0.5, 0, 0, 140),
+	Size = UDim2.fromOffset(0, 20),
 	AutomaticSize = Enum.AutomaticSize.X,
 	BackgroundTransparency = 0,
 	Font = Ui.FONT,
-	TextSize = 12,
+	TextSize = 11,
 	TextColor3 = Ui.WHITE,
+	ZIndex = 37,
 })
-Ui.corner(11).Parent = detailTag
-Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = detailTag })
-local detailInfo = label(detailBody, {
-	Position = UDim2.fromOffset(0, 188),
-	Size = UDim2.new(1, 0, 0, 18),
-	Font = Ui.FONT_MEDIUM,
-	TextSize = 13,
-	TextColor3 = Ui.MUTED,
-})
--- its five multipliers in plain words
-local statList = Ui.new("Frame", {
+Ui.corner(10).Parent = detailTag
+Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 9), PaddingRight = UDim.new(0, 9), Parent = detailTag })
+
+-- rows: icon, name, value
+local function row(parent, order, iconName, color, text)
+	local r = Ui.new("Frame", {
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, 25),
+		BackgroundColor3 = Ui.WHITE,
+		ZIndex = 37,
+		Parent = parent,
+	}, { Ui.corner(9) })
+	Ui.icon(iconName, 14, color, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 9, 0.5, 0), ZIndex = 38, Parent = r })
+	label(r, {
+		Position = UDim2.fromOffset(30, 0),
+		Size = UDim2.new(0.6, -30, 1, 0),
+		Font = Ui.FONT_MEDIUM,
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Ui.INK,
+		Text = text,
+		ZIndex = 38,
+	})
+	return label(r, {
+		Name = "Value",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -9, 0, 0),
+		Size = UDim2.new(0.45, 0, 1, 0),
+		Font = Ui.FONT,
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = Ui.INK,
+		ZIndex = 38,
+	}), r
+end
+local rows = Ui.new("Frame", {
 	Name = "Stats",
-	Position = UDim2.fromOffset(0, 214),
-	Size = UDim2.new(1, 0, 0, 160),
+	Position = UDim2.fromOffset(0, 168),
+	Size = UDim2.new(1, 0, 0, 230),
 	BackgroundTransparency = 1,
-	ZIndex = 34,
-	Parent = detailBody,
+	ZIndex = 37,
+	Parent = detail,
 }, {
-	Ui.new("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
+	Ui.new("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder }),
 })
+local powerValue = row(rows, 1, "sword", Ui.INK, "Power")
+local dpsValue = row(rows, 2, "bolt", Ui.DANGER, "Damage / sec")
 local STAT_LOOK = {
 	{ Stat = "Damage", Icon = "sword", Color = Ui.DANGER, Text = "Damage" },
 	{ Stat = "Coins", Icon = "coin", Color = Ui.GOLD, Text = "Coins" },
@@ -385,47 +506,21 @@ local STAT_LOOK = {
 }
 local statValues = {}
 for i, look in ipairs(STAT_LOOK) do
-	local row = Ui.new("Frame", {
-		Name = look.Stat,
-		LayoutOrder = i,
-		Size = UDim2.new(1, 0, 0, 28),
-		BackgroundColor3 = Ui.WHITE,
-		ZIndex = 34,
-		Parent = statList,
-	}, { Ui.corner(10) })
-	Ui.icon(look.Icon, 16, look.Color, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 10, 0.5, 0), ZIndex = 35, Parent = row })
-	label(row, {
-		Position = UDim2.fromOffset(34, 0),
-		Size = UDim2.new(0.6, -34, 1, 0),
-		Font = Ui.FONT_MEDIUM,
-		TextSize = 14,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = Ui.INK,
-		Text = look.Text,
-		ZIndex = 35,
-	})
-	statValues[look.Stat] = label(row, {
-		Name = "Value",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -10, 0, 0),
-		Size = UDim2.new(0.4, 0, 1, 0),
-		Font = Ui.FONT,
-		TextSize = 14,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		TextColor3 = Ui.INK,
-		ZIndex = 35,
-	})
+	local value, r = row(rows, 2 + i, look.Icon, look.Color, look.Text)
+	r.Name = look.Stat
+	statValues[look.Stat] = value
 end
-local detailAction
-detailAction = Ui.button({
+local ownedValue = row(rows, 9, "paw", Ui.BLUE, "You have")
+
+local detailAction = Ui.button({
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, 0),
-	Size = UDim2.new(1, 0, 0, 46),
-	Radius = 23,
+	Size = UDim2.new(1, 0, 0, 44),
+	Radius = 22,
 	Text = "Equip",
-	TextSize = 18,
-	ZIndex = 35,
-	Parent = detailBody,
+	TextSize = 17,
+	ZIndex = 38,
+	Parent = detail,
 }, function()
 	local name, data = Inventory.Selected, State.Data
 	if not name or not data then
@@ -433,29 +528,23 @@ detailAction = Ui.button({
 	end
 	local equipped = count(data.Equipped, name)
 	if equipped > 0 then
-		equip(name, true)
+		equipFunction:InvokeServer(name, true)
 	elseif equipped < (data.Pets[name] or 0) and #data.Equipped < Config.maxEquipped(data) then
-		equip(name, false)
+		equipFunction:InvokeServer(name, false)
 	end
 end, "success")
+Inventory.DetailAction = detailAction
+local detailSwap = Ui.new("UIScale", { Parent = detailName })
 
-function showDetails(name)
+-- fills the details for a pet, in place (no rebuilding)
+local shownPet = nil
+local function fillDetails(name)
 	local data = State.Data
-	if not data or not name or not data.Pets[name] or data.Pets[name] <= 0 then
-		Inventory.Selected = nil
-		detailBody.Visible = false
-		detailHint.Visible = true
+	if not data or not name then
 		return
 	end
-	local changed = Inventory.Selected ~= name
-	Inventory.Selected = name
-	detailHint.Visible = false
-	detailBody.Visible = true
-	if changed then
-		if not Ui.reduced() then
-			detailScale.Scale = 0.94
-			game:GetService("TweenService"):Create(detailScale, TweenInfo.new(0.25, Enum.EasingStyle.Quint), { Scale = 1 }):Play()
-		end
+	if shownPet ~= name then
+		shownPet = name
 		PetView.releaseAll(detailView)
 		for _, child in ipairs(detailView:GetChildren()) do
 			if child:IsA("GuiObject") then
@@ -464,21 +553,27 @@ function showDetails(name)
 		end
 		local view = PetView.take(name)
 		view.Size = UDim2.fromScale(1, 1)
-		view.ZIndex = 35
+		view.ZIndex = 38
 		view.Parent = detailView
+		if not Ui.reduced() then
+			detailSwap.Scale = 0.9
+			TweenService:Create(detailSwap, EASE, { Scale = 1 }):Play()
+		end
 	end
 	local pet, size = Config.petInfo(name)
 	local rarity = Config.rarity(pet.Odds)
 	detailName.Text = name
 	detailTag.Text = string.upper(rarity.Name) .. (if size.Index > 1 then "  ·  " .. string.upper(size.Name) else "")
 	detailTag.BackgroundColor3 = accentOf(name)
-	detailInfo.Text = Config.formatNumber(Config.petPower(name)) .. " power  ·  you have " .. Config.formatNumber(data.Pets[name])
+	powerValue.Text = Config.formatNumber(Config.petPower(name))
+	dpsValue.Text = Config.formatNumber(Config.petDps(data, name))
 	for _, look in ipairs(STAT_LOOK) do
 		local value = Config.petStat(name, look.Stat)
 		statValues[look.Stat].Text = Config.formatStat(value)
 		statValues[look.Stat].TextColor3 = if value > 1.001 then Ui.INK else Ui.MUTED
 	end
-	local equipped = count(data.Equipped, name)
+	local owned, equipped = data.Pets[name] or 0, count(data.Equipped, name)
+	ownedValue.Text = Config.formatNumber(owned) .. (if equipped > 0 then "  ·  " .. equipped .. " on" else "")
 	local full = #data.Equipped >= Config.maxEquipped(data)
 	if equipped > 0 then
 		Ui.setText(detailAction, "Unequip")
@@ -491,7 +586,39 @@ function showDetails(name)
 		Ui.setStyle(detailAction, "success")
 	end
 end
-Inventory.showDetails = showDetails
+
+-- selects a pet (or nil to close the details): the grid narrows to make
+-- room and the panel slides in; nothing is rebuilt
+function select(name)
+	local data = State.Data
+	if name and (not data or (data.Pets[name] or 0) <= 0) then
+		name = nil
+	end
+	local before = Inventory.Selected
+	Inventory.Selected = name
+	for _, c in pairs(cards) do
+		if c.Name == before or c.Name == name then
+			paintCard(c)
+		end
+	end
+	if name then
+		fillDetails(name)
+		if not detail.Visible then
+			detail.Visible = true
+			detail.Position = if Ui.reduced() then DETAIL_SHOWN else DETAIL_HIDDEN
+			TweenService:Create(detail, EASE, { Position = DETAIL_SHOWN }):Play()
+			fitGrid(INNER_W - DETAIL_W - GAP)
+		end
+	elseif detail.Visible then
+		detail.Visible = false
+		shownPet = nil
+		fitGrid(INNER_W)
+	end
+end
+Inventory.select = select
+Inventory.showDetails = select
+
+-- Building the grid ------------------------------------------------------------------------------
 
 local lastSignature = nil
 
@@ -508,14 +635,19 @@ function refresh(force)
 	table.sort(parts, function(a, b) return tostring(a) < tostring(b) end)
 	local signature = table.concat(parts, ",")
 	if signature == lastSignature and not force then
+		if Inventory.Selected then
+			fillDetails(Inventory.Selected)
+		end
 		return
 	end
 	lastSignature = signature
 
-	for i, chip in ipairs(chips) do
-		Ui.setStyle(chip, if i == Inventory.Filter then "blue" else "glass")
+	for i, tab in ipairs(tabButtons) do
+		local on = i == Inventory.Filter
+		tab.BackgroundTransparency = if on then 0 else 1
+		tab.TextColor3 = if on then Ui.INK else Ui.MUTED
 	end
-	Ui.setText(sortButton, SORTS[Inventory.Sort].Name)
+	sortButton.Text = "Sort: " .. (SORTS[Inventory.Sort] or SORTS[1]).Name .. "  ▾"
 
 	PetView.releaseAll(grid)
 	for _, child in ipairs(grid:GetChildren()) do
@@ -523,6 +655,7 @@ function refresh(force)
 			child:Destroy()
 		end
 	end
+	cards = {}
 	local filter = FILTERS[Inventory.Filter] or FILTERS[1]
 	local list, total = {}, 0
 	for name, n in pairs(data.Pets) do
@@ -534,12 +667,13 @@ function refresh(force)
 		end
 	end
 	local sort = SORTS[Inventory.Sort] or SORTS[1]
+	Inventory.Sort = table.find(SORTS, sort)
 	table.sort(list, function(a, b)
 		return sort.Before(a, b, data)
 	end)
 	staggering = force == true
 	for i, name in ipairs(list) do
-		card(i, name, data.Pets[name], count(data.Equipped, name), data)
+		card(i, name, data.Pets[name], count(data.Equipped, name))
 	end
 	staggering = false
 	shownEquipped = {}
@@ -548,14 +682,14 @@ function refresh(force)
 	end
 	empty.Visible = #list == 0
 	empty.Text = if total == 0 then FILTERS[1].Empty else filter.Empty
-	title.Text = "My Pets"
 	hint.Text = "Team " .. #data.Equipped .. "/" .. Config.maxEquipped(data) .. "  ·  " .. Config.formatNumber(total) .. " pets"
 	-- keep the details current (or close them if that pet is gone)
-	showDetails(Inventory.Selected)
+	select(Inventory.Selected)
 end
 
 function Inventory.open()
 	Screen.open(modal)
+	fitGrid(if Inventory.Selected then INNER_W - DETAIL_W - GAP else INNER_W)
 	refresh(true)
 end
 

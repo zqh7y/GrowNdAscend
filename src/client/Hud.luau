@@ -386,7 +386,7 @@ local controls = Ui.new("Frame", {
 	Name = "Controls",
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -18, 1, -16),
-	Size = UDim2.fromOffset(170, 0),
+	Size = UDim2.fromOffset(Roll.DOCK_SIZE.X, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundTransparency = 1,
 	Parent = gui,
@@ -400,13 +400,13 @@ local controls = Ui.new("Frame", {
 	}),
 })
 controls.Parent = Screen.Controls
--- the AUTO switch and the big ROLL button (Roll.luau draws them)
+-- the roll dock: the big ROLL button with AUTO attached under it (Roll.luau)
 Roll.buildControls(controls)
 
 -- the luck boost badge sits on top of the control column (clear of the
 -- reel at any screen size: the column is always right of it)
 Roll.BoostBadge.AnchorPoint = Vector2.new(0.5, 1)
-Roll.BoostBadge.Position = UDim2.new(1, -103, 1, -160)
+Roll.BoostBadge.Position = UDim2.new(1, -18 - Roll.DOCK_SIZE.X / 2, 1, -16 - Roll.DOCK_SIZE.Y - 12)
 Roll.BoostBadge.Parent = Screen.Controls
 
 -- World banner ----------------------------------------------------------------------------------

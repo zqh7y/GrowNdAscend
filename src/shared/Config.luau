@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 14 (fixed reel, 0-coin test gates, kid inventory, new controls)"
+Config.BUILD = "build 15 (roll dock, dense inventory, Equip Best)"
 
 -- Pets -------------------------------------------------------------------------
 
@@ -709,6 +709,64 @@ end
 -- One equipped pet's damage per second
 function Config.petDps(data, name)
 	return Config.hitDamage(data, name) / Config.PET_HIT_EVERY
+end
+
+-- The best team you can equip: as many pets as you have slots for, chosen
+-- by what they really add to the team. Each pet's damage is its own (power
+-- x the Damage upgrade x its own Damage stat), so the strongest team is the
+-- pets with the most damage per second (NOT just the highest power: a pet
+-- with a better Damage stat can beat a slightly stronger one). Ties go to
+-- the bigger luck bonus, then the bigger coin bonus. Copies count up to
+-- how many you own; pets you don't own are never picked.
+function Config.bestTeam(data)
+	local slots = Config.maxEquipped(data)
+	local copies = {}
+	for name, count in pairs(data.Pets or {}) do
+		if type(count) == "number" and count > 0 and Config.petInfo(name) then
+			for _ = 1, math.min(count, slots) do
+				table.insert(copies, name)
+			end
+		end
+	end
+	local dps, luck, coins = {}, {}, {}
+	for _, name in ipairs(copies) do
+		dps[name] = dps[name] or Config.petDps(data, name)
+		luck[name] = luck[name] or Config.petStat(name, "Luck")
+		coins[name] = coins[name] or Config.petStat(name, "Coins")
+	end
+	table.sort(copies, function(a, b)
+		if dps[a] ~= dps[b] then
+			return dps[a] > dps[b]
+		elseif luck[a] ~= luck[b] then
+			return luck[a] > luck[b]
+		elseif coins[a] ~= coins[b] then
+			return coins[a] > coins[b]
+		end
+		return a < b
+	end)
+	local team = {}
+	for i = 1, math.min(#copies, slots) do
+		team[i] = copies[i]
+	end
+	return team
+end
+
+-- true if two pet lists hold the same pets (order doesn't matter)
+function Config.sameTeam(a, b)
+	if #a ~= #b then
+		return false
+	end
+	local counts = {}
+	for _, name in ipairs(a) do
+		counts[name] = (counts[name] or 0) + 1
+	end
+	for _, name in ipairs(b) do
+		if not counts[name] or counts[name] == 0 then
+			return false
+		end
+		counts[name] -= 1
+	end
+	return true
 end
 
 -- Each equipped pet's share of the team's damage, as whole percents that

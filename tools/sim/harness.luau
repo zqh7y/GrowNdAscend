@@ -377,7 +377,7 @@ if ok then
 		end
 		for _ = 1, 4 do
 			try("Inventory sort", function()
-				C("Inventory").Sort = C("Inventory").Sort % 4 + 1
+				C("Inventory").Sort = C("Inventory").Sort % #C("Inventory").SORTS + 1
 				C("Inventory").open()
 			end)
 		end
@@ -959,19 +959,21 @@ if ok then
 			end
 		end
 		b14.Index = { BestIn = bestIn, EveryWorld = everyWorld, ChanceOk = chanceOk, Cards = checkedCards }
-		-- Inventory: simple cards, details on tap, one Equip/Unequip button
+		do
+		-- Inventory (build 15): dense grid, details slide in only on selection
 		local Inv = C("Inventory")
 		data.Pets = { Tiger = 2, Dog = 1, ["Huge Fox"] = 1 }
 		data.Equipped = {}
 		data.Upgrades = {}
 		PlayerData.sync(player)
 		Inv.Filter, Inv.Sort = 1, 1
+		Inv.select(nil)
 		Inv.open()
 		frames(2)
 		local statsInGrid, simpleCards, tigerCard = 0, 0, nil
 		for _, cardFrame in ipairs(Inv.Grid:GetChildren()) do
 			if cardFrame:IsA("GuiObject") then
-				if cardFrame:FindFirstChild("PetName") and cardFrame:FindFirstChild("Power") and cardFrame:FindFirstChild("Action") then
+				if cardFrame:FindFirstChild("PetName") and not cardFrame:FindFirstChild("Power") and not cardFrame:FindFirstChild("Action") then
 					simpleCards += 1
 				end
 				if cardFrame.Name == "Tiger" then tigerCard = cardFrame end
@@ -980,17 +982,31 @@ if ok then
 				end
 			end
 		end
-		local actionBefore = tigerCard and tigerCard.Action.Content.Label.Text
+		local fullColumns, fullWidth = Inv.Columns, Inv.Grid.Size.X.Offset
+		local hiddenBefore = Inv.Detail.Visible == false
+		local amountBadge = tigerCard and tigerCard:FindFirstChild("Amount") and tigerCard.Amount.Text
 		if tigerCard then
-			tigerCard.Action.Activated:Fire()
-			frames(3)
+			tigerCard.Activated:Fire()
+			frames(2)
 		end
+		local shownOnSelect = Inv.Detail.Visible and Inv.Selected == "Tiger"
+		local narrowColumns, narrowWidth = Inv.Columns, Inv.Grid.Size.X.Offset
+		local gridVisible = Inv.Grid.Visible
+		local fitsBeside = narrowWidth + 268 <= 900 - 48
+		local actionBefore = Inv.DetailAction.Content.Label.Text
+		Inv.DetailAction.Activated:Fire()
+		frames(3)
 		local equippedTiger = table.find(data.Equipped, "Tiger") ~= nil
+		local actionAfter = Inv.DetailAction.Content.Label.Text
 		local tigerAfter
 		for _, cardFrame in ipairs(Inv.Grid:GetChildren()) do
 			if cardFrame.Name == "Tiger" then tigerAfter = cardFrame end
 		end
-		Inv.showDetails("Huge Fox")
+		-- switching pets updates the same panel (no rebuild of the grid)
+		local firstChild = Inv.Grid:FindFirstChild("Dog")
+		Inv.select("Huge Fox")
+		frames(1)
+		local sameGrid = Inv.Grid:FindFirstChild("Dog") == firstChild and firstChild ~= nil
 		local detailOk = 0
 		for _, stat in ipairs(Cfg.STATS) do
 			for _, row in ipairs(Inv.Detail:GetDescendants()) do
@@ -999,9 +1015,109 @@ if ok then
 				end
 			end
 		end
-		b14.Inventory = { Cards = simpleCards, StatsInGrid = statsInGrid, Before = actionBefore, Equipped = equippedTiger,
-			After = tigerAfter and tigerAfter.Action.Content.Label.Text, Tick = tigerAfter and tigerAfter:FindFirstChild("Equipped") ~= nil, DetailStats = detailOk }
+		local dpsShown = false
+		for _, d in ipairs(Inv.Detail:GetDescendants()) do
+			if d:IsA("TextLabel") and d.Text == Cfg.formatNumber(Cfg.petDps(data, "Huge Fox")) then dpsShown = true end
+		end
+		-- filters: Normal hides Huge, Huge shows only Huge
+		local function names()
+			local out = {}
+			for _, cardFrame in ipairs(Inv.Grid:GetChildren()) do
+				if cardFrame:IsA("GuiObject") then table.insert(out, cardFrame.Name) end
+			end
+			table.sort(out)
+			return table.concat(out, ",")
+		end
+		Inv.Filter = 2 Inv.open() frames(1)
+		local normalList = names()
+		Inv.Filter = 3 Inv.open() frames(1)
+		local hugeList = names()
+		Inv.Filter = 1
+		Inv.select(nil)
+		frames(1)
+		local closedOk = Inv.Detail.Visible == false and Inv.Columns == fullColumns
+		b14.Inventory = { Cards = simpleCards, StatsInGrid = statsInGrid, FullColumns = fullColumns, FullWidth = fullWidth, Hidden = hiddenBefore,
+			Shown = shownOnSelect, NarrowColumns = narrowColumns, GridVisible = gridVisible, Fits = fitsBeside, Amount = amountBadge,
+			Before = actionBefore, Equipped = equippedTiger, After = actionAfter, Tick = tigerAfter and tigerAfter:FindFirstChild("Equipped") ~= nil,
+			Same = sameGrid, DetailStats = detailOk, Dps = dpsShown, Normal = normalList, Huge = hugeList, Closed = closedOk,
+			Small = Inv.columnsFor(560), Wide = Inv.columnsFor(1200) }
 		C("Screen").close(Inv.Detail.Parent.Parent.Parent)
+		-- Equip Best: picks by real damage, respects slots and copies, never unowned
+		local b15 = {}
+		local titanic = "Titanic Tiger"
+		data.Pets = { Tiger = 3, Dog = 2, ["Huge Fox"] = 1, [titanic] = 1 }
+		data.Equipped = { "Dog" }
+		data.Upgrades = { Slots = 2 }
+		PlayerData.sync(player)
+		frames(1)
+		local slots = Cfg.maxEquipped(data)
+		local luckBefore = Cfg.teamStat(data, "Luck")
+		local want = Cfg.bestTeam(data)
+		local r1 = remotes.EquipBest:InvokeServer()
+		frames(2)
+		local client = C("State").Data or {}
+		local owned = true
+		local used = {}
+		for _, name in ipairs(data.Equipped) do
+			used[name] = (used[name] or 0) + 1
+			if used[name] > (data.Pets[name] or 0) then owned = false end
+		end
+		local best = true
+		local total = 0
+		for _, name in ipairs(data.Equipped) do total += Cfg.petDps(data, name) end
+		-- no single swap of an equipped pet for an owned spare beats it
+		for name, n in pairs(data.Pets) do
+			if (used[name] or 0) < n then
+				for _, on in ipairs(data.Equipped) do
+					if Cfg.petDps(data, name) > Cfg.petDps(data, on) + 1e-9 then best = false end
+				end
+			end
+		end
+		local r2 = remotes.EquipBest:InvokeServer()
+		b15.Best = { Slots = slots, Count = #data.Equipped, Matches = Cfg.sameTeam(data.Equipped, want), Owned = owned, Best = best,
+			Changed1 = type(r1) == "table" and r1.Changed == true, Changed2 = type(r2) == "table" and r2.Changed == false,
+			HasTitanic = table.find(data.Equipped, titanic) ~= nil, DogGone = table.find(data.Equipped, "Dog") == nil,
+			Synced = client.Equipped ~= nil and Cfg.sameTeam(client.Equipped, data.Equipped),
+			LuckBefore = luckBefore, LuckAfter = Cfg.teamStat(data, "Luck"), Dps = total, Team = table.concat(data.Equipped, ", ") }
+		-- duplicates: more slots than pets, Tiger x3 and a Dog -> all three Tigers and the Dog
+		data.Pets = { Tiger = 3, Dog = 1 }
+		data.Equipped = {}
+		data.Upgrades = { Slots = 3 }
+		remotes.EquipBest:InvokeServer()
+		local tigers = 0
+		for _, name in ipairs(data.Equipped) do if name == "Tiger" then tigers += 1 end end
+		b15.Dupes = { Slots = Cfg.maxEquipped(data), Tigers = tigers, Count = #data.Equipped }
+		-- power order isn't damage order: a pet with a better Damage stat wins
+		-- (no two pets in the roster disagree, so give a weaker pet a big Damage
+		-- stat for this check and put it back after)
+		local pa, pb = "Tiger", "Dog"
+		local dogPet = Cfg.PETS_BY_NAME[pb]
+		local savedDamage = dogPet.Stats.Damage
+		dogPet.Stats.Damage = (Cfg.petStat(pa, "Damage") * Cfg.petPower(pa) / Cfg.petPower(pb)) * 1.5
+		data.Pets = { [pa] = 1, [pb] = 1 }
+		data.Equipped = {}
+		data.Upgrades = {}
+		local powerFirst = Cfg.petPower(pa) > Cfg.petPower(pb) and Cfg.petDps(data, pa) < Cfg.petDps(data, pb)
+		remotes.EquipBest:InvokeServer()
+		b15.Order = { Found = powerFirst, Picked = data.Equipped[1], Want = pb, Other = pa }
+		dogPet.Stats.Damage = savedDamage
+		-- the shared client action shows a toast either way
+		data.Pets = { Tiger = 1 }
+		data.Equipped = { "Tiger" }
+		data.Upgrades = {}
+		PlayerData.sync(player)
+		frames(1)
+		Inv.equipBest()
+		b15.Feedback = { Optimized = type(Inv.LastEquipBest) == "table" and Inv.LastEquipBest.Changed == false,
+			TreeButton = C("UpgradeTree").EquipBestButton ~= nil, InvButton = Inv.EquipBestButton ~= nil }
+		data.Equipped = {}
+		PlayerData.sync(player)
+		frames(1)
+		STATS.B15 = b15
+		print(string.format("build 15: inventory %d cols full (%dpx) -> %d with details; equip best %s (%d/%d slots), second call changed=%s; dupes %d tigers; power/damage pick %s over %s",
+			fullColumns or -1, fullWidth or -1, narrowColumns or -1, b15.Best.Team, b15.Best.Count, slots, tostring(not b15.Best.Changed2),
+			tigers, tostring(b15.Order.Picked), tostring(b15.Order.Other)))
+		end
 		-- team shares: per-pet DPS and % adding up to 100, updating with the team
 		local Hud = C("Hud")
 		data.Pets = { Tiger = 1, Dog = 1, ["Huge Fox"] = 1 }
@@ -1034,7 +1150,14 @@ if ok then
 		local rollB, autoB = Roll.controls()
 		local wasOn = Roll.autoOn()
 		autoB.Activated:Fire()
-		local switchedOn = Roll.autoOn() ~= wasOn and autoB.Label.Text == "AUTO ON"
+		local switchedOn = Roll.autoOn() ~= wasOn and autoB.Pill.State.Text == "ON"
+		-- while auto rolls, the big button keeps saying ROLL (no flicker to SKIP)
+		local rollLabel = rollB:FindFirstChild("Label", true) or rollB:FindFirstChild("Label")
+		local labelChanges = 0
+		for _ = 1, 120 do
+			frames(1)
+			if rollLabel and rollLabel.Text ~= "ROLL" then labelChanges += 1 end
+		end
 		autoB.Activated:Fire()
 		frames(1)
 		for _ = 1, 600 do
@@ -1054,11 +1177,19 @@ if ok then
 			if node == player.PlayerGui.ControlsGui then inControls = true end
 			node = node.Parent
 		end
+		local dock = nil
+		for _, d in ipairs(player.PlayerGui.ControlsGui:GetDescendants()) do
+			if d.Name == "RollDock" then dock = d end
+		end
 		b14.Controls = { Roll = inControls, Auto = autoB ~= nil, Switched = switchedOn,
-			Back = Roll.autoOn() == wasOn, Compact = compactInControls, Setting = bigReveals }
+			Back = Roll.autoOn() == wasOn, Compact = compactInControls, Setting = bigReveals,
+			Dock = dock ~= nil and rollB.Parent == dock and autoB.Parent == dock,
+			Above = rollB.Position.Y.Offset + rollB.Size.Y.Offset <= autoB.Position.Y.Offset,
+			Bigger = rollB.Size.Y.Offset > autoB.Size.Y.Offset * 1.5,
+			Label = rollLabel ~= nil, LabelChanges = labelChanges }
 		STATS.B14 = b14
-		print(string.format("build 14: index %d/%d chances exact, %d 'Best in'; inventory %d simple cards, %d stat blocks in grid, %s -> %s; team %d pets %d%%, %d pets %d%%; controls switched %s, compact in controls %d",
-			chanceOk, checkedCards, bestIn, simpleCards, statsInGrid, tostring(actionBefore), tostring(b14.Inventory.After), n3, sum3, n2, sum2, tostring(switchedOn), compactInControls))
+		print(string.format("build 14: index %d/%d chances exact, %d 'Best in'; inventory %d small cards, %d stat blocks in grid, %s -> %s; team %d pets %d%%, %d pets %d%%; controls switched %s, compact in controls %d",
+			chanceOk, checkedCards, bestIn, b14.Inventory.Cards or -1, b14.Inventory.StatsInGrid or -1, tostring(b14.Inventory.Before), tostring(b14.Inventory.After), n3, sum3, n2, sum2, tostring(switchedOn), compactInControls))
 		print(string.format("polish: first claim %s (+%s coins, shown %s); repeat paid %s; luck pill %s -> %s (expected %s); badge %s -> %s; tree %d/%d priced, states %s/%s/%s/%s; banner %s",
 			tostring(polish.FirstClaim and polish.FirstClaim.Id), tostring(polish.CoinsAfterFirst), table.concat((polish.FirstClaim or {}).Shown or {}, " + "),
 			tostring(not polish.Repeat.CoinsSame), tostring(before), tostring(after), tostring(polish.LuckPill.Expected), tostring(waitingState), tostring(polish.Badge.After),
@@ -1763,14 +1894,34 @@ if ok then
 			string.format("joined with World %s; locked gate says '%s'; unlocked for 0 coins -> World %s, barrier open, posts and sign kept ('%s')",
 				tostring(g.UnlockedBefore), tostring(g.Locked and g.Locked[1] and g.Locked[1].Sign), tostring(g.UnlockedAfter), tostring(open.Sign)))
 		local inv = b.Inventory or {}
-		item(88, "simple inventory with a details view", inv.Cards == 3 and inv.StatsInGrid == 0 and inv.Before == "Equip" and inv.Equipped == true and inv.After == "Unequip" and inv.Tick == true and inv.DetailStats == 5,
-			string.format("%d cards (picture, name, power, one button), no stat blocks in the grid; Equip -> equipped, now '%s' with a check; details show all 5 stats", inv.Cards or 0, tostring(inv.After)))
+		item(88, "dense inventory grid, details only on selection", inv.Cards == 3 and inv.StatsInGrid == 0 and (inv.FullColumns or 0) >= 7 and inv.Hidden == true
+			and inv.Shown == true and (inv.NarrowColumns or 0) >= 5 and inv.GridVisible == true and inv.Fits == true and inv.Amount == "x2"
+			and inv.Small == 5 and inv.Wide >= 10 and inv.Closed == true,
+			string.format("%d small cards (picture, name, x2, check), no stats; %d per row full width, %d with the details open beside it; 560px -> %d, 1200px -> %d; details hidden until a pet is picked",
+				inv.Cards or 0, inv.FullColumns or 0, inv.NarrowColumns or 0, inv.Small or 0, inv.Wide or 0))
 		local t = b.Team or {}
 		item(89, "team DPS shares add up to 100%", t.N3 == 3 and t.Sum3 == 100 and t.Ok3 and t.N2 == 2 and t.Sum2 == 100 and t.Ok2 and t.N0 == 0 and t.ZeroOk,
 			string.format("3 pets: %d%%, after unequipping one: %d%%, empty team: no shares, no errors", t.Sum3 or 0, t.Sum2 or 0))
 		local ctl = b.Controls or {}
 		item(90, "new ROLL + AUTO controls, compact in Settings", ctl.Roll == true and ctl.Auto == true and ctl.Switched == true and ctl.Back == true and ctl.Compact == 0 and (ctl.Setting or 0) >= 1,
 			"big ROLL button and an AUTO switch; the compact/full choice is 'Big hatch reveals' in Settings")
+		item(91, "pet details: stats, DPS, equip/unequip, smooth switching", inv.Before == "Equip" and inv.Equipped == true and inv.After == "Unequip" and inv.Tick == true
+			and inv.DetailStats == 5 and inv.Dps == true and inv.Same == true and inv.Normal == "Dog,Tiger" and inv.Huge == "Huge Fox",
+			string.format("Equip -> equipped, button now '%s', card has a check; all 5 stats + DPS shown; switching pets keeps the grid; Normal = %s, Huge = %s",
+				tostring(inv.After), tostring(inv.Normal), tostring(inv.Huge)))
+		item(92, "roll dock: ROLL first, AUTO under it, steady while auto rolls", ctl.Dock == true and ctl.Above == true and ctl.Bigger == true and ctl.Label == true and ctl.LabelChanges == 0,
+			string.format("one dock in the controls; ROLL above and bigger than AUTO; label changed %d times in 120 auto-roll frames", ctl.LabelChanges or -1))
+		local eb = (STATS.B15 or {}).Best or {}
+		local du = (STATS.B15 or {}).Dupes or {}
+		local od = (STATS.B15 or {}).Order or {}
+		local fb = (STATS.B15 or {}).Feedback or {}
+		item(93, "Equip Best: strongest real team, copies, Huge/Titanic", eb.Matches == true and eb.Count == eb.Slots and eb.Owned == true and eb.Best == true and eb.Changed1 == true
+			and eb.HasTitanic == true and eb.DogGone == true and eb.Synced == true and du.Tigers == math.min(3, du.Slots or 0) and du.Count == math.min(4, du.Slots or 0) and (du.Slots or 0) >= 3,
+			string.format("%d slots -> %s (%s DPS), only owned copies, weaker Dog unequipped; %s slots with Tiger x3 + Dog -> %d Tigers, %s equipped (all copies used, never more than owned)",
+				eb.Slots or 0, tostring(eb.Team), Config.formatNumber(eb.Dps or 0), tostring(du.Slots), du.Tigers or 0, tostring(du.Count)))
+		item(94, "Equip Best picks by damage, not shown power; says when already best", od.Found == true and od.Picked == od.Want and eb.Changed2 == true and fb.Optimized == true
+			and fb.TreeButton == true and fb.InvButton == true,
+			string.format("%s (lower power, more damage) beats %s; second press: 'Team already optimized'; buttons in Inventory and Upgrade Tree", tostring(od.Picked), tostring(od.Other)))
 	end
 
 	local passed = 0

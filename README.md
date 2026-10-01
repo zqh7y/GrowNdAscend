@@ -85,12 +85,22 @@ chase Huge and Titanic pets.**
   huge luck can't make any animal impossible. Index cards show the exact
   chance of your next roll where you stand and say "Hatches in every
   world".
-- **Inventory (My Pets):** simple cards for younger players: a big picture,
-  the name, the power (a sword and a number), the rarity as a coloured
-  edge and top stripe, a green check when equipped and one button (Equip /
-  Unequip). Tap a card for its details on the right (rarity, size and its
-  five multipliers with icons). Tabs: All, Equipped, Huge, Titanic; the
-  sort button says what it does ("Strongest first").
+- **Inventory (My Pets):** a dense collection grid of small cards (about
+  5-8 per row, worked out from the space available): the pet, its name, an
+  "x3" badge for copies and a green check when equipped; the card's soft
+  colour is its rarity. Cards grow a little on hover. Tap one and a details
+  panel slides in on the right while the grid stays visible beside it: a
+  big preview, name, rarity and size, power, damage per second, the five
+  multipliers, how many you have / use, and one Equip / Unequip button.
+  Tapping another pet updates the panel in place; X closes it and the grid
+  takes the full width again. Tabs: All, Normal, Huge, Titanic, Equipped;
+  a small Sort menu: Power, Newest (when you first got it), Rarity.
+- **Equip Best** (Inventory and Upgrade Tree): equips the team that really
+  deals the most damage (power x Damage upgrade x the pet's own Damage
+  stat, `Config.bestTeam`), not just the highest shown power; ties go to
+  luck, then coins. It respects your slots, uses copies only as many as
+  you own (Normal, Huge and Titanic alike) and drops weaker pets. A small
+  toast says what was equipped, or "Team already optimized".
 - **Your Team** (top of the screen): each equipped pet in a round chip with
   its damage per second and its share of the team's damage under it
   ("1.2K · 45%"); the shares always add up to 100%.
@@ -202,8 +212,10 @@ Adding things later is one row each: a pet in `Config.PETS`, a size in
 
 Coins at the top with YOUR TEAM (equipped pets and damage per second)
 under them, colourful navigation down the left (Inventory, Index, Upgrades,
-Rebirth, Settings; the leaderboards live in the Forest), and the Roll and
-Auto buttons on the right, so the middle stays clear for the fights. The
+Rebirth, Settings; the leaderboards live in the Forest), and the roll dock at
+the bottom right (a big ROLL button with its cost/count under it and an
+Auto switch right below, ON/OFF; the compact/full hatch choice lives in
+Settings), so the middle stays clear for the fights. The
 top-left corner is left for Roblox's own menu buttons.
 
 Every screen shares one clean, friendly style: white rounded panels with

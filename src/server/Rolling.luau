@@ -40,21 +40,29 @@ end
 
 PlayerData.Loaded.Event:Connect(onLoaded)
 
--- Equips the strongest pets the player owns, as many as they have slots for
+-- Equips the best team the player owns (Config.bestTeam: real damage per
+-- second, then luck, then coins; copies and slots respected). Returns
+-- whether anything changed and the pets that joined.
 local function equipBest(data)
-	local owned = {}
-	for name, count in pairs(data.Pets) do
-		for _ = 1, math.min(count, Config.maxEquipped(data)) do
-			table.insert(owned, name)
+	local best = Config.bestTeam(data)
+	if Config.sameTeam(best, data.Equipped) then
+		return false, {}
+	end
+	-- the pets that join (copies counted)
+	local had = {}
+	for _, name in ipairs(data.Equipped) do
+		had[name] = (had[name] or 0) + 1
+	end
+	local added = {}
+	for _, name in ipairs(best) do
+		if had[name] and had[name] > 0 then
+			had[name] -= 1
+		else
+			table.insert(added, name)
 		end
 	end
-	table.sort(owned, function(a, b)
-		return Config.petPower(a) > Config.petPower(b)
-	end)
-	data.Equipped = {}
-	for i = 1, math.min(#owned, Config.maxEquipped(data)) do
-		table.insert(data.Equipped, owned[i])
-	end
+	data.Equipped = best
+	return true, added
 end
 
 -- How many of this pet are equipped
@@ -117,6 +125,8 @@ rollFunction.OnServerInvoke = function(player)
 			local isFirstOfSize = not data.Discovered[name]
 			PlayerData.discover(data, name)
 			data.Pets[name] = (data.Pets[name] or 0) + 1
+			data.Obtained = data.Obtained or {}
+			data.Obtained[name] = data.Rolls -- (for sorting by newest)
 			local best = data.Best and Config.PETS_BY_NAME[data.Best]
 			if not best or pet.Odds > best.Odds then
 				data.Best = pet.Name
@@ -179,9 +189,12 @@ equipBestFunction.OnServerInvoke = function(player)
 	if not data then
 		return false
 	end
-	equipBest(data)
+	local changed, added = equipBest(data)
+	if changed then
+		PlayerData.updateStrongest(player)
+	end
 	PlayerData.sync(player)
-	return true
+	return { Changed = changed, Added = added, Equipped = table.clone(data.Equipped) }
 end
 
 Players.PlayerRemoving:Connect(function(player)

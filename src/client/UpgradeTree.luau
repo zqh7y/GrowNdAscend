@@ -43,6 +43,22 @@ local modal, box = Screen.modal(WIDTH, HEIGHT, "Upgrades")
 UpgradeTree.Modal = modal
 Screen.title(box, "Upgrade Tree")
 local coinsLine = Screen.subtitle(box, "")
+coinsLine.Position = UDim2.new(1, -188, 0, 8) -- left of Equip Best
+
+-- Equip Best: your strongest team in one tap (same as in the Inventory)
+UpgradeTree.EquipBestButton = Ui.button({
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -44, 0, 0),
+	Size = UDim2.fromOffset(132, 34),
+	Radius = 17,
+	Text = "Equip Best",
+	Icon = "star",
+	TextSize = 14,
+	ZIndex = 33,
+	Parent = box,
+}, function()
+	require(script.Parent.Inventory).equipBest()
+end, "primary")
 
 -- The board ----------------------------------------------------------------------------------------
 

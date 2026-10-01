@@ -37,14 +37,17 @@ for how it plays and where the code lives.
   every panel and lets the pets fight. Every step must run without a
   "CLIENT ERROR" or "THREAD ERROR". Extend `tools/sim/harness.luau` when
   adding features.
-- The sim ends with a 90-point player checklist (spawning, rolling, pets
+- The sim ends with a 94-point player checklist (spawning, rolling, pets
   fighting, levels and EXP, rebirth keeping worlds, the full and compact hatches, flex
   rolls never faking a result, coin jumps/landings/respawns, rewards, damage, luck, sizes,
   upgrades, rebirth, world gates, screen layout, ground, animal movement,
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
-  hatch show step by step). It must say "checklist: 90/90 passed". It takes
-  a few minutes; run it in the background.
+  hatch show step by step, the roll dock, the dense inventory with side details
+  and Equip Best). It must say "checklist: 94/94 passed". It takes
+  a few minutes; run it in the background. The harness runs as one big
+  function: wrap new test blocks in `do ... end` or Luau runs out of local
+  registers (limit 200).
 - Economy: `python3 tools/economy/simulate.py 3 --hours 10` simulates an
   active player (it reads worlds, rebirths, levels and animals from
   Config; only the upgrade tree is mirrored in its UP table). Targets:
@@ -131,8 +134,18 @@ for how it plays and where the code lives.
   made it drift and snap when rolls came quickly.
 - Odds: every step of a roll hits at most `Config.MAX_HIT` (99%), so every
   animal has a non-zero chance in every world at any luck (tested).
-- Roll controls: `Roll.buildControls` (ROLL button + AUTO switch, R key);
-  compact/full is the "Big hatch reveals" setting (`State.Settings.FullHatch`).
+- Roll controls: `Roll.buildControls` builds the roll dock (`Roll.DOCK_SIZE`):
+  ROLL on top (sub line = cost/count, ready bar, R key), the Auto row under
+  it (ON/OFF pill). While auto rolls the button stays still and says ROLL.
+  Compact/full is the "Big hatch reveals" setting (`State.Settings.FullHatch`).
+- Inventory: columns come from the width (`Inventory.columnsFor`); the
+  details panel only exists while a pet is selected (`Inventory.select`)
+  and is filled in place. "Newest" sorts by `data.Obtained[name]` (the roll
+  number when it was first hatched, set in Rolling).
+- Equip Best: one rule, `Config.bestTeam(data)` (sorted by `Config.petDps`,
+  then Luck, then Coins; copies up to min(owned, slots)); the server's
+  EquipBest returns { Changed, Added, Equipped }. The client action is
+  `Inventory.equipBest()` (toast), used by Inventory and the Upgrade Tree.
 - Collection rewards: `Config.MILESTONES` (Size, Count, Coins, Boost); the
   server pays them in `Progress.luau` (ClaimMilestone), marking
   `data.Milestones[id]` first, so each is paid once. Coin amounts are tuned
