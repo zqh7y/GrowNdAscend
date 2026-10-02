@@ -411,6 +411,82 @@ function AuraMachine.open()
 end
 
 State.remote("AuraOpen").OnClientEvent:Connect(AuraMachine.open)
+
+-- The circle in front of the machine: standing on it opens the screen and
+-- keeps it open (if something else hides it, it comes back; another panel
+-- you open yourself, like the Inventory, is left alone). Stepping off closes
+-- it. The red X still closes it: then it stays closed until you step off
+-- the circle and back on.
+local player = game:GetService("Players").LocalPlayer
+local circlePart = nil
+local dismissed = false -- closed with the X while on the circle
+local openedHere = false
+AuraMachine.OnCircle = false
+
+local function findCircle()
+	if not (circlePart and circlePart.Parent) then
+		local map = workspace:FindFirstChild("Map")
+		circlePart = map and map:FindFirstChild("AuraCircle", true)
+	end
+	return circlePart
+end
+
+local function standingOn(circle)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return false
+	end
+	local c = circle.Position
+	local flat = Vector3.new(root.Position.X - c.X, 0, root.Position.Z - c.Z)
+	return flat.Magnitude <= circle.Size.Y / 2 + 0.5 and math.abs(root.Position.Y - c.Y) < 8
+end
+
+local function isOpen()
+	return modal.Visible and not modal:GetAttribute("Closing")
+end
+
+function AuraMachine.check()
+	local circle = findCircle()
+	if not circle then
+		return
+	end
+	local on = standingOn(circle)
+	AuraMachine.OnCircle = on
+	if on then
+		local other = Screen.current()
+		if not isOpen() and not dismissed and (other == nil or other == modal) then
+			AuraMachine.open()
+			openedHere = true
+		end
+	else
+		dismissed = false
+		if openedHere then
+			openedHere = false
+			if isOpen() then
+				Screen.close(modal)
+			end
+		end
+	end
+end
+
+local closeButton = box:FindFirstChild("Close")
+if closeButton then
+	closeButton.Activated:Connect(function()
+		if AuraMachine.OnCircle then
+			dismissed = true
+		end
+	end)
+end
+
+local since = 0
+game:GetService("RunService").Heartbeat:Connect(function(dt)
+	since += dt
+	if since >= 0.15 then
+		since = 0
+		AuraMachine.check()
+	end
+end)
 State.watch(function()
 	refresh()
 end)

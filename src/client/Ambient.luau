@@ -55,7 +55,7 @@ Ambient.WORLDS = {
 		Perches = { "Palm" },
 		Critters = { "Meerkat", "Lizard", "Fennec Fox", "Scorpion", "Tortoise" }, CritterCap = 3,
 		Sand = true, Wind = true,
-		Light = { Tint = Color3.fromRGB(255, 242, 220), Air = Color3.fromRGB(255, 228, 190), Density = 0.24, Haze = 1.2, Clock = 13.5 },
+		Light = { Tint = Color3.fromRGB(255, 244, 228), Air = Color3.fromRGB(255, 232, 200), Density = 0.18, Haze = 0.5, Clock = 13.5 },
 	},
 	{ -- Frozen Peaks: penguins and seals on the frozen sea, birds over the
 		-- ice, arctic hares and foxes, snow, wind and cracking ice

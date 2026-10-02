@@ -343,7 +343,6 @@ local function ring(parent, center, radius, tilt, color, glow)
 				Size = Vector3.one * 1.1,
 				CFrame = frame * CFrame.Angles(0, -a, 0) * CFrame.new(0, 0, -radius),
 				Color = glow,
-				Material = Enum.Material.Neon,
 			}))
 		end
 	end
@@ -363,10 +362,10 @@ local function fusionMachine(parent, center)
 		local side = CFrame.new(center) * CFrame.Angles(0, a, 0)
 		Build.part(model, { Size = Vector3.new(11.2, 1.2, 4), CFrame = side * CFrame.new(0, 0.6, -12), Color = lilac })
 		Build.part(model, { Size = Vector3.new(10, 2.6, 6), CFrame = side * CFrame.new(0, 1.3, -8), Color = white })
-		Build.part(model, { Size = Vector3.new(10, 0.3, 0.3), CFrame = side * CFrame.new(0, 2.65, -10.9), Color = pink, Material = Enum.Material.Neon })
+		Build.part(model, { Size = Vector3.new(10, 0.3, 0.3), CFrame = side * CFrame.new(0, 2.65, -10.9), Color = pink })
 	end
 	Build.cylinder(model, center, 2.6, 18, { Color = white })
-	Build.cylinder(model, center + Vector3.new(0, 2.6, 0), 0.4, 16, { Color = cyan, Material = Enum.Material.Neon })
+	Build.cylinder(model, center + Vector3.new(0, 2.6, 0), 0.4, 16, { Color = cyan })
 	Build.cylinder(model, center + Vector3.new(0, 3, 0), 1.4, 15, { Color = lilac })
 
 	-- six pillars with glowing tubes, lamps and pipes into the base
@@ -376,11 +375,11 @@ local function fusionMachine(parent, center)
 		local p = center + dir * 10.5 + Vector3.new(0, 2.6, 0)
 		Build.cylinder(model, p, 1, 2.6, { Color = lilac })
 		Build.cylinder(model, p + Vector3.new(0, 1, 0), 11, 1.5, { Color = white })
-		Build.limb(model, p + Vector3.new(0, 1, 0) - dir * 0.8, p + Vector3.new(0, 11.5, 0) - dir * 0.8, 0.4, { Color = if k % 2 == 0 then pink else cyan, Material = Enum.Material.Neon })
+		Build.limb(model, p + Vector3.new(0, 1, 0) - dir * 0.8, p + Vector3.new(0, 11.5, 0) - dir * 0.8, 0.4, { Color = if k % 2 == 0 then pink else cyan })
 		for y = 3, 10, 3.5 do
 			Build.cylinder(model, p + Vector3.new(0, y, 0), 0.35, 1.8, { Color = lilac })
 		end
-		local lamp = Build.ball(model, p + Vector3.new(0, 12.8, 0), 2, { Color = if k % 2 == 0 then pink else cyan, Material = Enum.Material.Neon })
+		local lamp = Build.ball(model, p + Vector3.new(0, 12.8, 0), 2, { Color = if k % 2 == 0 then pink else cyan })
 		Build.bob(lamp, 0.3, 1.5)
 		-- a pipe arching from the pillar into the dome's base
 		local mid = center + dir * 8 + Vector3.new(0, 7, 0)
@@ -410,8 +409,8 @@ local function fusionMachine(parent, center)
 	})
 	local light = Instance.new("PointLight")
 	light.Color = pink
-	light.Range = 22
-	light.Brightness = 2
+	light.Range = 12
+	light.Brightness = 0.6
 	light.Parent = orb
 	local sparkles = Instance.new("ParticleEmitter")
 	sparkles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
@@ -441,7 +440,7 @@ local function fusionMachine(parent, center)
 		Build.cylinder(model, hopper + Vector3.new(0, k * 1.1, 0), 1.1, 2.4 + k * 1.1, { Color = if k == 3 then pink else white })
 	end
 	Build.limb(model, hopper + Vector3.new(0, 2, 0), domeCenter + Vector3.new(-5, -2, -1), 1, { Color = lilac })
-	local pad = Build.cylinder(model, center + Vector3.new(12, 2.6, -2), 0.4, 5, { Color = cyan, Material = Enum.Material.Neon })
+	local pad = Build.cylinder(model, center + Vector3.new(12, 2.6, -2), 0.4, 5, { Color = cyan })
 	Build.cylinder(model, center + Vector3.new(12, 2.6, -2), 0.3, 6, { Color = white })
 	Build.spin(Build.part(model, {
 		Size = Vector3.new(3.4, 0.2, 0.5),
@@ -452,7 +451,7 @@ local function fusionMachine(parent, center)
 
 	-- console facing the path, with a screen and big friendly buttons
 	local consoleCF = CFrame.new(center + Vector3.new(0, 0, -15))
-	local console = Build.part(model, { Name = "Console", Size = Vector3.new(7, 3.6, 3), CFrame = consoleCF * CFrame.new(0, 1.8, 0), Color = white })
+	Build.part(model, { Name = "Console", Size = Vector3.new(7, 3.6, 3), CFrame = consoleCF * CFrame.new(0, 1.8, 0), Color = white })
 	Build.part(model, { Size = Vector3.new(7.4, 0.5, 3.6), CFrame = consoleCF * CFrame.new(0, 3.8, 0.2) * CFrame.Angles(math.rad(-20), 0, 0), Color = lilac })
 	local screen = Build.part(model, {
 		Size = Vector3.new(4.6, 2.2, 0.3),
@@ -465,7 +464,6 @@ local function fusionMachine(parent, center)
 			Size = Vector3.new(0.3, 0.7, 0.7),
 			CFrame = consoleCF * CFrame.new(-2.4 + (k - 1) * 1.6, 4.1, -0.6) * CFrame.Angles(math.rad(-20), 0, 0) * CFrame.Angles(0, 0, math.rad(90)),
 			Color = color,
-			Material = Enum.Material.Neon,
 		})
 	end
 	local screenGui = Instance.new("SurfaceGui")
@@ -488,14 +486,6 @@ local function fusionMachine(parent, center)
 	pad2.PaddingLeft = UDim.new(0.06, 0)
 	pad2.PaddingRight = UDim.new(0.06, 0)
 	pad2.Parent = screenText
-
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Open"
-	prompt.ObjectText = "Pet Aura Machine"
-	prompt.HoldDuration = 0.2
-	prompt.MaxActivationDistance = 12
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = console
 
 	-- title and status above the machine
 	local gui = Instance.new("BillboardGui")
@@ -521,7 +511,6 @@ local function fusionMachine(parent, center)
 	return {
 		Model = model,
 		Orb = orb,
-		Prompt = prompt,
 		Status = gui.Status,
 		Screen = screenText,
 		Light = light,
@@ -681,6 +670,31 @@ function Sahara.build(ctx)
 	ctx.World.Fusion = machine
 	space:add(machineCenter, 9)
 	space:add(machineCenter + Vector3.new(0, 0, -8.5), 4)
+	-- the circle in front of the console: step on it to open the machine
+	-- (the client opens and closes the screen; see AuraMachine.luau)
+	local circleAt = machineCenter + Vector3.new(0, 0, -14)
+	Build.cylinder(machine.Model, circleAt, 0.5, 8, { Name = "CircleRim", Color = Color3.fromRGB(250, 250, 255) })
+	machine.Circle = Build.cylinder(machine.Model, circleAt, 0.6, 7, { Name = "AuraCircle", Color = Color3.fromRGB(200, 185, 255) })
+	Build.cylinder(machine.Model, circleAt + Vector3.new(0, 0.6, 0), 0.04, 5.6, { Color = Color3.fromRGB(255, 120, 190), CanCollide = false })
+	Build.cylinder(machine.Model, circleAt + Vector3.new(0, 0.62, 0), 0.04, 4.8, { Color = Color3.fromRGB(200, 185, 255), CanCollide = false })
+	local hint = Instance.new("BillboardGui")
+	hint.Name = "StepHint"
+	hint.Size = UDim2.fromOffset(160, 34)
+	hint.StudsOffsetWorldSpace = Vector3.new(0, 3, 0)
+	hint.MaxDistance = 45
+	hint.Adornee = machine.Circle
+	hint.Parent = machine.Circle
+	local hintText = Instance.new("TextLabel")
+	hintText.BackgroundTransparency = 1
+	hintText.Size = UDim2.fromScale(1, 1)
+	hintText.Font = Enum.Font.FredokaOne
+	hintText.TextScaled = true
+	hintText.TextColor3 = Color3.new(1, 1, 1)
+	hintText.TextStrokeColor3 = Color3.fromRGB(70, 40, 120)
+	hintText.TextStrokeTransparency = 0
+	hintText.Text = "Step here to open"
+	hintText.Parent = hint
+	space:add(circleAt, 5)
 
 	ctx.reserveSpots() -- breakables get their room before the small props
 

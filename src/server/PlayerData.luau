@@ -170,6 +170,8 @@ function PlayerData.sync(player)
 		LuckBoard = data.LuckBoard or {},
 		MegaReady = data.MegaReady,
 		MegaMult = data.MegaMult,
+		ZoneLuck = data.ZoneLuck,
+		ZoneCoins = data.ZoneCoins,
 		ServerTime = os.time(),
 	})
 end

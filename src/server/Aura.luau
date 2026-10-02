@@ -27,16 +27,9 @@ function Aura.setRandom(source)
 	random = source or Random.new()
 end
 
+-- (the machine opens when you step on the circle in front of it: the
+-- client does that, see AuraMachine.luau)
 local machine = World.Fusion
-if machine then
-	machine.Prompt.ObjectText = "Pet Aura Machine"
-	machine.Prompt.ActionText = "Open"
-	machine.Prompt.Triggered:Connect(function(player)
-		if PlayerData.get(player) then
-			openEvent:FireClient(player)
-		end
-	end)
-end
 
 -- Turns 3 copies of a pet into 1 with a random aura
 function Aura.fuse(player, name)
@@ -90,7 +83,7 @@ task.spawn(function()
 	for k, ring in ipairs(machine.Rings) do
 		ring:SetAttribute("SpinSpeed", if k == 1 then 40 else -30)
 	end
-	machine.Sparkles.Rate = 10
+	machine.Sparkles.Rate = 4
 	machine.Sparkles.Color = ColorSequence.new(Color3.new(1, 1, 1), color)
 	machine.Beam.Transparency = 1
 end)

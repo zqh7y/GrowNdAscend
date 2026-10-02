@@ -570,13 +570,16 @@ function Forest.build(ctx)
 	-- tall trees: a row along each side, and more beyond the walls and on the hills
 	for x = x0 + 5, x1 - 5, 10 do
 		for _, side in ipairs({ -1, 1 }) do
+			-- (by the cottage, near the Sahara gate, only a couple of trees: the
+			-- row there keeps every other one and none grow behind the wall)
+			local thin = side == 1 and x >= x0 + 70
 			local base = Vector3.new(x + rng:NextNumber(-2, 2), 0, side * rng:NextNumber(half - 4, half - 2))
-			if space:free(base, 4) then
+			if space:free(base, 4) and not (thin and (x - x0) % 20 == 5) then
 				randomTree(deco, rng, base, rng:NextNumber(0.95, 1.2))
 				space:add(base, 4)
 			end
 			local far = Vector3.new(x + rng:NextNumber(-3, 3), 0, side * rng:NextNumber(half + 5, half + 24))
-			if outside:free(far, 4) then
+			if outside:free(far, 4) and not thin then
 				randomTree(deco, rng, far, rng:NextNumber(1.1, 1.5))
 				outside:add(far, 4)
 			end

@@ -44,3 +44,4 @@ require(script.Combat)
 require(script.Upgrades)
 require(script.Progress)
 require(script.Aura) -- the Pet Aura Machine (Sahara)
+require(script.BoostZones) -- random Luck / Coins circles on the map

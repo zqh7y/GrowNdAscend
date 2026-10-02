@@ -1,6 +1,11 @@
 -- run the server startup (builds the map, spawns breakables, starts loops)
 local ok, err = xpcall(require, debug.traceback, server)
 print(if ok then "server started OK" else "SERVER ERROR: " .. tostring(err))
+-- (boost zones would pop up at random during the long runs and change luck
+-- and coins under other checks: the timer is off; item 112 tests them)
+if __cache["BoostZones"] then
+	__cache["BoostZones"].Enabled = false
+end
 for _, e in ipairs(STATS.Errors) do
 	print("THREAD ERROR: " .. e)
 end
@@ -635,6 +640,89 @@ if ok then
 				mr.Countdown = Config.countdown(19 * 60 + 26) == "19m 26s"
 				root.CFrame = savedAt
 				STATS.MegaRoll = mr
+			end
+			do
+				-- the Aura Machine opens on its circle, stays open on it, closes off it
+				local AM = C("AuraMachine")
+				local Scr = C("Screen")
+				local W = __cache["World/init"]
+				local root = player.Character.HumanoidRootPart
+				local savedAt = root.CFrame
+				local circle = W.Fusion and W.Fusion.Circle
+				local ac = { Circle = circle ~= nil }
+				local prompts = 0
+				for _, d in ipairs(W.Fusion.Model:GetDescendants()) do
+					if d.ClassName == "ProximityPrompt" then prompts += 1 end
+				end
+				ac.NoPrompt = prompts == 0
+				local function isOpen() return AM.Modal.Visible and not AM.Modal:GetAttribute("Closing") end
+				local function settle() for _ = 1, 10 do STEP(0.03) end end
+				if circle then
+					root.CFrame = CFrame.new(circle.Position + Vector3.new(1, 3, 0))
+					AM.check()
+					ac.Opened = isOpen()
+					-- something else hides it while you stand there: it comes back
+					Scr.close(AM.Modal)
+					settle()
+					AM.check()
+					ac.KeptOpen = isOpen()
+					-- the red X closes it, and it stays closed while you stay on
+					AM.Modal.Box.Panel.Close.Activated:Fire()
+					settle()
+					AM.check()
+					ac.XClosed = not isOpen()
+					-- step off and back on: open again; step off: closed
+					root.CFrame = CFrame.new(circle.Position + Vector3.new(20, 3, 0))
+					AM.check()
+					root.CFrame = CFrame.new(circle.Position + Vector3.new(0, 3, 1))
+					AM.check()
+					ac.Reopened = isOpen()
+					root.CFrame = CFrame.new(circle.Position + Vector3.new(20, 3, 0))
+					AM.check()
+					settle()
+					ac.ClosedOff = not isOpen()
+				end
+				root.CFrame = savedAt
+				STATS.AuraCircle = ac
+			end
+			do
+				-- boost zones: a circle that multiplies luck or coins while you stand in it
+				local BZ = __cache["BoostZones"]
+				local root = player.Character.HumanoidRootPart
+				local savedAt = root.CFrame
+				local bz = {}
+				local baseLuck = Config.luck(data, false, 1, 1)
+				local baseCoins = Config.coinGain(data)
+				local zone = BZ.spawn(1, "Luck", 5)
+				local x0 = Config.areaStart(1)
+				bz.InArea = zone.Center.X >= x0 and zone.Center.X <= x0 + Config.AREA_LENGTH and math.abs(zone.Center.Z) <= Config.AREA_HALF_WIDTH
+				bz.Sign = zone.Title.Text
+				bz.OnMap = zone.Model.Parent == workspace.Map.BoostZones
+				root.CFrame = CFrame.new(zone.Center + Vector3.new(2, 3, 1))
+				BZ.update()
+				bz.Luck = Config.luck(data, false, 1, 1) / baseLuck
+				bz.Synced = player:FindFirstChild("PlayerGui") ~= nil and C("State").Data.ZoneLuck == 5
+				root.CFrame = CFrame.new(zone.Center + Vector3.new(Config.BOOST_ZONE.Radius + 5, 3, 0))
+				BZ.update()
+				bz.Left = data.ZoneLuck == nil and Config.luck(data, false, 1, 1) == baseLuck
+				local coinsZone = BZ.spawn(1, "Coins", 3, zone.Center)
+				root.CFrame = CFrame.new(zone.Center + Vector3.new(0, 3, 0))
+				BZ.update()
+				bz.Coins = Config.coinGain(data) / baseCoins
+				BZ.update(workspace:GetServerTimeNow() + Config.BOOST_ZONE.Lasts + 1)
+				bz.Expired = #BZ.Active == 0 and zone.Model.Parent == nil and coinsZone.Model.Parent == nil and data.ZoneLuck == nil and data.ZoneCoins == nil
+				-- random kinds and multipliers come from the table
+				local seen = {}
+				for _ = 1, 30 do
+					local z = BZ.spawn(1)
+					seen[z.Kind .. z.Multiplier] = true
+				end
+				BZ.update(workspace:GetServerTimeNow() + Config.BOOST_ZONE.Lasts + 1)
+				local kinds = 0
+				for _ in pairs(seen) do kinds += 1 end
+				bz.Variety = kinds
+				root.CFrame = savedAt
+				STATS.BoostZones = bz
 			end
 			STATS.Outfits = { Dressed = dressed, Distinct = distinct, Broken = table.concat(broken, ", "), Titanic = okT and titanic:GetAttribute("Outfit") ~= nil }
 			data.Pets.Cat = 2
@@ -2313,6 +2401,16 @@ if ok then
 			string.format("%d dice; sign '%s' / '%s'; refused before the timer and off the pad; claimed -> %s at luck %s; next one in %d min; picks %s..%s",
 				mr.Dice or 0, tostring(mr.Title), tostring(mr.Timer), tostring(mr.Pet), Config.formatNumber(mr.Luck or 0), Config.MEGA_ROLL.Cooldown // 60,
 				Config.commas(mr.Lo or 0), Config.commas(mr.Hi or 0)))
+		local ac = STATS.AuraCircle or {}
+		item(111, "Aura Machine circle", ac.Circle == true and ac.NoPrompt == true and ac.Opened == true and ac.KeptOpen == true and ac.XClosed == true
+			and ac.Reopened == true and ac.ClosedOff == true,
+			string.format("no E prompt; step on the circle -> opens (%s); stays open while on it (%s); X closes (%s); off and on -> opens (%s); off -> closes (%s)",
+				tostring(ac.Opened), tostring(ac.KeptOpen), tostring(ac.XClosed), tostring(ac.Reopened), tostring(ac.ClosedOff)))
+		local bz = STATS.BoostZones or {}
+		item(112, "boost zones", bz.InArea == true and bz.OnMap == true and bz.Sign == "x5 LUCK" and math.abs((bz.Luck or 0) - 5) < 1e-6 and bz.Synced == true
+			and bz.Left == true and math.abs((bz.Coins or 0) - 3) < 1e-6 and bz.Expired == true and (bz.Variety or 0) >= 4,
+			string.format("zone '%s' in the world; inside: luck x%.2f, coins x%.2f; outside: back to normal (%s); gone after %d s (%s); %d different zones in 30 random ones; one every %d min",
+				tostring(bz.Sign), bz.Luck or 0, bz.Coins or 0, tostring(bz.Left), Config.BOOST_ZONE.Lasts, tostring(bz.Expired), bz.Variety or 0, Config.BOOST_ZONE.Every // 60))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))

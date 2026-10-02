@@ -344,7 +344,7 @@ function World.setGateOpen(i, open)
 		else area.Name:upper() .. "  ·  " .. Config.areaCostText(i))
 end
 
--- The Mega Roll pad ------------------------------------------------------------------
+-- The Mega Roll pad (Sahara) ----------------------------------------------------------
 -- A round pale-blue pad with a glowing ring, a pile of big white dice with
 -- navy pips, potion bottles around it and a second little pile of dice
 -- beside it. The client hangs the sign over it ("x50,000 Roll!" and the
@@ -546,8 +546,12 @@ for i, area in ipairs(Config.AREAS) do
 			space:add(center + Vector3.new(dx, 0, -7), 4.5)
 		end
 		space:add(center + Vector3.new(0, 0, -13), 5)
-		-- the Mega Roll pad, on the left past the leaderboards
-		local megaAt = Vector3.new(x0 + 60, 0, -(HALF - 14))
+	end
+
+	-- the Mega Roll pad stands in the Sahara, on the open sand just past the
+	-- gate (right side; the Pet Aura Machine is further along)
+	if i == 2 then
+		local megaAt = Vector3.new(x0 + 17, 0, HALF - 13)
 		World.buildMegaRoll(megaAt)
 		space:add(megaAt, Config.MEGA_ROLL.Radius + 2)
 		space:add(megaAt + Vector3.new(-Config.MEGA_ROLL.Radius - 3.5, 0, -1), 3.5)

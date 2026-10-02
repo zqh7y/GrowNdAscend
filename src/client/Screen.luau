@@ -175,6 +175,11 @@ function Screen.open(shade)
 	end
 end
 
+-- The panel open now (nil if none)
+function Screen.current()
+	return openModal
+end
+
 -- Closes a panel: it eases down and fades, then hides
 function Screen.close(shade)
 	if openModal == shade then

@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 37 (mega roll pad, gate walls with prices, dice roll button, closer camera)"
+Config.BUILD = "build 39 (boost zones, aura machine circle, mega roll in the sahara)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -364,12 +364,24 @@ Config.CHAIN_MAX = 1024
 -- animal stays at 1 in 10 or worse even with every multiplier stacked)
 Config.MAX_LUCK = 1e6
 
--- The Mega Roll pad (first area, by the spawn): every MEGA_ROLL.Cooldown
+-- The Mega Roll pad (Sahara, just past the gate): every MEGA_ROLL.Cooldown
 -- seconds you can claim one roll with an insanely high luck multiplier
 -- (random between Min and Max, shown on the pad before you claim it). Step
 -- onto the pad when the timer is done. Its luck may go past MAX_LUCK, up to
 -- LuckCap, and it always hatches a pet (never a x2 boost).
 Config.MEGA_ROLL = { Cooldown = 20 * 60, First = 2 * 60, Min = 5000, Max = 100000, Radius = 8, LuckCap = 1e9 }
+
+-- Boost zones (server/BoostZones.luau): every `Every` seconds a circle of
+-- `Radius` studs appears in a world where a player is, for `Lasts` seconds.
+-- Standing in it multiplies Luck or Coins (`Kinds`) by a random multiplier
+-- ({ value, weight } in `Multipliers`).
+Config.BOOST_ZONE = {
+	Every = 5 * 60,
+	Lasts = 2 * 60,
+	Radius = 10,
+	Kinds = { "Luck", "Coins" },
+	Multipliers = { { 2, 40 }, { 3, 30 }, { 5, 20 }, { 10, 10 } },
+}
 
 -- A random Mega Roll multiplier: low ones are more common (spread evenly
 -- by order of magnitude), rounded to two figures (5,000 ... 47,000 ... 100,000)
@@ -499,6 +511,7 @@ function Config.luck(data, isBonus, world, multiplier)
 		luck *= Config.BONUS_LUCK
 	end
 	luck *= multiplier or Config.luckMultiplier(data)
+	luck *= data.ZoneLuck or 1 -- standing in a Luck boost zone
 	return math.min(luck, Config.MAX_LUCK)
 end
 
@@ -1203,7 +1216,7 @@ end
 -- All coin bonuses together: rebirths, the Coins upgrade and the equipped
 -- pets' Coins stats (added up)
 function Config.coinGain(data)
-	return Config.coinMultiplier(data.Rebirths) * Config.upgradeValue(data, "Coins") * Config.teamStat(data, "Coins")
+	return Config.coinMultiplier(data.Rebirths) * Config.upgradeValue(data, "Coins") * Config.teamStat(data, "Coins") * (data.ZoneCoins or 1)
 end
 
 -- EXP bonus: the equipped pets' EXP stats (added up)

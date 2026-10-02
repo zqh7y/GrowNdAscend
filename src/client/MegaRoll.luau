@@ -1,4 +1,4 @@
--- The Mega Roll pad in the first area: a sign over the pile of dice shows
+-- The Mega Roll pad in the Sahara: a sign over the pile of dice shows
 -- the roll waiting for you ("x50,000 Roll!", a random insanely high luck
 -- multiplier) and "Claim in 19m 26s" until it's ready. When it's ready the
 -- sign says so; step on the pad and it rolls (the full hatch show).

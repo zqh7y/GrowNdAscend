@@ -196,7 +196,9 @@ chase Huge and Titanic pets.**
   Nurse, Explorer, Mechanic, Superhero, Gamer, Gardener, Angel and Devil,
   each in two colourways, so all 70 look different. The Index card and the
   Inventory details say which; a Titanic wears its crown on top of its hat.
-- **Pet Aura Machine** (Sahara, where the fusion machine was): put in 3 of
+- **Pet Aura Machine** (Sahara, where the fusion machine was; step on the
+  circle in front of it to open it: it stays open while you stand there and
+  closes when you step off, or with the red X): put in 3 of
   the same pet (any size, no aura yet) and get 1 of it back with a random
   **aura: mini bees** flying in circles around it in the aura's colour
   (rarer auras: more bees, rainbow or glowing bees). Each aura multiplies
@@ -306,9 +308,11 @@ accents (realistic materials are swapped out automatically in `Build.part`).
 The Pet Aura Machine turns its rings slowly with sparkles and an orb in
 the colour of the rarest aura; walk up and press the prompt to open it.
 
-**Mega Roll pad:** in the Forest, on the left past the leaderboards: a pale blue pad with a pile of big dice and potion bottles. The sign over it shows the roll waiting for you, a random insanely high luck multiplier (x5,000 to x100,000, e.g. "x50,000 Roll!"), and "Claim in 19m 26s". When the timer is done, step on the pad: one roll with that luck (it can go past the normal luck cap, up to x1e9, and always hatches a pet) with the full hatch show. Then a new multiplier and a fresh 20 minute timer (the first one is ready 2 minutes after joining). Tuned in `Config.MEGA_ROLL`.
+**Mega Roll pad:** in the Sahara, on the open sand just past the gate (right side): a pale blue pad with a pile of big dice and potion bottles. The sign over it shows the roll waiting for you, a random insanely high luck multiplier (x5,000 to x100,000, e.g. "x50,000 Roll!"), and "Claim in 19m 26s". When the timer is done, step on the pad: one roll with that luck (it can go past the normal luck cap, up to x1e9, and always hatches a pet) with the full hatch show. Then a new multiplier and a fresh 20 minute timer (the first one is ready 2 minutes after joining). Tuned in `Config.MEGA_ROLL`.
 
 **Roll button:** an orange studded tile with a white 3D die and a chunky "ROLL" caption; AUTO sits to its left.
+
+**Boost zones:** every 5 minutes a big see-through circle with a faint column of light appears in a world where a player is, for 2 minutes. Its sign says what it gives and the time left: "x5 LUCK" (green) or "x3 COINS" (gold), a random x2/x3/x5/x10 (x2 most often, x10 rarely). Stand in it and your luck or coins are multiplied; step out (or let it run out) and they're back to normal. Tuned in `Config.BOOST_ZONE` (`server/BoostZones.luau`).
 
 **Gates:** each gate into the next area is a wall of coloured glass with white rails, and on both sides a gold lock, the area's name and its price (a coin and the number) in big chunky letters. The writing goes away when the gate opens. The camera can zoom out at most `Config.MAX_ZOOM` studs (45), and the place template's Baseplate is removed when the server starts.
 
@@ -341,6 +345,7 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/server/Rolling.luau` | Rolls (pet + size), equipping, Equip Best |
 | `src/server/Upgrades.luau` | Buying upgrade levels and Luck Board rows |
 | `src/server/Progress.luau` | Area gates and rebirths |
+| `src/server/BoostZones.luau` | Boost zones: random Luck / Coins circles every 5 minutes |
 | `src/server/Aura.luau` | The Pet Aura Machine (3 pets → 1 with a random aura) |
 | `src/server/Leaderboards.luau` | The 4 global leaderboards (OrderedDataStores) |
 | `src/client/Hud.luau` | Coins, team bar, the icon dock |
