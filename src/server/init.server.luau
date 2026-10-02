@@ -44,5 +44,6 @@ require(script.Combat)
 require(script.Upgrades)
 require(script.Progress)
 require(script.Aura) -- the Pet Aura Machine (Sahara)
+require(script.Fuse) -- the Fuse Machine (Sakura Jungle)
 require(script.BoostZones) -- random Luck / Coins circles on the map
 require(script.Items) -- boost items, the Boost Machine, teleporting

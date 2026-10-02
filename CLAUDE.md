@@ -44,7 +44,7 @@ for how it plays and where the code lives.
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
   hatch show step by step, the ROLL + AUTO buttons, the dense inventory with side details
-  and Equip Best). It must say "checklist: 120/120 passed". It takes
+  and Equip Best). It must say "checklist: 121/121 passed". It takes
   a few minutes; run it in the background. The harness runs as one big
   function: wrap new test blocks in `do ... end` or Luau runs out of local
   registers (limit 200).
@@ -198,6 +198,11 @@ for how it plays and where the code lives.
   Creature circles around the pet). The user found a weapon in the mouth
   silly; keep auras as bees.
   The economy sim doesn't model auras.
+- Fuse Machine (Sakura Jungle, the user's spec): 100 Normal of a pet -> its
+  Huge, 20 Huge -> its Titanic (`Config.FUSE`, `Config.fuseResult`; aura
+  pets and Titanics can't go in). Server `Fuse.luau` (remote "Fuse"),
+  client `FuseMachine.luau` (opens on the FuseCircle like the Aura Machine),
+  model `fuseMachine` in World/Sakura.luau. Checklist item 121.
 - Rolls hold on the hatched pet for `Hatch.HOLD` (landing + ~1s) before the
   next roll (the user asked for time to recognise the pet).
 - Animation: use `Ui.appear`, `Ui.pop`, `Effects.flash` and quick Quint

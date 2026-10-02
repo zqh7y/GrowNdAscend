@@ -465,87 +465,149 @@ function World.buildMegaRoll(center)
 end
 
 -- Rebirth perk pads ---------------------------------------------------------------------
--- One in each world (Config.PERKS): a square pad with a glowing ring and a
--- gold card floating and turning over it, showing the perk. It's yours as
--- soon as you have enough rebirths (nothing is spent); the client writes
--- "Owned" or "Need 3 rebirths" under the card.
+-- One in each world (Config.PERKS): a round pedestal in the perk's colour
+-- (gold coins, green luck, red damage, purple EXP) with a glowing ring, a
+-- glowing bubble floating over it and a friendly white sign that always
+-- faces you: a big icon, the perk's name, what it gives in a coloured pill
+-- and, at the bottom, the status the client fills in ("Need 2 rebirths"
+-- with a lock and a 0/2 bar, or a green "Owned"). Nothing is spent: it's
+-- yours as soon as you have the rebirths.
 local PERK_ICONS = { Coins = "💰", Luck = "🍀", Damage = "⚔️", Exp = "⭐" }
+World.PERK_COLORS = {
+	Coins = Color3.fromRGB(255, 186, 40),
+	Luck = Color3.fromRGB(56, 196, 110),
+	Damage = Color3.fromRGB(240, 84, 96),
+	Exp = Color3.fromRGB(150, 100, 255),
+}
 
 function World.buildPerkPad(index, perk)
 	local folder = map:FindFirstChild("Perks") or Build.folder(map, "Perks")
 	local model = Build.model(folder, "PerkPad" .. index)
 	model:SetAttribute("PerkIndex", index)
+	local color = World.PERK_COLORS[perk.Stat] or Color3.fromRGB(255, 186, 40)
+	local light = color:Lerp(Color3.new(1, 1, 1), 0.45)
 	local x0 = Config.areaStart(perk.Area)
 	local at = Vector3.new(x0 + perk.At[1], Config.GROUND_Y, perk.At[2])
-	Build.block(model, at - Vector3.new(0, 0.5, 0), Vector3.new(9.6, 1.1, 9.6), { Color = Color3.fromRGB(250, 252, 255) })
-	Build.block(model, at - Vector3.new(0, 0.45, 0), Vector3.new(8.4, 1.1, 8.4), { Color = Color3.fromRGB(205, 218, 245) })
-	local top = at + Vector3.new(0, 0.65, 0)
-	Build.cylinder(model, top, 0.06, 5.4, { Color = Color3.fromRGB(255, 225, 110), Material = Enum.Material.Neon, CanCollide = false })
-	Build.cylinder(model, top + Vector3.new(0, 0.02, 0), 0.06, 4.6, { Color = Color3.fromRGB(205, 218, 245), CanCollide = false })
-	-- the card
-	local card = Build.part(model, {
-		Name = "Card",
-		Size = Vector3.new(3.6, 4.6, 0.35),
-		CFrame = CFrame.new(top + Vector3.new(0, 4.4, 0)),
-		Color = Color3.fromRGB(255, 205, 80),
+	-- the pedestal: white base, a step in the perk's colour, a glowing ring, a soft top
+	local function disc(y, height, diameter, props)
+		local part = Build.part(model, props)
+		part.Shape = Enum.PartType.Cylinder
+		part.Size = Vector3.new(height, diameter, diameter)
+		part.CFrame = CFrame.new(at + Vector3.new(0, y + height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		return part
+	end
+	local base = disc(-0.2, 0.6, 10, { Name = "Base", Color = Color3.fromRGB(250, 251, 255) })
+	disc(0.4, 0.45, 8.6, { Color = color })
+	disc(0.85, 0.08, 7.4, { Color = light, Material = Enum.Material.Neon, CanCollide = false })
+	disc(0.87, 0.08, 6.6, { Color = Color3.fromRGB(255, 255, 255), CanCollide = false })
+	local top = at + Vector3.new(0, 0.95, 0)
+
+	-- the bubble: a glowing core in a glassy shell, bobbing over the pad
+	local core = Build.part(model, {
+		Name = "Orb",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(1.7, 1.7, 1.7),
+		CFrame = CFrame.new(top + Vector3.new(0, 3.2, 0)),
+		Color = light,
+		Material = Enum.Material.Neon,
 		CanCollide = false,
 	})
-	Build.spin(card, 30, "Y")
-	Build.bob(card, 0.3, 1)
-	local glow = Instance.new("PointLight")
-	glow.Color = Color3.fromRGB(255, 220, 140)
-	glow.Range = 10
-	glow.Brightness = 0.8
-	glow.Parent = card
-	for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
-		local gui = Instance.new("SurfaceGui")
-		gui.Face = face
-		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = 50
-		gui.LightInfluence = 0
-		gui.Parent = card
-		local function label(text, y, h, color)
-			local l = Instance.new("TextLabel")
-			l.BackgroundTransparency = 1
-			l.Position = UDim2.fromScale(0.06, y)
-			l.Size = UDim2.fromScale(0.88, h)
-			l.Font = Enum.Font.FredokaOne
-			l.TextScaled = true
-			l.TextColor3 = color
-			l.Text = text
-			local stroke = Instance.new("UIStroke")
-			stroke.Color = Color3.fromRGB(150, 95, 20)
-			stroke.Thickness = 2
-			stroke.Parent = l
-			l.Parent = gui
-		end
-		label(PERK_ICONS[perk.Stat] or "✨", 0.06, 0.36, Color3.new(1, 1, 1))
-		label(perk.Name, 0.46, 0.16, Color3.new(1, 1, 1))
-		label(Config.perkText(perk), 0.64, 0.14, Color3.fromRGB(255, 250, 220))
-		label(perk.Rebirths .. (if perk.Rebirths == 1 then " rebirth" else " rebirths"), 0.81, 0.12, Color3.fromRGB(255, 240, 200))
+	local shell = Build.part(model, {
+		Name = "Shell",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(2.7, 2.7, 2.7),
+		CFrame = core.CFrame,
+		Color = color,
+		Material = Enum.Material.Glass,
+		Transparency = 0.55,
+		CanCollide = false,
+	})
+	for _, part in ipairs({ core, shell }) do
+		Build.bob(part, 0.4, 0.8)
 	end
-	-- the status under the card (the client fills it in for you)
+	local glow = Instance.new("PointLight")
+	glow.Color = light
+	glow.Range = 12
+	glow.Brightness = 1
+	glow.Parent = core
+	local sparkles = Instance.new("ParticleEmitter")
+	sparkles.Color = ColorSequence.new(light)
+	sparkles.LightEmission = 1
+	sparkles.Size = NumberSequence.new(0.3, 0)
+	sparkles.Lifetime = NumberRange.new(1, 1.8)
+	sparkles.Rate = 5
+	sparkles.Speed = NumberRange.new(1, 2)
+	sparkles.SpreadAngle = Vector2.new(180, 180)
+	sparkles.Parent = core
+
+	-- the sign: a white card over the bubble, always facing you
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Status"
-	gui.Size = UDim2.fromScale(8, 1.6)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 1.6, 0)
-	gui.MaxDistance = 80
+	gui.Size = UDim2.fromScale(7.6, 4.4)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 4.6, 0)
+	gui.MaxDistance = 70
 	gui.LightInfluence = 0
-	gui.Adornee = model:FindFirstChildWhichIsA("BasePart")
+	gui.Adornee = core
 	gui.Parent = model
-	local status = Instance.new("TextLabel")
-	status.Name = "Text"
-	status.BackgroundTransparency = 1
-	status.Size = UDim2.fromScale(1, 1)
-	status.Font = Enum.Font.FredokaOne
-	status.TextScaled = true
-	status.TextColor3 = Color3.new(1, 1, 1)
-	status.Text = "Need " .. perk.Rebirths .. " rebirths"
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(40, 40, 70)
-	stroke.Thickness = 2.5
-	stroke.Parent = status
-	status.Parent = gui
+	local function new(class, props, parent)
+		local o = Instance.new(class)
+		for k, v in pairs(props) do
+			o[k] = v
+		end
+		o.Parent = parent or gui
+		return o
+	end
+	local function round(o, r)
+		new("UICorner", { CornerRadius = UDim.new(r, 0) }, o)
+		return o
+	end
+	local dark = Color3.fromRGB(46, 50, 80)
+	local card = round(new("Frame", { Name = "Card", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1) }), 0.16)
+	new("UIStroke", { Color = color, Thickness = 3 }, card)
+	-- the icon in a coloured circle
+	local iconBack = round(new("Frame", { Name = "IconBack", Position = UDim2.fromScale(0.05, 0.08), Size = UDim2.fromScale(0.27, 0.47), BackgroundColor3 = light, ZIndex = 2 }), 0.5)
+	new("UIAspectRatioConstraint", { AspectRatio = 1 }, iconBack)
+	new("TextLabel", { Name = "Icon", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Text = PERK_ICONS[perk.Stat] or "✨", TextScaled = true, Font = Enum.Font.FredokaOne, ZIndex = 3 }, iconBack)
+	-- name and what it gives
+	new("TextLabel", {
+		Name = "PerkName",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromScale(0.36, 0.08),
+		Size = UDim2.fromScale(0.6, 0.24),
+		Text = perk.Name,
+		TextColor3 = dark,
+		TextScaled = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Font = Enum.Font.FredokaOne,
+		ZIndex = 2,
+	})
+	local gives = round(new("Frame", { Name = "Gives", Position = UDim2.fromScale(0.36, 0.35), Size = UDim2.fromScale(0.44, 0.2), BackgroundColor3 = color, ZIndex = 2 }), 0.5)
+	new("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromScale(0.08, 0.1),
+		Size = UDim2.fromScale(0.84, 0.8),
+		Text = Config.perkText(perk),
+		TextColor3 = Color3.new(1, 1, 1),
+		TextScaled = true,
+		Font = Enum.Font.FredokaOne,
+		ZIndex = 3,
+	}, gives)
+	-- the status pill and the rebirths bar (the client fills them in)
+	round(new("Frame", { Name = "Pill", Position = UDim2.fromScale(0.05, 0.62), Size = UDim2.fromScale(0.9, 0.2), BackgroundColor3 = Color3.fromRGB(236, 239, 247), ZIndex = 2 }), 0.5)
+	new("TextLabel", {
+		Name = "Text",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromScale(0.1, 0.64),
+		Size = UDim2.fromScale(0.8, 0.16),
+		Text = "🔒 Need " .. perk.Rebirths .. (if perk.Rebirths == 1 then " rebirth" else " rebirths"),
+		TextColor3 = dark,
+		TextScaled = true,
+		Font = Enum.Font.FredokaOne,
+		ZIndex = 3,
+	})
+	local bar = round(new("Frame", { Name = "Bar", Position = UDim2.fromScale(0.12, 0.86), Size = UDim2.fromScale(0.76, 0.07), BackgroundColor3 = Color3.fromRGB(226, 230, 240), ZIndex = 2 }), 0.5)
+	round(new("Frame", { Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = color, ZIndex = 3 }, bar), 0.5)
+	base:SetAttribute("PerkColor", color)
 	return model
 end
 

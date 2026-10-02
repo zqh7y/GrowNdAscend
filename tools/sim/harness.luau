@@ -460,6 +460,48 @@ if ok then
 		try("aura machine open", function()
 			remotes.AuraOpen:FireClient(player)
 		end)
+		try("fuse machine", function()
+			-- server: 100 Normal -> Huge, 20 Huge -> Titanic, nothing else
+			local Fuse = __cache["Fuse"]
+			local fr = {}
+			local savedPets, savedEquipped = data.Pets, data.Equipped
+			data.Pets = { Dog = 99, ["Titanic Dog"] = 1, ["Cat|clover"] = 200 }
+			data.Equipped = {}
+			fr.TooFew = Fuse.fuse(player, "Dog") == nil and data.Pets.Dog == 99
+			data.Pets.Dog = 102
+			data.Equipped = { "Dog", "Dog", "Dog" }
+			fr.Huge = Fuse.fuse(player, "Dog") == "Huge Dog" and data.Pets.Dog == 2 and data.Pets["Huge Dog"] == 1
+				and #data.Equipped == 2 and data.Discovered["Huge Dog"] == true
+			data.Pets["Huge Dog"] = 20
+			fr.Titanic = Fuse.fuse(player, "Huge Dog") == "Titanic Dog" and data.Pets["Huge Dog"] == nil and data.Pets["Titanic Dog"] == 2
+			fr.Refused = Fuse.fuse(player, "Titanic Dog") == nil and Fuse.fuse(player, "Cat|clover") == nil and Fuse.fuse(player, "Nope") == nil
+			-- client: the screen lists what can go in, the button lights up, FUSE shows the reveal
+			local FM = C("FuseMachine")
+			data.Pets = { Cat = 100, Bunny = 3, ["Huge Cat"] = 4, ["Titanic Cat"] = 1 }
+			data.Equipped = {}
+			PlayerData.sync(player)
+			FM.open()
+			frames(1)
+			local list = FM.candidates(data)
+			fr.List = #list == 3 and list[1] == "Cat" and not table.find(list, "Titanic Cat")
+			FM.select("Cat")
+			fr.Ready = FM.FuseButton:GetAttribute("Style") == "magenta" and math.abs(FM.Bar.Size.X.Scale - 1) < 1e-6
+			FM.fuse()
+			fr.Client = FM.LastResult == "Huge Cat" and FM.Reveal.Visible == true and data.Pets["Huge Cat"] == 5 and data.Pets.Cat == nil
+			FM.select("Bunny")
+			fr.NotReady = FM.FuseButton:GetAttribute("Style") == "disabled"
+			C("Screen").close(FM.Modal)
+			-- the machine stands in the Sakura Jungle, its circle on the real ground
+			local W = __cache["World/init"]
+			local m = W.FuseMachine
+			local x0, x1 = Config.areaStart(4), Config.areaStart(4) + Config.AREA_LENGTH
+			fr.World = m ~= nil and m.Circle.Position.X > x0 and m.Circle.Position.X < x1
+				and math.abs(m.Circle.Position.Y + m.Circle.Size.X / 2 - (Config.GROUND_Y + 0.95)) < 1.2
+				and m.Circle.Name == "FuseCircle"
+			data.Pets, data.Equipped = savedPets, savedEquipped
+			PlayerData.sync(player)
+			STATS.Fuse = fr
+		end)
 		try("aura machine fuse", function()
 			local AuraMachine = C("AuraMachine")
 			data.Pets.Cat = 3
@@ -895,6 +937,12 @@ if ok then
 				local s1, s2 = Perks.statusOf(1), Perks.statusOf(2)
 				bo.Status1, bo.Status2 = s1 and s1.Text, s2 and s2.Text
 				bo.Statuses = bo.Status1 == "Owned" and string.find(bo.Status2 or "", "^Need 2") ~= nil
+				-- the friendly sign: a green pill when owned, a grey pill and a half-full bar for 1 of 2
+				local g1, g2 = s1 and s1.Parent, s2 and s2.Parent
+				local fill2 = g2 and g2:FindFirstChild("Bar") and g2.Bar:FindFirstChild("Fill")
+				bo.Sign = g1 ~= nil and g1:IsA("BillboardGui") and g1.Pill.BackgroundColor3.G > g1.Pill.BackgroundColor3.R
+					and g2.Pill.BackgroundColor3.R > 0.9 and fill2 ~= nil and math.abs(fill2.Size.X.Scale - 0.5) < 1e-6
+					and g1.Parent:FindFirstChild("Orb") ~= nil
 				data.Unlocked, data.Rebirths = savedUnlocked, savedRebirths
 				root.CFrame = savedAt
 				PlayerData.sync(player)
@@ -2323,6 +2371,11 @@ if ok then
 		local titanC = (hh.titanic or {}).Cutscene or {}
 		local commonC = (hh.common or {}).Cutscene
 		local rareC = (hh.rare or {}).Cutscene
+		local fz = STATS.Fuse or {}
+		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
+			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,
+			string.format("too few %s, Huge %s, Titanic %s, refuses Titanic/aura %s, screen list %s, button %s, fuse+reveal %s, not ready %s, in the Sakura Jungle %s",
+				tostring(fz.TooFew), tostring(fz.Huge), tostring(fz.Titanic), tostring(fz.Refused), tostring(fz.List), tostring(fz.Ready), tostring(fz.Client), tostring(fz.NotReady), tostring(fz.World)))
 		item(120, "bush cutscene for a pet far rarer than your luck", (STATS.Hatch or {}).BeatsLuck == true and (STATS.Hatch or {}).LuckyEnough == true
 			and (STATS.Hatch or {}).WeakHugeQuiet == true and (STATS.Hatch or {}).EmptyTeamHelps == true,
 			string.format("a 1 in %s Lion rolled with %dx less luck gets the bush; with enough luck, or a pet that doesn't beat your team (a Huge Dog next to Titanic Glitches), it doesn't",
@@ -2652,8 +2705,8 @@ if ok then
 			and bo.Photos == #Config.AREAS and bo.TravelScreen == true and bo.TravelClosed == true,
 			string.format("teleport screen: dimmed, %d world photos from above with names, 'YOU'RE HERE' pin, locked ones dark; to unlocked worlds only: %s %s %s; the upgrade board opens on screen and goes back on its stand: %s %s",
 				bo.Photos or 0, tostring(bo.TeleLocked), tostring(bo.Teleported), tostring(bo.TravelRows), tostring(bo.UpgradesOpen), tostring(bo.UpgradesBack)))
-		item(119, "rebirth perk pads", bo.Pads == #Config.PERKS and bo.PerkCoins == true and bo.Statuses == true,
-			string.format("%d pads; 1 rebirth -> %s; pad 1 says '%s', pad 2 says '%s'", bo.Pads or 0, Config.perkText(Config.PERKS[1]), tostring(bo.Status1), tostring(bo.Status2)))
+		item(119, "rebirth perk pads", bo.Pads == #Config.PERKS and bo.PerkCoins == true and bo.Statuses == true and bo.Sign == true,
+			string.format("%d pads (round pedestal, bubble, friendly sign with a green/grey pill and a rebirths bar); 1 rebirth -> %s; pad 1 says '%s', pad 2 says '%s'", bo.Pads or 0, Config.perkText(Config.PERKS[1]), tostring(bo.Status1), tostring(bo.Status2)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))

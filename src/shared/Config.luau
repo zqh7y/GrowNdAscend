@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 48 (100 pets: 10 up to 1 in 1K, then 15 per band)"
+Config.BUILD = "build 50 (Fuse Machine in the Sakura Jungle, friendlier perk pads)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -238,6 +238,25 @@ end
 -- chance out of 100. An aura pet's saved name is "<pet name>|<aura id>"
 -- ("Huge Tiger|plasma"); Config.petInfo ignores the aura part. (The ids
 -- are from when auras were weapons; they stay so saves keep working.)
+-- The Fuse Machine (Sakura Jungle): HugeFrom of a Normal pet -> 1 Huge of
+-- it; TitanicFrom of a Huge -> 1 Titanic of it. Aura pets can't go in.
+Config.FUSE = { HugeFrom = 100, TitanicFrom = 20 }
+
+-- What fusing `name` gives and how many it takes: (result name, copies),
+-- or nil if it can't be fused (a Titanic, an aura pet, an unknown name)
+function Config.fuseResult(name)
+	local pet, size = Config.petInfo(name)
+	if not pet or Config.petAura(name) or name ~= Config.petName(pet.Name, size.Index) then
+		return nil
+	end
+	if size.Index == 1 then
+		return Config.petName(pet.Name, 2), Config.FUSE.HugeFrom
+	elseif size.Index == 2 then
+		return Config.petName(pet.Name, 3), Config.FUSE.TitanicFrom
+	end
+	return nil
+end
+
 Config.AURA_COPIES = 3
 Config.AURAS = {
 	{ Id = "blaster", Name = "Worker Bees", Weight = 45, Color = Color3.fromRGB(90, 170, 255), Boosts = { Damage = 1.3 } },

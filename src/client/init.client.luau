@@ -15,6 +15,7 @@ require(script.Motion)
 require(script.Ambient) -- birds, critters, butterflies, weather, swaying plants, visitors
 require(script.Hud) -- also loads Roll, Inventory, Index, the Upgrade Board and Panels
 require(script.AuraMachine) -- the Pet Aura Machine screen (opened at the machine in the Sahara)
+require(script.FuseMachine) -- the Fuse Machine screen (opened at the machine in the Sakura Jungle)
 require(script.MegaRoll) -- the Mega Roll pad's sign, and claiming it
 require(script.Boosts) -- the Inventory's Boosts section, the Boost Machine, boost timers
 require(script.Perks) -- the rebirth perk pads' status

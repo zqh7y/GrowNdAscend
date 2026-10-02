@@ -4,7 +4,10 @@
 -- with a red arched bridge and a bamboo water spout, a five-tier pagoda, and
 -- Japanese walls (stone base, white plaster, timber, a curved tile roof and
 -- round windows). Breakable: sushi with happy faces (salmon, tuna, egg, maki).
+-- By the gate in: the Fuse Machine (100 of a pet -> its Huge, 20 Huge -> its
+-- Titanic; server/Fuse.luau, client/FuseMachine.luau).
 local Build = require(game:GetService("ReplicatedStorage").Shared.Build)
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 
 local Sakura = {}
 
@@ -418,6 +421,123 @@ end
 
 -- Building the area ----------------------------------------------------------------------------------
 
+-- The Fuse Machine: a little blossom shrine with a glass bubble on top where
+-- a glowing core spins inside two rings, a small glass jar of pets on the
+-- left going in and a big gold pod on the right coming out, a curved roof,
+-- lanterns, and a pink circle in front to step on (the client opens the
+-- screen; server/Fuse.luau does the fusing).
+local function fuseMachine(parent, at)
+	local model = Build.model(parent, "FuseMachine")
+	local white = Color3.fromRGB(252, 250, 255)
+	local pink = Color3.fromRGB(255, 120, 180)
+	local gold = Color3.fromRGB(255, 205, 80)
+	-- the stone base with a pink trim
+	Build.block(model, at - Vector3.new(0, 0.3, 0), Vector3.new(12, 1, 7), { Color = STONE })
+	Build.block(model, at + Vector3.new(0, 0.6, 0), Vector3.new(11, 0.3, 6), { Color = pink })
+	-- the body: a round white drum with a pink band
+	Build.cylinder(model, at + Vector3.new(0, 0.9, 0), 4.2, 5.2, { Color = white })
+	Build.cylinder(model, at + Vector3.new(0, 3, 0), 0.6, 5.5, { Color = pink })
+	-- the glass bubble with the core and two rings
+	local center = at + Vector3.new(0, 7.2, 0)
+	Build.ball(model, center - Vector3.new(0, 2.2, 0), 5, { Color = Color3.fromRGB(255, 225, 240), Material = Enum.Material.Glass, Transparency = 0.55, CanCollide = false })
+	local core = Build.ball(model, center - Vector3.new(0, 1.1, 0), 1.6, { Name = "Core", Color = Color3.fromRGB(255, 160, 210), Material = Enum.Material.Neon, CanCollide = false })
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 170, 215)
+	light.Range = 14
+	light.Brightness = 1.2
+	light.Parent = core
+	Build.bob(core, 0.35, 1.2)
+	for k, tilt in ipairs({ 25, -25 }) do
+		local ring = Build.part(model, {
+			Name = "Ring",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.18, 3.2, 3.2),
+			CFrame = CFrame.new(core.Position) * CFrame.Angles(math.rad(tilt), 0, math.rad(90)),
+			Color = if k == 1 then gold else Color3.fromRGB(255, 255, 255),
+			Material = Enum.Material.Neon,
+			Transparency = 0.2,
+			CanCollide = false,
+		})
+		Build.spin(ring, if k == 1 then 50 else -40, "Y")
+	end
+	-- a curved roof on four red posts
+	for _, dx in ipairs({ -2.9, 2.9 }) do
+		for _, dz in ipairs({ -2.3, 2.3 }) do
+			Build.block(model, at + Vector3.new(dx, 0.75, dz), Vector3.new(0.5, 8.6, 0.5), { Color = TORII })
+		end
+	end
+	Build.block(model, at + Vector3.new(0, 9.3, 0), Vector3.new(8, 0.5, 6.4), { Color = TORII })
+	Build.block(model, at + Vector3.new(0, 9.8, 0), Vector3.new(9.4, 0.6, 7.6), { Color = ROOF })
+	Build.block(model, at + Vector3.new(0, 10.4, 0), Vector3.new(6.4, 0.6, 4.8), { Color = ROOF })
+	Build.ball(model, at + Vector3.new(0, 11.3, 0), 1.2, { Color = gold, Material = Enum.Material.Neon })
+	-- in: a little jar of tiny pets (coloured balls) on the left
+	local jar = at + Vector3.new(-4.6, 0.9, -0.5)
+	Build.cylinder(model, jar, 3, 2.2, { Color = Color3.fromRGB(230, 245, 255), Material = Enum.Material.Glass, Transparency = 0.45, CanCollide = false })
+	Build.cylinder(model, jar + Vector3.new(0, 3, 0), 0.4, 2.5, { Color = pink })
+	for k, c in ipairs({ Color3.fromRGB(255, 200, 120), Color3.fromRGB(150, 220, 255), Color3.fromRGB(180, 240, 150), Color3.fromRGB(255, 170, 200) }) do
+		Build.ball(model, jar + Vector3.new(((k % 2) - 0.5) * 0.8, 0.5 + k * 0.5, ((k // 2) % 2 - 0.5) * 0.6), 0.75, { Color = c, CanCollide = false })
+	end
+	Build.cylinder(model, jar + Vector3.new(1.3, 2.4, 0), 0.4, 0.5, { Color = white })
+	-- out: a big gold pod with a star on the right
+	local pod = at + Vector3.new(4.6, 0.9, -0.5)
+	Build.cylinder(model, pod, 1.2, 2.6, { Color = white })
+	local podBall = Build.ball(model, pod + Vector3.new(0, 2.4, 0), 2.4, { Name = "Pod", Color = gold, Material = Enum.Material.SmoothPlastic })
+	Build.ball(model, podBall.Position + Vector3.new(0, 0, -1.05), 0.6, { Color = Color3.fromRGB(255, 255, 255), Material = Enum.Material.Neon, CanCollide = false })
+	-- blossom petals drifting off the roof
+	petals(Build.part(model, { Size = Vector3.new(8, 0.2, 6), CFrame = CFrame.new(at + Vector3.new(0, 10, 0)), Transparency = 1, CanCollide = false, CastShadow = false }), 3)
+	-- the sign (the client and Fuse.luau write on it)
+	local signPart = Build.part(model, { Name = "Sign", Size = Vector3.one, CFrame = CFrame.new(at + Vector3.new(0, 14.2, 0)), Transparency = 1, CanCollide = false, CastShadow = false })
+	local sign = Instance.new("BillboardGui")
+	sign.Name = "SignGui"
+	sign.Size = UDim2.fromScale(14, 3.6)
+	sign.MaxDistance = 120
+	sign.LightInfluence = 0
+	sign.Adornee = signPart
+	sign.Parent = signPart
+	local function line(text, y, h, color, stroke)
+		local l = Instance.new("TextLabel")
+		l.BackgroundTransparency = 1
+		l.Position = UDim2.fromScale(0, y)
+		l.Size = UDim2.fromScale(1, h)
+		l.Font = Enum.Font.FredokaOne
+		l.TextScaled = true
+		l.TextColor3 = color
+		l.Text = text
+		local st = Instance.new("UIStroke")
+		st.Color = stroke
+		st.Thickness = 3
+		st.Parent = l
+		l.Parent = sign
+		return l
+	end
+	line("Fuse Machine", 0, 0.58, Color3.new(1, 1, 1), Color3.fromRGB(190, 60, 120))
+	line(Config.FUSE.HugeFrom .. " pets → HUGE  ·  " .. Config.FUSE.TitanicFrom .. " Huge → TITANIC", 0.6, 0.36, Color3.fromRGB(255, 235, 150), Color3.fromRGB(120, 50, 90))
+	-- the circle to step on, in front (facing the path)
+	local circleAt = at + Vector3.new(0, -0.4, -8)
+	Build.cylinder(model, circleAt, 1.2, 8, { Name = "CircleRim", Color = white })
+	local circle = Build.cylinder(model, circleAt, 1.35, 7, { Name = "FuseCircle", Color = Color3.fromRGB(255, 170, 210) })
+	Build.cylinder(model, circleAt + Vector3.new(0, 1.35, 0), 0.04, 5.6, { Color = Color3.fromRGB(255, 255, 255), Material = Enum.Material.Neon, CanCollide = false })
+	Build.cylinder(model, circleAt + Vector3.new(0, 1.37, 0), 0.04, 4.8, { Color = Color3.fromRGB(255, 170, 210), CanCollide = false })
+	local hint = Instance.new("BillboardGui")
+	hint.Name = "StepHint"
+	hint.Size = UDim2.fromOffset(160, 34)
+	hint.StudsOffsetWorldSpace = Vector3.new(0, 3, 0)
+	hint.MaxDistance = 45
+	hint.Adornee = circle
+	hint.Parent = circle
+	local hintText = Instance.new("TextLabel")
+	hintText.BackgroundTransparency = 1
+	hintText.Size = UDim2.fromScale(1, 1)
+	hintText.Font = Enum.Font.FredokaOne
+	hintText.TextScaled = true
+	hintText.TextColor3 = Color3.new(1, 1, 1)
+	hintText.TextStrokeColor3 = Color3.fromRGB(150, 50, 100)
+	hintText.TextStrokeTransparency = 0
+	hintText.Text = "Step here to fuse"
+	hintText.Parent = hint
+	return { Model = model, Circle = circle, Core = core, Sign = signPart }
+end
+
 function Sakura.build(ctx)
 	local folder, rng, space = ctx.Folder, ctx.Rng, ctx.Space
 	local x0, x1, half = ctx.X0, ctx.X1, ctx.Half
@@ -491,6 +611,14 @@ function Sakura.build(ctx)
 	local pondCenter = Vector3.new(x0 + 34, 0, -(half - 12))
 	Build.scale(koiPond(deco, rng, pondCenter), pondCenter, 0.7)
 	space:add(pondCenter, 9)
+
+	-- the Fuse Machine by the gate in, on the right, its circle towards the path
+	-- (on the real ground)
+	local fuseAt = Vector3.new(x0 + 30, 0, half - 11)
+	fuseAt = Vector3.new(fuseAt.X, math.max(ctx.World.groundAt and ctx.World.groundAt(fuseAt.X, fuseAt.Z) or 0, Config.GROUND_Y), fuseAt.Z)
+	ctx.World.FuseMachine = fuseMachine(deco, fuseAt)
+	space:add(Vector3.new(fuseAt.X, 0, fuseAt.Z), 8)
+	space:add(Vector3.new(fuseAt.X, 0, fuseAt.Z - 8), 4.5)
 
 	-- trees along the sides: mostly cherries, some weeping, some maples
 	local kinds = { sakuraTree, sakuraTree, sakuraTree, weepingCherry, maple }

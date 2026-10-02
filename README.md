@@ -314,7 +314,7 @@ accents (realistic materials are swapped out automatically in `Build.part`).
 | 1 Forest | Dirt path through the grass, oaks, birches, fruit trees and poplars (root flares, bent trunks, branches, toon-shaded leaves), flower patches (daisies, tulips, bluebells, sunflowers), berry bushes, mushrooms, fallen logs, mossy rocks, two tiered fountains with water streams, hills with a cottage and a windmill, the 3 leaderboards side by side | Hopping fruit trees (5K HP, 20 coins) | Free |
 | 2 Sahara | Oasis with palms and reeds, pyramids with gold capstones and a sphinx, Cleopatra's temple (pylon gate with a winged sun disk, lotus columns, painted friezes, obelisks, fire braziers, guardian sphinxes, her statue), the Pet Aura Machine (spinning rings, glowing pipes, hopper, output pad, console with a screen), a camel, pottery, Western Wall-style walls with raised stone faces | Saguaro, barrel and prickly pear cactuses (120M HP, 600 coins) | 25K |
 | 3 Frozen Peaks | Snow with ice patches, a frozen sea (cracks, fishing holes, pressure ridges, floes, icebergs, penguins), a snow-brick igloo, a snowman and a sled, an ice arch with icicles, ice walls, crystal clusters, snow-laden pines, snowy rocks, snowfall | Ice cubes: clear, with a fish, with a gem, stacked (30B HP, 40K coins) | 12M |
-| 4 Sakura Jungle | Twisted and weeping cherry trees with falling petals, red maples, bamboo, ferns, hydrangeas and azaleas, stepping-stone path, torii gates, stone lanterns, koi pond with a red arched bridge and a bamboo spout, a five-tier pagoda, Japanese walls with tile roofs and round windows | Sushi with happy faces: salmon, tuna, egg, maki (12T HP, 3M coins) | 130B |
+| 4 Sakura Jungle | The Fuse Machine by the gate in, twisted and weeping cherry trees with falling petals, red maples, bamboo, ferns, hydrangeas and azaleas, stepping-stone path, torii gates, stone lanterns, koi pond with a red arched bridge and a bamboo spout, a five-tier pagoda, Japanese walls with tile roofs and round windows | Sushi with happy faces: salmon, tuna, egg, maki (12T HP, 3M coins) | 130B |
 | 5 Lava Arena (boss world) | A round stone arena on warm volcanic rock: sandy fighting floor, ring wall with three rows of stands, torches, orange banners, an entrance arch with a "BOSS ARENA" sign, a shady AFK spot with benches, little lava pools, smoking volcanoes beyond the walls, drifting embers | One giant boss, the **Magma Titan** (friendly rock giant with lava cracks; slow heavy stomps; 1Qn HP, 1B coins, 15K EXP); back in the middle 6 s after it's beaten. Pets go for it from anywhere in the area, so it's the AFK world. A boss bar under the level shows its health and your coins a second | 40T |
 
 The Pet Aura Machine turns its rings slowly with sparkles and an orb in
@@ -324,16 +324,18 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 
 **Boost Machine:** in the Frozen Peaks, just past the gate: an icy dispenser with a gift box spinning in its window and a circle in front. Its sign says "FREE BOOST" and when the next one is ready; step on the circle then and a random boost item goes into your Boosts: **x2 Luck** or **x2 Coins** for 10 minutes, or (rarely) **x5 Luck** for 5 minutes. One every 15 minutes (the first a minute after joining). Using a boost of a stat that's already running adds its time. Running boosts show as small chips with their time left in the top-left. (`Config.ITEMS`, `Config.BOOST_MACHINE`)
 
+**Fuse Machine:** in the Sakura Jungle, by the gate in on the right: a little blossom shrine with a red-posted blue roof, a glass bubble where a pink core floats inside two spinning rings, a jar of tiny pets going in on the left and a gold pod coming out on the right. Its sign says "100 pets → HUGE · 20 Huge → TITANIC". Step on the pink circle in front and the screen opens: your pets that can go in (Normal and Huge, no aura) with "37 / 100" under each, ready ones first. Pick one and you see it, an arrow down to what it becomes, "You have 37 / 100" with a pink bar, and FUSE. **100 of a Normal pet become 1 Huge of that pet; 20 Huge become 1 Titanic.** The new pet bursts out of the light with its power. Equipped copies that went in come off your team. (`Config.FUSE`, `server/Fuse.luau`, `client/FuseMachine.luau`)
+
 **Inventory: Pets and Boosts.** Two tabs on the Inventory's top edge. Boosts shows what's running now and a card for each Mega Roll and boost item you have (how many, what it does, a USE button).
 
 **Teleport and Upgrades buttons** (left side): Teleport dims the screen (the game still shows through) and lays every world on it as a tilted photo: a white frame with a real picture of that world from above (its trees, buildings and rocks on its ground), its number and its name. Hover a photo and it straightens and grows; tap an unlocked one to go to its start. Your world has a "YOU'RE HERE" pin; locked worlds are darker with a lock and their price. Tap the dark around them (or X) to close. Upgrades opens the Upgrade Board on screen from anywhere (the same board; it goes back on its stand when you close it).
 
-**Rebirth perks:** one pad in every world, like a floating gold card over a glowing pad. A perk is yours for good as soon as you have its number of rebirths (nothing is spent); the pad says "Owned" or "Need 3 rebirths (you have 1)":
+**Rebirth perks:** one pad in every world: a round pedestal in the perk's colour (gold Coins, green Luck, red Damage, purple EXP) with a glowing ring, a glowing bubble floating over it and a friendly white sign that always faces you (a big icon, the perk's name, what it gives in a coloured pill). A perk is yours for good as soon as you have its number of rebirths (nothing is spent); the sign's bottom pill is grey with "Need 3 rebirths (1/3)" and a bar filling up, then green "Owned":
 
 | World | Rebirths | Perk |
 | --- | --- | --- |
 | Forest | 1 | Golden Touch: +15% Coins |
-| Sahara | 2 | Desert Luck: +15% Luck |
+| Sahara | 2 | Desert Luck: +50% Luck |
 | Frozen Peaks | 3 | Ice Power: +10% Damage |
 | Sakura Jungle | 5 | Sakura Wisdom: +25% EXP |
 | Lava Arena | 7 | Lava Riches: +25% Coins |
@@ -382,7 +384,7 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/server/Items.luau` | Boost items, the Boost Machine, teleporting |
 | `src/client/Boosts.luau` | The Inventory's Boosts section, the Boost Machine's sign, boost timers |
 | `src/client/Travel.luau` | The Teleport panel |
-| `src/client/Perks.luau` | The rebirth perk pads' "Owned" / "Need N rebirths" |
+| `src/client/Perks.luau` | The rebirth perk pads' status pill and rebirths bar |
 | `src/server/BoostZones.luau` | Boost zones: random Luck / Coins circles every 5 minutes |
 | `src/server/Aura.luau` | The Pet Aura Machine (3 pets → 1 with a random aura) |
 | `src/server/Leaderboards.luau` | The 4 global leaderboards (OrderedDataStores) |
@@ -394,6 +396,8 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/client/Inventory.luau`, `Index.luau`, `PetView.luau` | Inventory, Animal Index, 3D pet previews |
 | `src/client/Panels.luau` | Settings, Rebirth (and the old Top panel) |
 | `src/client/AuraMachine.luau` | The Pet Aura Machine screen and reveal |
+| `src/client/FuseMachine.luau` | The Fuse Machine screen (100 → Huge, 20 Huge → Titanic) and reveal |
+| `src/server/Fuse.luau` | Fusing pets into their Huge / Titanic |
 | `src/client/Living.luau`, `Pets.luau` | Living coins hopping, pets following and attacking |
 | `src/client/Creature.luau` | How every animal moves (walk, hop, waddle, fly, hover, swim, slither) |
 | `src/client/Ambient.luau` | Birds, critters, butterflies, visitors, falling leaves, weather, swaying plants, lighting per world |
