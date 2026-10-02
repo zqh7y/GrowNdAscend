@@ -408,6 +408,8 @@ end
 function World.buildMegaRoll(center)
 	local model = Build.model(map, "MegaRoll")
 	local r = Config.MEGA_ROLL.Radius
+	-- stand on the real ground (the sand isn't exactly at Y = 0)
+	center = Vector3.new(center.X, math.max(World.groundAt(center.X, center.Z) or 0, 0) - 0.3, center.Z)
 	-- the pad: a white rim, the pale blue top and a glowing ring on it
 	Build.cylinder(model, center, 1, r * 2 + 1.2, { Name = "Rim", Color = Color3.fromRGB(250, 252, 255) })
 	local pad = Build.cylinder(model, center, 1.3, r * 2, { Name = "Pad", Color = Color3.fromRGB(184, 210, 255) })
@@ -549,9 +551,9 @@ for i, area in ipairs(Config.AREAS) do
 	end
 
 	-- the Mega Roll pad stands in the Sahara, on the open sand just past the
-	-- gate (right side; the Pet Aura Machine is further along)
+	-- gate (the -Z side, across from the Pet Aura Machine)
 	if i == 2 then
-		local megaAt = Vector3.new(x0 + 17, 0, HALF - 13)
+		local megaAt = Vector3.new(x0 + 17, 0, -(HALF - 13))
 		World.buildMegaRoll(megaAt)
 		space:add(megaAt, Config.MEGA_ROLL.Radius + 2)
 		space:add(megaAt + Vector3.new(-Config.MEGA_ROLL.Radius - 3.5, 0, -1), 3.5)

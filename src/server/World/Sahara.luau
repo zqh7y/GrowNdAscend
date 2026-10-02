@@ -672,11 +672,14 @@ function Sahara.build(ctx)
 	space:add(machineCenter + Vector3.new(0, 0, -8.5), 4)
 	-- the circle in front of the console: step on it to open the machine
 	-- (the client opens and closes the screen; see AuraMachine.luau)
+	-- (on the real ground, which sits a little above Y = 0 here, and tall
+	-- enough to always show above the sand)
 	local circleAt = machineCenter + Vector3.new(0, 0, -14)
-	Build.cylinder(machine.Model, circleAt, 0.5, 8, { Name = "CircleRim", Color = Color3.fromRGB(250, 250, 255) })
-	machine.Circle = Build.cylinder(machine.Model, circleAt, 0.6, 7, { Name = "AuraCircle", Color = Color3.fromRGB(200, 185, 255) })
-	Build.cylinder(machine.Model, circleAt + Vector3.new(0, 0.6, 0), 0.04, 5.6, { Color = Color3.fromRGB(255, 120, 190), CanCollide = false })
-	Build.cylinder(machine.Model, circleAt + Vector3.new(0, 0.62, 0), 0.04, 4.8, { Color = Color3.fromRGB(200, 185, 255), CanCollide = false })
+	circleAt = Vector3.new(circleAt.X, math.max(ctx.World.groundAt(circleAt.X, circleAt.Z) or 0, 0) - 0.4, circleAt.Z)
+	Build.cylinder(machine.Model, circleAt, 1.2, 8, { Name = "CircleRim", Color = Color3.fromRGB(250, 250, 255) })
+	machine.Circle = Build.cylinder(machine.Model, circleAt, 1.35, 7, { Name = "AuraCircle", Color = Color3.fromRGB(200, 185, 255) })
+	Build.cylinder(machine.Model, circleAt + Vector3.new(0, 1.35, 0), 0.04, 5.6, { Color = Color3.fromRGB(255, 120, 190), CanCollide = false })
+	Build.cylinder(machine.Model, circleAt + Vector3.new(0, 1.37, 0), 0.04, 4.8, { Color = Color3.fromRGB(200, 185, 255), CanCollide = false })
 	local hint = Instance.new("BillboardGui")
 	hint.Name = "StepHint"
 	hint.Size = UDim2.fromOffset(160, 34)

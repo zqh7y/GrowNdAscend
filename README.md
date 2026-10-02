@@ -308,7 +308,7 @@ accents (realistic materials are swapped out automatically in `Build.part`).
 The Pet Aura Machine turns its rings slowly with sparkles and an orb in
 the colour of the rarest aura; walk up and press the prompt to open it.
 
-**Mega Roll pad:** in the Sahara, on the open sand just past the gate (right side): a pale blue pad with a pile of big dice and potion bottles. The sign over it shows the roll waiting for you, a random insanely high luck multiplier (x5,000 to x100,000, e.g. "x50,000 Roll!"), and "Claim in 19m 26s". When the timer is done, step on the pad: one roll with that luck (it can go past the normal luck cap, up to x1e9, and always hatches a pet) with the full hatch show. Then a new multiplier and a fresh 20 minute timer (the first one is ready 2 minutes after joining). Tuned in `Config.MEGA_ROLL`.
+**Mega Roll pad:** in the Sahara, on the open sand just past the gate (across from the Pet Aura Machine): a pale blue pad with a pile of big dice and potion bottles. The sign over it shows the roll waiting for you, a random insanely high luck multiplier (x5,000 to x100,000, e.g. "x50,000 Roll!"), and "Claim in 19m 26s". When the timer is done, step on the pad: one roll with that luck (it can go past the normal luck cap, up to x1e9, and always hatches a pet) with the full hatch show. Then a new multiplier and a fresh 20 minute timer (the first one is ready 2 minutes after joining). Tuned in `Config.MEGA_ROLL`.
 
 **Roll button:** an orange studded tile with a white 3D die and a chunky "ROLL" caption; AUTO sits to its left.
 
