@@ -2510,6 +2510,7 @@ if ok then
 			local tf = Travel.fitFor(phone)
 			local travelOk = 1300 * tf <= phone.X + 0.5 and 760 * tf <= phone.Y + 0.5
 			local fitsOk = scale >= 0.7 and 900 * fit * scale <= phone.X and 600 * fit * scale <= phone.Y
+				and Screen.panelScale(true) == 0.85 and Screen.panelScale(false) == 1 -- (panels at 85% on phones only)
 			local stackOk = navTop * scale >= 60 and navBottom < tall - 60 -- (menu under Roblox's buttons, above the joystick)
 			phoneOk = phoneOk and fitsOk and stackOk and underTopBar and travelOk
 			print(string.format("  iPhone 844x390: UI scale %.2f (text 12 -> %.1fpt), panels x%.2f (%dx%d pt), card top right %d-%d (x%.2f), menu %d-%d of %d, teleport x%.2f", scale, 12 * scale, fit, 900 * fit * scale, 600 * fit * scale, Hud.TOUCH_CARD_TOP, cardBottom, Hud.TOUCH_CARD_SCALE, navTop, navBottom, tall, tf))
