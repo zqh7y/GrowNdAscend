@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Security = require(script.Parent.Security)
 local PlayerData = require(script.Parent.PlayerData)
 local World = require(script.Parent.World)
 
@@ -20,7 +21,7 @@ rebirthFunction.Parent = remotes
 local claimFunction = Instance.new("RemoteFunction")
 claimFunction.Name = "ClaimMilestone"
 claimFunction.Parent = remotes
-claimFunction.OnServerInvoke = function(player, id)
+claimFunction.OnServerInvoke = Security.guard("ClaimMilestone", function(player, id)
 	local data = PlayerData.get(player)
 	if not data or type(id) ~= "string" then
 		return nil
@@ -38,7 +39,7 @@ claimFunction.OnServerInvoke = function(player, id)
 	end
 	PlayerData.sync(player)
 	return { Id = id, Coins = m.Coins, Boost = m.Boost, LuckChain = data.LuckChain }
-end
+end, 4)
 
 local function refreshGates(unlocked)
 	for i = 2, #Config.AREAS do
@@ -70,7 +71,7 @@ for i, gate in pairs(World.Gates) do
 	end)
 end
 
-rebirthFunction.OnServerInvoke = function(player)
+rebirthFunction.OnServerInvoke = Security.guard("Rebirth", function(player)
 	local data = PlayerData.get(player)
 	if not data then
 		return false
@@ -101,7 +102,7 @@ rebirthFunction.OnServerInvoke = function(player)
 	PlayerData.sync(player)
 	notifyEvent:FireClient(player, string.format("Rebirth %d!  Luck x%.2f  ·  Coins x%d", data.Rebirths, Config.rebirthLuck(data.Rebirths), Config.coinMultiplier(data.Rebirths)), "success")
 	return true
-end
+end, 2)
 
 local function onLoaded(player)
 	local data = PlayerData.get(player)

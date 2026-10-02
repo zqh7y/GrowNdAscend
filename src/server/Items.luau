@@ -10,6 +10,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Security = require(script.Parent.Security)
 local PlayerData = require(script.Parent.PlayerData)
 local Rolling = require(script.Parent.Rolling)
 local World = require(script.Parent.World)
@@ -69,14 +70,14 @@ function Items.useBoost(player, id)
 	return active
 end
 
-useFunction.OnServerInvoke = function(player, kind, value)
+useFunction.OnServerInvoke = Security.guard("UseItem", function(player, kind, value)
 	if kind == "MegaRoll" then
 		return (Rolling.useMega(player, value))
 	elseif kind == "Boost" and type(value) == "string" then
 		return (Items.useBoost(player, value))
 	end
 	return nil
-end
+end, 10)
 
 -- a random boost item, by weight
 local function pickItem()
@@ -121,9 +122,9 @@ function Items.claimBoost(player)
 	return item.Id
 end
 
-claimFunction.OnServerInvoke = function(player)
+claimFunction.OnServerInvoke = Security.guard("BoostClaim", function(player)
 	return (Items.claimBoost(player))
-end
+end, 4)
 
 -- Teleports to the start of world `area` (if it's unlocked)
 function Items.teleport(player, area)
@@ -146,9 +147,9 @@ function Items.teleport(player, area)
 	return true
 end
 
-teleportFunction.OnServerInvoke = function(player, area)
+teleportFunction.OnServerInvoke = Security.guard("Teleport", function(player, area)
 	return Items.teleport(player, area)
-end
+end, 2)
 
 -- the Boost Machine's first gift comes a minute after joining
 PlayerData.Loaded.Event:Connect(function(player)

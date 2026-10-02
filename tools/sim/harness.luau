@@ -6,6 +6,12 @@ print(if ok then "server started OK" else "SERVER ERROR: " .. tostring(err))
 if __cache["BoostZones"] then
 	__cache["BoostZones"].Enabled = false
 end
+-- (the rate limits and the zone guard would get in the way of checks that call
+-- remotes back to back and move the player into locked worlds: item 129 tests them)
+if __cache["Security"] then
+	__cache["Security"].RateLimits = false
+	__cache["Security"].ZoneGuard = false
+end
 for _, e in ipairs(STATS.Errors) do
 	print("THREAD ERROR: " .. e)
 end
@@ -2509,6 +2515,45 @@ if ok then
 			item(128, "player card bottom left; phone layout (iPhone)", pcOk and phoneOk and backOk
 				and level ~= nil and team ~= nil and level.LayoutOrder < team.LayoutOrder,
 				string.format("PC: bottom left, level on top of YOUR TEAM %s; iPhone: bigger readable UI, panels and reveals shrink to fit, card and menu top left, ROLL/AUTO above the jump button %s", tostring(pcOk), tostring(phoneOk)))
+		end
+		do
+			-- security: spam is dropped, bad arguments never break anything,
+			-- and nobody can stand in a world they haven't unlocked
+			local Sec = __cache["Security"]
+			Sec.RateLimits = true
+			local before = Sec.Dropped
+			local passed = 0
+			for _ = 1, 30 do
+				if remotes.EquipBest:InvokeServer() ~= nil then passed += 1 end
+			end
+			local spamOk = passed <= 4 and Sec.Dropped - before >= 26
+			-- junk arguments: nothing errors, nothing is given
+			local coins = data.Coins
+			local junkOk = true
+			for _, junk in ipairs({ { 0 / 0 }, { math.huge }, { {} }, { "Titanic Glitch" }, { string.rep("x", 5000) }, { -1 } }) do
+				for _, name in ipairs({ "Equip", "BuyUpgrade", "BuyLuck", "ClaimMilestone", "UseItem", "Teleport", "Fuse", "AuraFuse" }) do
+					local okJ = pcall(function()
+						return remotes[name]:InvokeServer(junk[1], junk[1])
+					end)
+					if not okJ then junkOk = false end
+				end
+			end
+			junkOk = junkOk and data.Coins == coins and (data.Pets["Titanic Glitch"] or 0) == 0
+			Sec.RateLimits = false
+			-- the zone guard: standing in a locked world puts you back
+			local root = player.Character.HumanoidRootPart
+			local savedAt, savedUnlocked = root.CFrame, data.Unlocked
+			data.Unlocked = 1
+			root.CFrame = CFrame.new(Config.areaStart(3) + 20, Config.GROUND_Y + 3, 0)
+			local returned = Sec.check(player)
+			local backHome = root.Position.X < Config.areaStart(2)
+			root.CFrame = CFrame.new(Config.areaStart(1) + 30, Config.GROUND_Y + 3, 0)
+			local stays = Sec.check(player) == false
+			data.Unlocked = savedUnlocked
+			root.CFrame = savedAt
+			item(129, "security: spam dropped, junk ignored, no standing in locked worlds", spamOk and junkOk and returned and backHome and stays,
+				string.format("30 EquipBest in a burst -> %d answered, %d dropped; junk args (NaN, inf, tables, huge strings, a pet you don't own) -> nothing errors, nothing given %s; in a locked world -> put back %s, in your own world -> left alone %s",
+					passed, Sec.Dropped - before, tostring(junkOk), tostring(returned and backHome), tostring(stays)))
 		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
