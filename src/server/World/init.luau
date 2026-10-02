@@ -19,6 +19,7 @@ local AREA_MODULES = { script.Forest, script.Sahara, script.Frozen, script.Sakur
 
 local map = Build.folder(workspace, "Map")
 local terrain = workspace.Terrain
+local cartoonTerrain -- (below: hills as smooth parts)
 
 World.Areas = {} -- [i] = { Folder, Spots = { Vector3 }, Module }
 World.Gates = {} -- [i] = { Barrier, Sign, Button } for the gate into area i (i >= 2)
@@ -301,6 +302,59 @@ spawn.Parent = map
 local spawnDecal = spawn:FindFirstChildOfClass("Decal")
 if spawnDecal then
 	spawnDecal:Destroy()
+end
+
+-- Cartoon hills -----------------------------------------------------------------------
+-- The round hills each world piles up beside and behind the walkable strip
+-- (grass, sand, snow, rock) are made as smooth round parts instead of
+-- realistic terrain, coloured like the world's cartoon floor (World.FLOOR,
+-- coloured once the floor is laid). Anything touching the strip, and every
+-- other terrain change, still goes to the real terrain.
+World.CARTOON_HILLS = true
+World.Hills = {} -- { Part, Area }
+local HILL_MATERIALS = {
+	[Enum.Material.Grass] = true,
+	[Enum.Material.LeafyGrass] = true,
+	[Enum.Material.Sand] = true,
+	[Enum.Material.Sandstone] = true,
+	[Enum.Material.Snow] = true,
+	[Enum.Material.Basalt] = true,
+}
+local hillFolder = nil
+cartoonTerrain = function(area)
+	if not World.CARTOON_HILLS then
+		return terrain
+	end
+	local proxy = setmetatable({}, {
+		__index = function(_, key)
+			local value = terrain[key]
+			if type(value) == "function" then
+				return function(_, ...)
+					return value(terrain, ...)
+				end
+			end
+			return value
+		end,
+	})
+	function proxy.FillBall(_, center, radius, material)
+		-- (beside the strip, or behind its start or past its end)
+		local away = math.abs(center.Z) - radius > HALF + 1 or center.X < 0 or center.X > TOTAL
+		if away and HILL_MATERIALS[material] then
+			hillFolder = hillFolder or Build.folder(map, "CartoonHills")
+			local part = Build.part(hillFolder, {
+				Name = "Hill",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(radius * 2, radius * 2, radius * 2),
+				CFrame = CFrame.new(center),
+				Material = Enum.Material.SmoothPlastic,
+				CastShadow = false,
+			})
+			table.insert(World.Hills, { Part = part, Area = area })
+			return
+		end
+		terrain:FillBall(center, radius, material)
+	end
+	return proxy
 end
 
 -- Gates between areas ----------------------------------------------------------------
@@ -990,7 +1044,7 @@ for i, area in ipairs(Config.AREAS) do
 		Side = SIDE,
 		Rng = rng,
 		Space = space,
-		Terrain = terrain,
+		Terrain = cartoonTerrain(i),
 		World = World,
 	}
 	module.build(ctx)
@@ -1113,8 +1167,91 @@ if World.CARTOON_FLOOR then
 			end
 		end
 	end
+	-- the sides: the scenery ground beside and beyond the strip gets the same
+	-- flat floor (bigger tiles, at whatever height the ground is there, and
+	-- not over water, lava or the frozen sea), and the hills its colour
+	World.SideTiles = 0
+	local sideRay = RaycastParams.new()
+	sideRay.FilterType = Enum.RaycastFilterType.Include
+	sideRay.FilterDescendantsInstances = { terrain }
+	local SKIP_SIDE = {
+		[Enum.Material.Water] = true,
+		[Enum.Material.CrackedLava] = true,
+		[Enum.Material.Glacier] = true,
+		[Enum.Material.Ice] = true,
+	}
+	function World.coverSides()
+		local sides = floor:FindFirstChild("Sides") or Build.folder(floor, "Sides")
+		local BIG = 10
+		for x = -50, TOTAL + 50 - BIG, BIG do
+			for z = -SIDE, SIDE - BIG, BIG do
+				local cx, cz = x + BIG / 2, z + BIG / 2
+				local inStrip = cx > 0 and cx < TOTAL and math.abs(cz) < HALF + BIG / 2
+				if not inStrip then
+					local hit = workspace:Raycast(Vector3.new(cx, 200, cz), Vector3.new(0, -400, 0), sideRay)
+					if hit and not SKIP_SIDE[hit.Material] then
+						local look = World.FLOOR[Config.areaAt(math.clamp(cx, 0, TOTAL - 1))] or World.FLOOR[1]
+						Build.part(sides, {
+							Name = "SideTile",
+							Size = Vector3.new(BIG, 1, BIG),
+							CFrame = CFrame.new(cx, hit.Position.Y + 0.05 - 0.5, cz),
+							Color = look.Base,
+							Material = Enum.Material.SmoothPlastic,
+							CastShadow = false,
+						})
+						World.SideTiles += 1
+					end
+				end
+			end
+		end
+	end
+	for _, hill in ipairs(World.Hills) do
+		local look = World.FLOOR[hill.Area] or World.FLOOR[1]
+		hill.Part.Color = look.Base:Lerp(look.Dark, 0.35)
+	end
+	-- things built for the old ground height (Y 0 to 1.6) sit a little in the
+	-- floor: every model standing in the strip goes up onto the floor (not
+	-- the paths, which settle themselves, nor anything far below it, like a
+	-- gate's invisible wall)
+	World.Lifted = 0
+	function World.liftOntoFloor()
+		local skip = { floor }
+		if hillFolder then
+			table.insert(skip, hillFolder)
+		end
+		for folder in pairs(World.PathPoints) do
+			table.insert(skip, folder)
+		end
+		local function skipped(inst)
+			local up = inst
+			while up do
+				if table.find(skip, up) then
+					return true
+				end
+				up = up.Parent
+			end
+			return false
+		end
+		for _, inst in ipairs(map:GetDescendants()) do
+			if inst:IsA("Model") and not inst.Parent:IsA("Model") and #inst:GetChildren() > 0 and not skipped(inst) then
+				local ok, cf, size = pcall(function()
+					return inst:GetBoundingBox()
+				end)
+				if ok and math.abs(cf.Position.Z) < HALF and cf.Position.X > 0 and cf.Position.X < TOTAL then
+					local bottom = cf.Position.Y - size.Y / 2
+					local delta = heightAt(cf.Position.X, cf.Position.Z, 1) - bottom
+					if delta > 0.05 and delta < 2.6 then
+						inst:PivotTo(inst:GetPivot() + Vector3.new(0, delta, 0))
+						World.Lifted += 1
+					end
+				end
+			end
+		end
+	end
 	task.delay(2, function()
 		World.settleFloor()
+		World.coverSides()
+		World.liftOntoFloor()
 	end)
 	for i = 1, #Config.AREAS do
 		local look = World.FLOOR[i] or World.FLOOR[1]
@@ -1325,8 +1462,19 @@ spawn.CFrame = CFrame.new(World.SPAWN.X, (World.groundAt(World.SPAWN.X, 0) or 0)
 
 -- the far end: a wall of hills so the map doesn't just stop
 -- (they start behind the end walls, so they never reach into the playable strip)
-terrain:FillBlock(CFrame.new(TOTAL + 32, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.LeafyGrass)
-terrain:FillBlock(CFrame.new(-32, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.Grass)
+-- (with the cartoon floor: smooth blocks in the first and last world's
+-- floor colour instead of realistic terrain)
+if World.CARTOON_FLOOR and World.CARTOON_HILLS then
+	local ends = Build.folder(map, "CartoonEnds")
+	for _, e in ipairs({ { X = TOTAL + 32, Area = #Config.AREAS }, { X = -32, Area = 1 } }) do
+		local look = World.FLOOR[e.Area] or World.FLOOR[1]
+		local color = look.Base:Lerp(look.Dark, 0.35)
+		Build.part(ends, { Name = "EndHill", Size = Vector3.new(48, 24, SIDE * 2), CFrame = CFrame.new(e.X, 6, 0), Color = color, CastShadow = false })
+	end
+else
+	terrain:FillBlock(CFrame.new(TOTAL + 32, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.LeafyGrass)
+	terrain:FillBlock(CFrame.new(-32, 6, 0), Vector3.new(48, 24, SIDE * 2), Enum.Material.Grass)
+end
 
 -- Landing on the spawn pad -----------------------------------------------------------
 -- When something stands on the pad (another player, a pet, an enemy),
