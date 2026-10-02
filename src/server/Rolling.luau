@@ -48,6 +48,14 @@ local function onLoaded(player)
 	end
 	if type(data.MegaMult) ~= "number" or type(data.MegaReady) ~= "number" then
 		nextMega(data, Config.MEGA_ROLL.First)
+	elseif data.MegaMult > Config.MEGA_ROLL.Max then
+		data.MegaMult = Config.pickMega(random) -- (from before the nerf)
+	end
+	-- Mega Rolls saved from before the nerf come down to the new top
+	for i, m in ipairs(data.MegaRolls or {}) do
+		if type(m) == "number" and m > Config.MEGA_ROLL.Max then
+			data.MegaRolls[i] = Config.MEGA_ROLL.Max
+		end
 	end
 	PlayerData.updateStrongest(player)
 	PlayerData.sync(player)

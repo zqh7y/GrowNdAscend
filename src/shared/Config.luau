@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 44 (teleport screen with world photos, rolls show real odds)"
+Config.BUILD = "build 45 (mega roll: x1K-x100K, first after 8 min)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -391,7 +391,9 @@ Config.MAX_LUCK = 1e20
 -- (random between Min and Max, shown on the pad before you claim it). Step
 -- onto the pad when the timer is done. Its luck may go past MAX_LUCK, up to
 -- LuckCap, and it always hatches a pet (never a x2 boost).
-Config.MEGA_ROLL = { Cooldown = 20 * 60, First = 2 * 60, Min = 1e7, Max = 1e10, Radius = 8, LuckCap = 1e21 }
+Config.MEGA_ROLL = { Cooldown = 20 * 60, First = 8 * 60, Min = 1e3, Max = 1e5, Radius = 8, LuckCap = 1e21 }
+-- (x1K-x100K on top of your luck: usually a band or two better than a normal
+-- roll, not the best pets. The first one is ready 8 minutes after joining.)
 -- (claiming it puts a Mega Roll in your Boosts, data.MegaRolls; you use it
 -- from the Inventory whenever you like, in the world you stand in)
 
