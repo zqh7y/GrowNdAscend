@@ -37,6 +37,7 @@ local DEFAULT = {
 	Milestones = {}, -- [Index milestone id] = true once its reward is claimed
 	Obtained = {}, -- [pet name] = the roll number it was last hatched on (newest first)
 	LuckBoard = {}, -- [Luck Board row id] = level bought
+	BossUpgrades = {}, -- [Boss Shop upgrade id] = level bought
 }
 
 local sessionData = {} -- [player] = data while they're in game
@@ -79,6 +80,7 @@ local function load(player)
 	data.Milestones = {}
 	data.Obtained = {}
 	data.LuckBoard = {}
+	data.BossUpgrades = {}
 	if ok and saved then
 		for k, v in pairs(saved) do
 			data[k] = v
@@ -168,6 +170,7 @@ function PlayerData.sync(player)
 		Milestones = data.Milestones or {},
 		Obtained = data.Obtained or {},
 		LuckBoard = data.LuckBoard or {},
+		BossUpgrades = data.BossUpgrades or {},
 		MegaReady = data.MegaReady,
 		MegaMult = data.MegaMult,
 		MegaRolls = data.MegaRolls or {},

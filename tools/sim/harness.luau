@@ -553,6 +553,77 @@ if ok then
 			PlayerData.sync(player)
 			STATS.Fuse = fr
 		end)
+		try("boss shop", function()
+			-- server: only with the Lava Arena unlocked, costs coins, levels up, stops at max
+			local BossShop = __cache["BossShop"]
+			local Breakables = __cache["Breakables"]
+			local root = player.Character:FindFirstChild("HumanoidRootPart")
+			local bs = {}
+			local saved = { Unlocked = data.Unlocked, Coins = data.Coins, Boss = data.BossUpgrades, At = root.CFrame }
+			data.BossUpgrades = {}
+			local cost = Config.BOSS_UPGRADES_BY_ID.BossDamage.Cost(0)
+			data.Unlocked = 4
+			data.Coins = cost * 10
+			bs.Locked = BossShop.buy(player, "BossDamage") == false and data.Coins == cost * 10
+			data.Unlocked = 5
+			data.Coins = cost - 1
+			bs.Poor = BossShop.buy(player, "BossDamage") == false
+			data.Coins = cost
+			bs.Bought = BossShop.buy(player, "BossDamage") == true and data.Coins == 0 and data.BossUpgrades.BossDamage == 1
+				and Config.bossUpgradeValue(data, "BossDamage") == 1.5
+			data.BossUpgrades.BossCrit = Config.BOSS_UPGRADES_BY_ID.BossCrit.Max
+			data.Coins = 1e300
+			bs.Max = BossShop.buy(player, "BossCrit") == false and BossShop.buy(player, "Nope") == false and BossShop.buy(player, 5) == false
+			-- Boss Coins: a hit on the boss pays more
+			local boss
+			for _, t in pairs(Breakables.Targets) do
+				if Config.AREAS[t.Area].Boss then boss = t end
+			end
+			if boss then
+				data.BossUpgrades.BossCoins = 0
+				data.Coins = 0
+				boss.Owed = 0
+				Breakables.damage(boss, boss.MaxHealth * 0.01, player)
+				local plain = data.Coins
+				data.BossUpgrades.BossCoins = 2
+				data.Coins = 0
+				boss.Owed = 0
+				Breakables.damage(boss, boss.MaxHealth * 0.01, player)
+				bs.Coins = plain > 0 and math.abs(data.Coins / plain - 2.25) < 0.01
+				boss.Health = boss.MaxHealth
+				boss.Owed = 0
+			end
+			-- client: four rows with prices, buying from the screen, the circle opens it
+			local BS = C("BossShop")
+			data.BossUpgrades = {}
+			data.Coins = cost * 3
+			PlayerData.sync(player)
+			frames(1)
+			local rows = 0
+			for _ in pairs(BS.Rows) do rows += 1 end
+			local row = BS.Rows.BossDamage
+			bs.Rows = rows == 4 and row.Buy.Content.Label.Text == Config.formatNumber(cost) and row.Buy:GetAttribute("Style") == "gold"
+			BS.buy("BossDamage")
+			frames(1)
+			bs.Client = BS.LastResult == true and data.BossUpgrades.BossDamage == 1 and row.Level.Text == "Lv 1 / 25"
+			local W = __cache["World/init"]
+			local circle = W.BossShop and W.BossShop.Circle
+			bs.World = circle ~= nil and circle.Name == "BossShopCircle" and Config.areaAt(circle.Position.X) == Config.bossArea()
+			if circle then
+				root.CFrame = CFrame.new(circle.Position.X, Config.GROUND_Y + 3, circle.Position.Z)
+				BS.check()
+				frames(1)
+				local opened = BS.Modal.Visible == true
+				root.CFrame = CFrame.new(circle.Position.X, Config.GROUND_Y + 3, circle.Position.Z - 20)
+				BS.check()
+				frames(30)
+				bs.Circle = opened and BS.Modal.Visible == false
+			end
+			data.Unlocked, data.Coins, data.BossUpgrades = saved.Unlocked, saved.Coins, saved.Boss
+			root.CFrame = saved.At
+			PlayerData.sync(player)
+			STATS.BossShop = bs
+		end)
 		try("aura machine fuse", function()
 			local AuraMachine = C("AuraMachine")
 			data.Pets.Cat = 3
@@ -2589,7 +2660,7 @@ if ok then
 			local function lies(folder)
 				if not folder or #folder:GetChildren() == 0 then return false end
 				for _, d in ipairs(folder:GetDescendants()) do
-					if d:IsA("BasePart") and (d.CanCollide or d.CanQuery or d.Position.Y < Config.GROUND_Y or d.Position.Y > Config.GROUND_Y + 0.2) then return false end
+					if d:IsA("BasePart") and (d.CanCollide or d.CanQuery or d.Position.Y < Config.GROUND_Y or d.Position.Y > Config.GROUND_Y + 1.8) then return false end
 				end
 				return true
 			end
@@ -2605,6 +2676,13 @@ if ok then
 			item(130, "paths: Forest, snake trail (Sahara), frozen lake (Frozen), straight path (Sakura)", ok,
 				string.format("forest %s, snake trail %s + snake %s, frozen lake %s, sakura %s (flat, on top of the floor, walk-through)",
 					tostring(lies(P.ForestPath)), tostring(lies(P.SnakeTrail)), tostring(snake ~= nil), tostring(lies(P.FrozenLake)), tostring(lies(P.Path))))
+		end
+		do
+			local bs = STATS.BossShop or {}
+			item(131, "Boss Shop: boss damage, coins, EXP, crits", bs.Locked == true and bs.Poor == true and bs.Bought == true and bs.Max == true and bs.Coins == true
+				and bs.Rows == true and bs.Client == true and bs.World == true and bs.Circle == true,
+				string.format("needs the Lava Arena %s, needs the coins %s, bought %s, max/junk refused %s, x2.25 coins from a boss hit at Boss Coins 2 %s, 4 rows with prices %s, buy from the screen %s, stall in the arena %s, circle opens/closes %s",
+					tostring(bs.Locked), tostring(bs.Poor), tostring(bs.Bought), tostring(bs.Max), tostring(bs.Coins), tostring(bs.Rows), tostring(bs.Client), tostring(bs.World), tostring(bs.Circle)))
 		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true

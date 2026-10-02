@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 65 test (gate walls, paths, readable button text; graphics-test branch)"
+Config.BUILD = "build 66 test (Boss Shop; roads above the ground; graphics-test branch)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -1052,6 +1052,121 @@ function Config.canUpgrade(data, id)
 	if upgrade.Requires and Config.upgradeLevel(data, upgrade.Requires[1]) < upgrade.Requires[2] then
 		local need = Config.UPGRADES_BY_ID[upgrade.Requires[1]]
 		return false, "Needs " .. need.Name .. " level " .. upgrade.Requires[2]
+	end
+	return true, nil
+end
+
+-- Boss Shop ---------------------------------------------------------------------------
+-- Upgrades that only work on bosses, sold at the Boss Shop in the Lava Arena
+-- (where the AFK spot was) for coins. Saved in data.BossUpgrades.
+local function percent(v)
+	return string.format("%d%%", math.floor(v * 100 + 0.5))
+end
+Config.BOSS_CRIT_DAMAGE = 3 -- a crit on a boss does this many times the damage
+Config.BOSS_UPGRADES = {
+	{
+		Id = "BossDamage",
+		Name = "Boss Damage",
+		Icon = "sword",
+		Color = Color3.fromRGB(240, 82, 96),
+		Max = 25,
+		Step = "+50% damage to bosses",
+		Value = function(level)
+			return 1.5 ^ level
+		end,
+		Format = function(value)
+			return multiplier(value) .. " boss damage"
+		end,
+		Cost = function(level)
+			return math.floor(5e12 * 2.6 ^ level)
+		end,
+	},
+	{
+		Id = "BossCoins",
+		Name = "Boss Coins",
+		Icon = "coin",
+		Color = Color3.fromRGB(255, 186, 40),
+		Max = 25,
+		Step = "+50% coins from bosses",
+		Value = function(level)
+			return 1.5 ^ level
+		end,
+		Format = function(value)
+			return multiplier(value) .. " boss coins"
+		end,
+		Cost = function(level)
+			return math.floor(4e12 * 2.6 ^ level)
+		end,
+	},
+	{
+		Id = "BossExp",
+		Name = "Boss EXP",
+		Icon = "star",
+		Color = Color3.fromRGB(140, 102, 240),
+		Max = 20,
+		Step = "+40% EXP from bosses",
+		Value = function(level)
+			return 1.4 ^ level
+		end,
+		Format = function(value)
+			return multiplier(value) .. " boss EXP"
+		end,
+		Cost = function(level)
+			return math.floor(3e12 * 2.6 ^ level)
+		end,
+	},
+	{
+		Id = "BossCrit",
+		Name = "Boss Crits",
+		Icon = "bolt",
+		Color = Color3.fromRGB(255, 140, 50),
+		Max = 10,
+		Step = "+4% chance a hit on a boss does x3",
+		Value = function(level)
+			return 0.04 * level
+		end,
+		Format = function(value)
+			return percent(value) .. " x3 crits"
+		end,
+		Cost = function(level)
+			return math.floor(8e12 * 3.2 ^ level)
+		end,
+	},
+}
+Config.BOSS_UPGRADES_BY_ID = {}
+for _, upgrade in ipairs(Config.BOSS_UPGRADES) do
+	Config.BOSS_UPGRADES_BY_ID[upgrade.Id] = upgrade
+end
+
+-- the boss world's index (the Boss Shop needs it unlocked)
+function Config.bossArea()
+	for i, area in ipairs(Config.AREAS) do
+		if area.Boss then
+			return i
+		end
+	end
+	return #Config.AREAS
+end
+
+function Config.bossUpgradeLevel(data, id)
+	return (data.BossUpgrades and data.BossUpgrades[id]) or 0
+end
+
+function Config.bossUpgradeValue(data, id)
+	return Config.BOSS_UPGRADES_BY_ID[id].Value(Config.bossUpgradeLevel(data, id))
+end
+
+-- Can this boss upgrade be bought now? Returns ok, reason
+function Config.canBossUpgrade(data, id)
+	local def = Config.BOSS_UPGRADES_BY_ID[id]
+	if not def then
+		return false, "Unknown upgrade"
+	end
+	if (data.Unlocked or 1) < Config.bossArea() then
+		return false, "Unlock the " .. Config.AREAS[Config.bossArea()].Name .. " first"
+	end
+	if Config.bossUpgradeLevel(data, id) >= def.Max then
+		return false, "Maxed out!"
 	end
 	return true, nil
 end

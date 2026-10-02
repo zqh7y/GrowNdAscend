@@ -64,6 +64,7 @@ end
 -- collide, isn't hit by rays (so coins and spots still find the real ground)
 -- and casts no shadow. Returns the folder.
 World.Paths = {} -- name -> folder (for the simulator)
+World.PATH_LIFT = 0.3 -- studs above the ground (and the cartoon floor) it lies
 function World.paintPath(parent, name, points, width, color, edge)
 	local folder = Build.folder(parent, name)
 	local function flat(props)
@@ -96,7 +97,16 @@ function World.paintPath(parent, name, points, width, color, edge)
 			end
 		end
 	end
-	local top = Config.GROUND_Y + 0.1
+	-- just above the highest ground under it (the terrain can come out a
+	-- little above Config.GROUND_Y), so the ground never covers it
+	local top = Config.GROUND_Y
+	for _, p in ipairs(points) do
+		local y = World.groundAt(p.X, p.Z)
+		if y and y < Config.GROUND_Y + 1.5 then
+			top = math.max(top, y)
+		end
+	end
+	top += World.PATH_LIFT
 	if edge then
 		band(width + 1, top - 0.02, edge)
 	end
