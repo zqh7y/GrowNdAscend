@@ -379,6 +379,32 @@ local function boostMachine(parent, base)
 	return { Model = model, Circle = circle, Sign = sign }
 end
 
+-- A wall of big ice blocks along one side of the area (so the scenery
+-- beyond the strip stays hidden): three courses of chunky blue blocks with
+-- a thick snow cap and snowballs on top.
+local function iceBlockWall(parent, rng, x0, x1, z)
+	local model = Build.model(parent, "IceBlockWall")
+	for row = 0, 2 do
+		local x = if row % 2 == 0 then x0 else x0 - rng:NextNumber(1, 3)
+		while x < x1 do
+			local length = math.min(rng:NextNumber(4, 7), x1 - x)
+			local left = math.max(x, x0)
+			local width = math.min(x + length, x1) - left
+			if width > 0.5 then
+				Build.block(model, Vector3.new(left + width / 2, row * 4, z), Vector3.new(width - 0.2, 3.85, 3), {
+					Color = Build.vary(rng, if (row + math.floor(x)) % 3 == 0 then ICE_DEEP:Lerp(ICE, 0.5) else ICE, 0.04),
+				})
+			end
+			x += length
+		end
+	end
+	Build.block(model, Vector3.new((x0 + x1) / 2, 12, z), Vector3.new(x1 - x0, 1, 3.6), { Color = SNOW })
+	for x = x0 + 2, x1 - 1, 4 do
+		Build.ball(model, Vector3.new(x + rng:NextNumber(-1, 1), 13, z), rng:NextNumber(1.8, 2.6), { Color = Build.vary(rng, SNOW, 0.02) })
+	end
+	return model
+end
+
 function Frozen.build(ctx)
 	local folder, rng, space = ctx.Folder, ctx.Rng, ctx.Space
 	local x0, x1, half, side = ctx.X0, ctx.X1, ctx.Half, ctx.Side
@@ -431,6 +457,11 @@ function Frozen.build(ctx)
 		for j = 1, 4 do
 			penguin(sea, group + Vector3.new(rng:NextNumber(-3, 3), 0, rng:NextNumber(-3, 3)), rng:NextNumber(0, math.pi * 2), rng:NextNumber(0.7, 1.1))
 		end
+	end
+
+	-- ice block walls on both sides
+	for _, s in ipairs({ -1, 1 }) do
+		iceBlockWall(deco, rng, x0, x1, s * (half + 3))
 	end
 
 	-- snowy banks along the shore

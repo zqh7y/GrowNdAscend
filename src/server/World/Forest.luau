@@ -516,6 +516,30 @@ end
 
 -- Building the area --------------------------------------------------------------------------------
 
+-- A tall green hedge along one side of the area (so the scenery beyond the
+-- strip stays hidden): leafy blocks with a row of round tops and little
+-- flowers on the side facing the path.
+local function hedgeWall(parent, rng, x0, x1, z)
+	local model = Build.model(parent, "HedgeWall")
+	local inward = -math.sign(z)
+	local HEDGE = Color3.fromRGB(90, 190, 70)
+	for x = x0, x1 - 0.1, 5 do
+		local w = math.min(5, x1 - x)
+		Build.block(model, Vector3.new(x + w / 2, 0, z), Vector3.new(w + 0.2, 12, 3), { Color = Build.vary(rng, HEDGE, 0.04) })
+	end
+	for x = x0 + 1.25, x1, 2.5 do
+		Build.ball(model, Vector3.new(x, 12, z + rng:NextNumber(-0.3, 0.3)), rng:NextNumber(3.2, 3.8), { Color = Build.vary(rng, HEDGE:Lerp(Color3.new(1, 1, 1), 0.1), 0.05) })
+	end
+	local FLOWERS = { Color3.fromRGB(255, 120, 160), Color3.fromRGB(255, 220, 80), Color3.fromRGB(250, 250, 255), Color3.fromRGB(180, 130, 255) }
+	for _ = 1, math.floor((x1 - x0) / 3) do
+		Build.ball(model, Vector3.new(rng:NextNumber(x0 + 1, x1 - 1), rng:NextNumber(2, 11), z + inward * 1.55), 0.6, {
+			Color = FLOWERS[rng:NextInteger(1, #FLOWERS)],
+			CanCollide = false,
+		})
+	end
+	return model
+end
+
 function Forest.build(ctx)
 	local folder, rng, space = ctx.Folder, ctx.Rng, ctx.Space
 	local x0, x1, half = ctx.X0, ctx.X1, ctx.Half
@@ -551,11 +575,20 @@ function Forest.build(ctx)
 		terrain:FillBall(Vector3.new(x0 - rng:NextNumber(12, 20), rng:NextNumber(-6, 0), z), rng:NextNumber(16, 22), Enum.Material.Grass)
 	end
 
-	-- background: a cottage on the right, a windmill on the left
-	cottage(deco, Vector3.new(x0 + 64, 0, half + 12), -1)
+	-- tall hedges on both sides
+	for _, side in ipairs({ -1, 1 }) do
+		hedgeWall(deco, rng, x0, x1, side * (half + 3))
+	end
+
+	-- a cottage on the right, a windmill on the left beyond the hedge
+	-- the cottage stands inside the area, by the right-hand hedge, its door
+	-- towards the path
+	local cottageAt = Vector3.new(x0 + 64, 0, half - 8)
+	cottage(deco, cottageAt, -1)
+	space:add(cottageAt, 9)
+	space:add(cottageAt + Vector3.new(0, 0, -7), 4)
 	windmill(deco, Vector3.new(x0 + 82, 0, -(half + 14)), 1)
 	local outside = Build.space()
-	outside:add(Vector3.new(x0 + 64, 0, half + 12), 10)
 	outside:add(Vector3.new(x0 + 82, 0, -(half + 14)), 8)
 
 	-- leaderboards: one group on the left side, near the spawn

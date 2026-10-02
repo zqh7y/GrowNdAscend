@@ -137,6 +137,34 @@ local function bossShop(parent, at)
 	return { Model = model, Circle = circle }
 end
 
+-- A wall of dark volcanic rock along one side of the area (so the scenery
+-- beyond the strip stays hidden): rough blocks of different heights with
+-- glowing lava cracks on the side facing in.
+local function rockWall(parent, rng, x0, x1, z)
+	local model = Build.model(parent, "RockWall")
+	local inward = -math.sign(z)
+	local ROCK = Color3.fromRGB(105, 88, 90)
+	local x = x0
+	local k = 0
+	while x < x1 do
+		local width = math.min(rng:NextNumber(4, 7), x1 - x)
+		local height = rng:NextNumber(11, 14)
+		Build.block(model, Vector3.new(x + width / 2, 0, z + rng:NextNumber(-0.4, 0.4)), Vector3.new(width + 0.3, height, 3.4), { Color = Build.vary(rng, ROCK, 0.05) })
+		k += 1
+		if k % 3 == 0 then
+			Build.part(model, {
+				Size = Vector3.new(0.35, height * 0.6, 0.2),
+				CFrame = CFrame.new(x + width / 2, height * 0.45, z + inward * 1.75) * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-20, 20))),
+				Color = Color3.fromRGB(255, 130, 40),
+				Material = Enum.Material.Neon,
+				CanCollide = false,
+			})
+		end
+		x += width
+	end
+	return model
+end
+
 function Arena.build(ctx)
 	local folder, rng, space, terrain = ctx.Folder, ctx.Rng, ctx.Space, ctx.Terrain
 	local x0, x1, half, side = ctx.X0, ctx.X1, ctx.Half, ctx.Side
@@ -213,6 +241,11 @@ function Arena.build(ctx)
 		for _, s in ipairs({ -1, 1 }) do
 			terrain:FillBall(Vector3.new(x + rng:NextNumber(-4, 4), rng:NextNumber(-8, -3), s * rng:NextNumber(half + 26, side - 10)), rng:NextNumber(12, 18), Enum.Material.Basalt)
 		end
+	end
+
+	-- volcanic rock walls on both sides
+	for _, s in ipairs({ -1, 1 }) do
+		rockWall(deco, rng, x0, x1, s * (half + 3))
 	end
 
 	ctx.reserveSpots()

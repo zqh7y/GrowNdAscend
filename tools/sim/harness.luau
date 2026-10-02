@@ -2661,6 +2661,28 @@ if ok then
 				string.format("needs the Lava Arena %s, needs the coins %s, bought %s, max/junk refused %s, x2.25 coins from a boss hit at Boss Coins 2 %s, 4 rows with prices %s, buy from the screen %s, stall in the arena %s, circle opens/closes %s",
 					tostring(bs.Locked), tostring(bs.Poor), tostring(bs.Bought), tostring(bs.Max), tostring(bs.Coins), tostring(bs.Rows), tostring(bs.Client), tostring(bs.World), tostring(bs.Circle)))
 		end
+		do
+			-- every world has a wall of its kind on both sides, and the Forest cottage stands inside
+			local W = __cache["World/init"]
+			local kinds = { "HedgeWall", "LimestoneWall", "IceBlockWall", "JapaneseWall", "RockWall" }
+			local found, ok = {}, true
+			for i, kind in ipairs(kinds) do
+				local n = 0
+				for _, d in ipairs(W.Areas[i].Folder:GetDescendants()) do
+					if d:IsA("Model") and d.Name == kind then n += 1 end
+				end
+				found[i] = kind .. " " .. n
+				if n ~= 2 then ok = false end
+			end
+			local cottage = W.Areas[1].Folder:FindFirstChild("Cottage", true)
+			local inside = false
+			if cottage then
+				local cf = cottage:GetBoundingBox()
+				inside = math.abs(cf.Position.Z) < Config.AREA_HALF_WIDTH and Config.areaAt(cf.Position.X) == 1
+			end
+			item(132, "side walls in every world; the Forest cottage inside", ok and inside,
+				table.concat(found, ", ") .. "; cottage inside the Forest " .. tostring(inside))
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,
