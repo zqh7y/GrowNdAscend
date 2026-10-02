@@ -370,7 +370,7 @@ local BASEPART = { Part = true, WedgePart = true, SpawnLocation = true, CornerWe
 local GUI = { Frame = true, TextLabel = true, TextButton = true, ScrollingFrame = true, ImageLabel = true, CanvasGroup = true, ImageButton = true, ViewportFrame = true }
 local SIGNALS = {
 	MouseClick = true, Triggered = true, Event = true, OnServerEvent = true, OnClientEvent = true, PlayerAdded = true,
-	PlayerRemoving = true, Changed = true, Activated = true, MouseEnter = true, MouseLeave = true,
+	PlayerRemoving = true, Changed = true, Activated = true, MouseEnter = true, MouseLeave = true, Idled = true,
 	MouseButton1Down = true, MouseButton1Up = true, Heartbeat = true, RenderStepped = true, CharacterAdded = true,
 	ChildAdded = true, ChildRemoved = true, InputBegan = true,
 }

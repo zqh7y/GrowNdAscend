@@ -2491,6 +2491,14 @@ if ok then
 			item(126, "cartoon world look (single colour floor, matte, clouds, puffs out of the way)", Lighting.EnvironmentSpecularScale == 0 and clouds ~= nil and n >= 100 and inside == 0 and tiles >= 1000 and off == 0 and (W.FloorDetails or 0) == 0,
 				string.format("%d smooth floor tiles (%d off the ground), %d painted details, specular %s, clouds %s, %d puff parts, %d in the way", tiles, off, W.FloorDetails or 0, tostring(Lighting.EnvironmentSpecularScale), tostring(clouds ~= nil), n, inside))
 		end
+		do
+			-- no reset button, and idle never gets you kicked
+			local Session = __cache["Client/Session"]
+			local nudges = Session.IdleNudges
+			game:GetService("Players"):GetPlayers()[1].Idled:Fire(120)
+			item(127, "no reset button, no AFK kick", Session ~= nil and Session.IdleNudges == nudges + 1,
+				string.format("going idle presses a virtual button (%d nudge); reset button turned off: %s", Session.IdleNudges - nudges, tostring(Session.ResetDisabled)))
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,

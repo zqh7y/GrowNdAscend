@@ -21,6 +21,7 @@ require(script.MegaRoll) -- the Mega Roll pad's sign, and claiming it
 require(script.Boosts) -- the Inventory's Boosts section, the Boost Machine, boost timers
 require(script.Perks) -- the rebirth perk pads' status
 require(script.BossBar) -- the boss's health bar in the Lava Arena
+require(script.Session) -- no reset button, no AFK kick
 
 local player = Players.LocalPlayer
 
