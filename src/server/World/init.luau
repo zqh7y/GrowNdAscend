@@ -258,6 +258,130 @@ local function gateFace(barrier, face, area, i)
 	return gui
 end
 
+-- The end of the last world: a friendly wall across the path with a big
+-- "See you in the next update!" sign (both pillars like the gates, a
+-- smiley, little stars) so players know there's more coming.
+local function buildEndWall()
+	local last = Config.AREAS[#Config.AREAS]
+	local x = TOTAL - 1.5
+	local model = Build.model(map, "EndWall")
+	local white = Color3.fromRGB(250, 250, 255)
+	local g = Config.GROUND_Y
+	for _, side in ipairs({ -1, 1 }) do
+		Build.block(model, Vector3.new(x, 0, side * (HALF - 2.5)), Vector3.new(5, 22, 5), { Color = white })
+		Build.block(model, Vector3.new(x, 22, side * (HALF - 2.5)), Vector3.new(6.5, 2, 6.5), { Color = last.Color })
+		Build.ball(model, Vector3.new(x, 25, side * (HALF - 2.5)), 3.4, { Color = Color3.fromRGB(255, 220, 90), Material = Enum.Material.Neon })
+	end
+	local wall = Build.part(model, {
+		Name = "Wall",
+		Size = Vector3.new(1.2, 19, HALF * 2 - 10),
+		CFrame = CFrame.new(x, g + 9.5, 0),
+		Color = Color3.fromRGB(110, 170, 255),
+		Material = Enum.Material.SmoothPlastic,
+	})
+	for _, y in ipairs({ g, g + 19 }) do
+		Build.part(model, { Size = Vector3.new(1.8, 1.2, HALF * 2 - 10), CFrame = CFrame.new(x, y, 0), Color = white, CanCollide = false })
+	end
+	-- the message on the side you come from (-X)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Message"
+	gui.Face = Enum.NormalId.Left
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 20
+	gui.LightInfluence = 0
+	gui.MaxDistance = 300
+	gui.Parent = wall
+	local back = Instance.new("Frame")
+	back.Size = UDim2.fromScale(1, 1)
+	back.BackgroundColor3 = Color3.new(1, 1, 1)
+	back.Parent = gui
+	local gradient = Instance.new("UIGradient")
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new(Color3.fromRGB(140, 200, 255), Color3.fromRGB(200, 150, 255))
+	gradient.Parent = back
+	local dark = Color3.fromRGB(60, 50, 130)
+	local function label(text, y, h, color)
+		local l = Instance.new("TextLabel")
+		l.BackgroundTransparency = 1
+		l.AnchorPoint = Vector2.new(0.5, 0.5)
+		l.Position = UDim2.fromScale(0.5, y)
+		l.Size = UDim2.fromScale(0.85, h)
+		l.Font = Enum.Font.FredokaOne
+		l.TextScaled = true
+		l.TextColor3 = color
+		l.Text = text
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = dark
+		stroke.Thickness = 6
+		stroke.LineJoinMode = Enum.LineJoinMode.Round
+		stroke.Parent = l
+		l.Parent = gui
+		return l
+	end
+	-- a big smiley: a yellow circle with eyes and a smile
+	local face = Instance.new("Frame")
+	face.AnchorPoint = Vector2.new(0.5, 0.5)
+	face.Position = UDim2.fromScale(0.5, 0.24)
+	face.Size = UDim2.fromScale(0.3, 0.3)
+	face.BackgroundColor3 = Color3.fromRGB(255, 214, 70)
+	face.Parent = gui
+	local ratio = Instance.new("UIAspectRatioConstraint")
+	ratio.AspectRatio = 1
+	ratio.Parent = face
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = face
+	local rim = Instance.new("UIStroke")
+	rim.Color = dark
+	rim.Thickness = 6
+	rim.Parent = face
+	for _, ex in ipairs({ 0.33, 0.67 }) do
+		local eye = Instance.new("Frame")
+		eye.AnchorPoint = Vector2.new(0.5, 0.5)
+		eye.Position = UDim2.fromScale(ex, 0.38)
+		eye.Size = UDim2.fromScale(0.12, 0.2)
+		eye.BackgroundColor3 = dark
+		eye.Parent = face
+		local c = Instance.new("UICorner")
+		c.CornerRadius = UDim.new(0.5, 0)
+		c.Parent = eye
+	end
+	-- the smile: a dark rounded mouth with its top half covered in yellow
+	local mouth = Instance.new("Frame")
+	mouth.AnchorPoint = Vector2.new(0.5, 0.5)
+	mouth.Position = UDim2.fromScale(0.5, 0.64)
+	mouth.Size = UDim2.fromScale(0.52, 0.3)
+	mouth.BackgroundColor3 = dark
+	mouth.Parent = face
+	local mc = Instance.new("UICorner")
+	mc.CornerRadius = UDim.new(0.5, 0)
+	mc.Parent = mouth
+	local cover = Instance.new("Frame")
+	cover.AnchorPoint = Vector2.new(0.5, 1)
+	cover.Position = UDim2.fromScale(0.5, 0.64)
+	cover.Size = UDim2.fromScale(0.6, 0.18)
+	cover.BorderSizePixel = 0
+	cover.BackgroundColor3 = Color3.fromRGB(255, 214, 70)
+	cover.ZIndex = 2
+	cover.Parent = face
+	label("SEE YOU IN THE NEXT UPDATE!", 0.55, 0.17, Color3.new(1, 1, 1))
+	label("More worlds and pets are coming soon ⭐", 0.72, 0.09, Color3.fromRGB(255, 240, 160))
+	label("Thanks for playing!", 0.86, 0.08, Color3.new(1, 1, 1))
+	-- sparkles drifting off the wall
+	local sparkles = Instance.new("ParticleEmitter")
+	sparkles.Color = ColorSequence.new(Color3.fromRGB(255, 240, 160), Color3.fromRGB(200, 170, 255))
+	sparkles.LightEmission = 1
+	sparkles.Size = NumberSequence.new(0.4, 0)
+	sparkles.Lifetime = NumberRange.new(2, 3)
+	sparkles.Rate = 8
+	sparkles.Speed = NumberRange.new(1, 2.5)
+	sparkles.EmissionDirection = Enum.NormalId.Left
+	sparkles.SpreadAngle = Vector2.new(40, 40)
+	sparkles.Parent = wall
+	World.EndWall = wall
+	return model
+end
+
 local function buildGate(i)
 	local area = Config.AREAS[i]
 	local x = Config.areaStart(i)
@@ -746,6 +870,9 @@ for i, area in ipairs(Config.AREAS) do
 
 	if i >= 2 then
 		buildGate(i)
+	end
+	if i == #Config.AREAS then
+		buildEndWall()
 	end
 end
 

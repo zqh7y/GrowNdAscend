@@ -2371,6 +2371,22 @@ if ok then
 		local titanC = (hh.titanic or {}).Cutscene or {}
 		local commonC = (hh.common or {}).Cutscene
 		local rareC = (hh.rare or {}).Cutscene
+		do
+			-- the end of the last world: a wall saying more is coming
+			local W = __cache["World/init"]
+			local wall = W.EndWall
+			local total = Config.AREA_LENGTH * #Config.AREAS
+			local msg = wall and wall:FindFirstChild("Message")
+			local text = ""
+			if msg then
+				for _, d in ipairs(msg:GetChildren()) do
+					if d:IsA("TextLabel") then text ..= d.Text .. " | " end
+				end
+			end
+			item(122, "the last world ends with a 'next update' wall", wall ~= nil and wall.CanCollide and math.abs(wall.Position.X - (total - 1.5)) < 0.01
+				and msg ~= nil and msg.Face == Enum.NormalId.Left and string.find(text, "NEXT UPDATE") ~= nil,
+				"wall at x=" .. tostring(wall and wall.Position.X) .. ": " .. text)
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,
