@@ -579,16 +579,9 @@ function Sakura.build(ctx)
 		japaneseWall(deco, rng, x0, x1, s * (half + 3))
 	end
 
-	-- stepping-stone path down the middle, with torii gates over it
-	local path = Build.folder(deco, "Path")
-	for x = x0 + 1.5, x1 - 1.5, 3.5 do
-		for _, dz in ipairs({ -1.7, 1.7 }) do
-			Build.block(path, Vector3.new(x + rng:NextNumber(-0.3, 0.3), -0.15, dz + rng:NextNumber(-0.3, 0.3)), Vector3.new(2.8, 0.4, 3), {
-				Color = Build.vary(rng, STONE, 0.03),
-				CanCollide = false,
-			}, rng:NextNumber(-8, 8))
-		end
-	end
+	-- a straight stone path down the middle, with torii gates over it
+	-- (painted on top so it shows on any floor)
+	ctx.World.paintPath(deco, "Path", { Vector3.new(x0, 0, 0), Vector3.new(x1, 0, 0) }, 6, STONE, Color3.fromRGB(175, 172, 190))
 	for _, x in ipairs({ x0 + 12, x0 + 55, x1 - 12 }) do
 		Build.scale(torii(deco, x, 16), Vector3.new(x, 0, 0), 0.75)
 		space:add(Vector3.new(x, 0, 6), 2.5)

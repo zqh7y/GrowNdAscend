@@ -604,6 +604,40 @@ end
 
 -- Building the area -------------------------------------------------------------------------------
 
+-- A friendly little desert snake, coiled up resting on the sand: a body of
+-- balls getting thinner to the tail, a round head with big eyes and a smile.
+local function snake(parent, at)
+	local model = Build.model(parent, "Snake")
+	local y = Config.GROUND_Y
+	local BODY = Color3.fromRGB(150, 210, 80)
+	local SPOT = Color3.fromRGB(250, 200, 60)
+	local count = 14
+	for k = 0, count - 1 do
+		local a = k / count * math.pi * 2.6
+		local r = 2.2 - k * 0.1
+		local d = 1.5 - k * 0.07
+		Build.ball(model, Vector3.new(at.X + math.cos(a) * r, y + d / 2 - 0.1, at.Z + math.sin(a) * r), d, {
+			Color = if k % 3 == 1 then SPOT else BODY,
+			CanCollide = false,
+		})
+	end
+	-- the head, raised up a little from the start of the coil
+	local head = Vector3.new(at.X + 2.4, y + 1.5, at.Z + 0.4)
+	Build.ball(model, head - Vector3.new(0.3, 0.7, 0), 1.3, { Color = BODY, CanCollide = false })
+	Build.ball(model, head, 1.7, { Color = BODY, CanCollide = false })
+	for _, dz in ipairs({ -0.4, 0.4 }) do
+		Build.ball(model, head + Vector3.new(0.6, 0.35, dz), 0.6, { Color = Color3.new(1, 1, 1), CanCollide = false })
+		Build.ball(model, head + Vector3.new(0.82, 0.38, dz), 0.3, { Color = Color3.fromRGB(40, 40, 60), CanCollide = false })
+	end
+	Build.part(model, {
+		Size = Vector3.new(0.1, 0.12, 0.6),
+		CFrame = CFrame.new(head + Vector3.new(0.82, -0.2, 0)),
+		Color = Color3.fromRGB(90, 60, 50),
+		CanCollide = false,
+	})
+	return model
+end
+
 function Sahara.build(ctx)
 	local folder, rng, space = ctx.Folder, ctx.Rng, ctx.Space
 	local x0, x1, half = ctx.X0, ctx.X1, ctx.Half
@@ -699,6 +733,19 @@ function Sahara.build(ctx)
 	hintText.Text = "Step here to open"
 	hintText.Parent = hint
 	space:add(circleAt, 5)
+
+	-- a snake's trail: the wavy groove a snake left crossing the sand from
+	-- one wall to the other, and the snake itself resting at the end of it
+	local trailX = x0 + 48
+	local trail = {}
+	for z = half - 1, -(half - 6), -1.5 do
+		table.insert(trail, Vector3.new(trailX + math.sin(z / 3.5) * 2.6, 0, z))
+		space:add(Vector3.new(trailX, 0, z), 3)
+	end
+	ctx.World.paintPath(deco, "SnakeTrail", trail, 1.8, Color3.fromRGB(214, 158, 88), Color3.fromRGB(236, 186, 112))
+	local tail = trail[#trail]
+	snake(deco, Vector3.new(tail.X, 0, tail.Z - 1.5))
+	space:add(Vector3.new(tail.X, 0, tail.Z - 2), 3.5)
 
 	ctx.reserveSpots() -- breakables get their room before the small props
 

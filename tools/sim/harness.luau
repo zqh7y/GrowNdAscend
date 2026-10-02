@@ -151,11 +151,13 @@ if ok then
 			for _, f in ipairs(W.Gates[i].Faces or {}) do
 				if f.Enabled ~= false then wall.Faces += 1 end
 				local price = f:FindFirstChild("Price", true)
-				if price and price.Text == Config.formatNumber(Config.AREA_COST_FOR_TESTING or Config.AREAS[i].Cost) then wall.Priced += 1 end
+				-- just the price and a coin: no lock, name or hint
+				if price and price.Text == Config.formatNumber(Config.AREA_COST_FOR_TESTING or Config.AREAS[i].Cost) and f:FindFirstChild("Coin", true)
+					and not f:FindFirstChild("Lock", true) and not f:FindFirstChild("World", true) and not f:FindFirstChild("Hint", true) then wall.Priced += 1 end
 			end
 		end
 		wall.Want = (#Config.AREAS - 1) * 2
-		wall.Visible = W.Gates[2].Barrier.Transparency <= 0.3 and W.Gates[2].Barrier.Material ~= Enum.Material.ForceField
+		wall.Visible = math.abs(W.Gates[2].Barrier.Transparency - 0.8) < 0.01 and W.Gates[2].Barrier.Material ~= Enum.Material.ForceField
 		local unlockedBefore = data.Unlocked
 		data.Coins = 0
 		W.Gates[2].Prompt.Triggered:Fire(player)
@@ -2557,6 +2559,30 @@ if ok then
 				string.format("30 EquipBest in a burst -> %d answered, %d dropped; junk args (NaN, inf, tables, huge strings, a pet you don't own) -> nothing errors, nothing given %s; in a locked world -> put back %s, in your own world -> left alone %s",
 					passed, Sec.Dropped - before, tostring(junkOk), tostring(returned and backHome), tostring(stays)))
 		end
+		do
+			-- the paths painted on the ground: on top of the floor, never in the way
+			local W = __cache["World/init"]
+			local P = W.Paths
+			local function lies(folder)
+				if not folder or #folder:GetChildren() == 0 then return false end
+				for _, d in ipairs(folder:GetDescendants()) do
+					if d:IsA("BasePart") and (d.CanCollide or d.CanQuery or d.Position.Y < Config.GROUND_Y or d.Position.Y > Config.GROUND_Y + 0.2) then return false end
+				end
+				return true
+			end
+			local function within(folder, i)
+				for _, d in ipairs(folder:GetDescendants()) do
+					if d:IsA("BasePart") and Config.areaAt(d.Position.X) ~= i then return false end
+				end
+				return true
+			end
+			local snake = P.SnakeTrail and P.SnakeTrail.Parent:FindFirstChild("Snake")
+			local ok = lies(P.ForestPath) and lies(P.SnakeTrail) and lies(P.FrozenLake) and lies(P.Path) and snake ~= nil
+				and within(P.SnakeTrail, 2) and within(P.FrozenLake, 3)
+			item(130, "paths: Forest, snake trail (Sahara), frozen lake (Frozen), straight path (Sakura)", ok,
+				string.format("forest %s, snake trail %s + snake %s, frozen lake %s, sakura %s (flat, on top of the floor, walk-through)",
+					tostring(lies(P.ForestPath)), tostring(lies(P.SnakeTrail)), tostring(snake ~= nil), tostring(lies(P.FrozenLake)), tostring(lies(P.Path))))
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,
@@ -2768,7 +2794,7 @@ if ok then
 		local g = STATS.Gates or {}
 		local lockedOk = g.Locked ~= nil
 		for _, l in ipairs(g.Locked or {}) do
-			if not (l.Collide == true and l.Transparency < 0.5 and l.Prompt == true and l.Button == 0 and string.find(l.Sign, "0 COINS %(TEST%)")) then lockedOk = false end
+			if not (l.Collide == true and math.abs(l.Transparency - 0.8) < 0.01 and l.Prompt == true and l.Button == 0 and string.find(l.Sign, "0 COINS %(TEST%)")) then lockedOk = false end
 		end
 		local open = g.Open or {}
 		item(87, "0-coin test gates: locked, then unlocked at the gate", lockedOk and g.UnlockedBefore == 1 and g.UnlockedAfter == 2 and g.CoinsAfter == 0
@@ -2851,7 +2877,7 @@ if ok then
 			string.format("walk up -> camera on the board (%.1f studs back, facing it); EXIT -> camera back on the player and stays there until you walk away; back again -> focus; walking off -> camera back (%s)",
 				fc.Distance or -1, tostring(fc.Exited)))
 		local gw = (STATS.Gates or {}).Wall or {}
-		item(108, "gate walls: visible, price written on them", gw.Visible == true and gw.Faces == gw.Want and gw.Priced == gw.Want and (STATS.Gates or {}).OpenFacesOff == true,
+		item(108, "gate walls: 0.2 opacity, just the price and a coin on them", gw.Visible == true and gw.Faces == gw.Want and gw.Priced == gw.Want and (STATS.Gates or {}).OpenFacesOff == true,
 			string.format("%d/%d wall sides show the lock and the price in big letters, the wall is solid coloured glass, the writing goes away when the gate opens (%s)",
 				gw.Priced or 0, gw.Want or 0, tostring((STATS.Gates or {}).OpenFacesOff)))
 		local zoom = game:GetService("StarterPlayer").CameraMaxZoomDistance
