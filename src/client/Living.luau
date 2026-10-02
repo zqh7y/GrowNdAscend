@@ -44,8 +44,12 @@ visuals.Parent = Workspace
 -- [id] = { Data, Model, Style, Yaw, Scale, Shake, Flash, Highlight, Phase, Position, Bar }
 local coins = {}
 
--- A name, health bar and the coin's value above it
-local function healthBar(model, areaIndex, height)
+-- A name, health bar and the enemy's health left above it
+local function healthText(name, health)
+	return string.format('%s  <font color="#ff8a96">%s HP</font>', name, Config.formatNumber(math.max(math.ceil(health), 0)))
+end
+
+local function healthBar(model, areaIndex, height, health)
 	local area = Config.AREAS[areaIndex]
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "HealthBar"
@@ -79,9 +83,10 @@ local function healthBar(model, areaIndex, height)
 	label.TextStrokeTransparency = 0.2
 	label.TextStrokeColor3 = Color3.fromRGB(30, 30, 60)
 	label.RichText = true
-	label.Text = string.format('%s  <font color="#ffd24a">+%s</font>', area.Breakable.Name, Config.formatNumber(area.Breakable.Coins))
+	label.Name = "Info"
+	label.Text = healthText(area.Breakable.Name, health or area.Breakable.Health)
 	label.Parent = gui
-	return fill
+	return fill, label
 end
 
 -- If a model can't be built for any reason, a simple stand-in (a round
@@ -169,7 +174,7 @@ local function add(data)
 		Phase = math.random() * 10,
 		Position = data:GetAttribute("HopTo"),
 		Area = area,
-		Bar = healthBar(model, area, height),
+		Bar = nil, -- (below)
 		Highlight = highlight,
 		Parts = parts,
 		Offsets = offsets,
@@ -177,10 +182,12 @@ local function add(data)
 		Frames = table.create(#parts),
 		Lift = math.max(-bottom, 0), -- lifts anything built below the feet up onto the ground
 	}
+	coin.Bar, coin.Info = healthBar(model, area, height, data:GetAttribute("Health") or data:GetAttribute("MaxHealth"))
 	coins[id] = coin
 	data:GetAttributeChangedSignal("Health"):Connect(function()
 		local health, max = data:GetAttribute("Health"), data:GetAttribute("MaxHealth")
 		TweenService:Create(coin.Bar, TweenInfo.new(0.12), { Size = UDim2.fromScale(math.clamp(health / max, 0, 1), 1) }):Play()
+		coin.Info.Text = healthText(Config.AREAS[area].Breakable.Name, health)
 	end)
 end
 

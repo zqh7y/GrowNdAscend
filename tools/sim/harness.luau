@@ -2689,7 +2689,7 @@ if ok then
 		do
 			-- every world has a wall of its kind on both sides, and the Forest cottage stands inside
 			local W = __cache["World/init"]
-			local kinds = { "HedgeWall", "LimestoneWall", "IceBlockWall", "JapaneseWall", "RockWall" }
+			local kinds = { "WoodFence", "LimestoneWall", "IceBlockWall", "JapaneseWall", "RockWall" }
 			local found, ok = {}, true
 			for i, kind in ipairs(kinds) do
 				local n = 0
@@ -2707,6 +2707,22 @@ if ok then
 			end
 			item(132, "side walls in every world; the Forest cottage inside", ok and inside,
 				table.concat(found, ", ") .. "; cottage inside the Forest " .. tostring(inside))
+		end
+		do
+			-- enemies show their health left (not their coins); a free boost every 5 minutes
+			local shown, withHp, coinsShown = 0, 0, 0
+			local visuals = workspace:FindFirstChild("LivingCoins")
+			for _, model in ipairs(visuals and visuals:GetChildren() or {}) do
+				local bar = model:FindFirstChild("HealthBar")
+				local info = bar and bar:FindFirstChild("Info")
+				if info then
+					shown += 1
+					if string.find(info.Text, "HP") then withHp += 1 end
+					if string.find(info.Text, "ffd24a") then coinsShown += 1 end
+				end
+			end
+			item(133, "enemy labels show health; free boost every 5 minutes", shown > 0 and withHp == shown and coinsShown == 0 and Config.BOOST_MACHINE.Cooldown == 5 * 60,
+				string.format("%d enemy labels, %d with HP, %d still showing coins; boost every %ds", shown, withHp, coinsShown, Config.BOOST_MACHINE.Cooldown))
 		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true

@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 70 test (side walls; cottage inside; cartoon hills; graphics-test branch)"
+Config.BUILD = "build 71 test (enemy health; 5 min boost; Forest fence; graphics-test branch)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -481,7 +481,7 @@ Config.ITEMS_BY_ID = {}
 for _, item in ipairs(Config.ITEMS) do
 	Config.ITEMS_BY_ID[item.Id] = item
 end
-Config.BOOST_MACHINE = { Cooldown = 15 * 60, First = 60, Radius = 3.5 }
+Config.BOOST_MACHINE = { Cooldown = 5 * 60, First = 60, Radius = 3.5 }
 
 -- The multiplier an active boost item gives a stat now (1 if none)
 function Config.boostValue(data, stat)
