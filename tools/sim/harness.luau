@@ -1156,6 +1156,15 @@ if ok then
 			frames(1)
 		end
 		hatchReport.SkipSeconds = CLOCK - skipStart
+		do
+			-- a normal pet far rarer than the luck it was rolled with: the bush too
+			local rareLuck = Config.PETS_BY_NAME.Lion.Odds / (Config.BUSH_LUCK_RATIO * 2)
+			Hatch.LastCutscene = nil
+			try("hatch beats luck", Hatch.play, { { Pet = "Lion", Size = 1, Luck = rareLuck, SizeLuck = 1, World = 1 } }, true, 1, "compact", false)
+			hatchReport.BeatsLuck = Hatch.LastCutscene and Hatch.LastCutscene.Bush == true and Hatch.LastCutscene.Name == "Lion"
+			hatchReport.LuckyEnough = Hatch.beatsLuck({ Pet = "Lion", Size = 1, Luck = Config.PETS_BY_NAME.Lion.Odds }) == false
+				and Hatch.beatsLuck({ Pet = "Lion", Size = 1 }) == false
+		end
 		hatchReport.SkipCutscene = Hatch.LastCutscene and table.clone(Hatch.LastCutscene)
 		-- AUTO: the bush cutscene plays once, then a short reveal during the cooldown
 		local camera = workspace.CurrentCamera
@@ -2281,6 +2290,9 @@ if ok then
 		local titanC = (hh.titanic or {}).Cutscene or {}
 		local commonC = (hh.common or {}).Cutscene
 		local rareC = (hh.rare or {}).Cutscene
+		item(120, "bush cutscene for a pet far rarer than your luck", (STATS.Hatch or {}).BeatsLuck == true and (STATS.Hatch or {}).LuckyEnough == true,
+			string.format("a 1 in %s Lion rolled with %dx less luck gets the bush; with enough luck, or a pet from elsewhere, it doesn't",
+				Config.formatNumber(Config.PETS_BY_NAME.Lion.Odds), Config.BUSH_LUCK_RATIO * 2))
 		item(70, "bush cutscene for a real Huge/Titanic", hugeC.Name == "Huge Lion" and hugeC.Bush == true and hugeC.Jumped == true and (hugeC.Shake or 0) >= 1.8 and (hugeC.Shake or 0) <= 2.3
 			and titanC.Name == "Titanic Cat" and titanC.Jumped == true and commonC == nil and rareC == nil and (hh.huge or {}).Revealed == "Huge Lion",
 			string.format("Huge Lion: shook %.1fs, jumped out, revealed %s at %s; none for normal pets", hugeC.Shake or 0, tostring((hh.huge or {}).Revealed), tostring((hh.huge or {}).RevealChance)))

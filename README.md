@@ -61,7 +61,7 @@ chase Huge and Titanic pets.**
     chance and power counting up. About 1 full hatch in 30 is a **flex
     roll**: a Huge or Titanic slides past ("Huge Dragon?!"); the reel still
     stops on what you actually rolled.
-  - **Huge and Titanic: the bush cutscene.** The camera glides onto a bush
+  - **Huge and Titanic (and any pet 200x rarer than your luck, e.g. 1 in 600B+ with x3B luck): the bush cutscene.** The camera glides onto a bush
     a little ahead of you, the bush rustles harder and harder for about 2
     seconds, then your pet jumps out towards the screen with light and
     sound, and the reveal shows it with its exact chance. Only for a pet

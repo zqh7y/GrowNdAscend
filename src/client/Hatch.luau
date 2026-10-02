@@ -1333,9 +1333,19 @@ local function openShade(transparency)
 	shade.BackgroundTransparency = transparency or 0.55
 end
 
+-- A pet much rarer than the luck it was rolled with (its odds, counting its
+-- size, at least Config.BUSH_LUCK_RATIO x that luck): it gets the bush too.
+-- Only for real rolls (they carry the luck they were rolled with).
+function Hatch.beatsLuck(result)
+	if isBoost(result) or not result.Luck or result.Luck <= 0 then
+		return false
+	end
+	return Config.oddsOf(Config.petName(result.Pet, result.Size or 1)) >= result.Luck * Config.BUSH_LUCK_RATIO
+end
+
 -- The big moment for a special result: the bush cutscene for a Huge or
--- Titanic (abbreviated on auto during the cooldown), the crazy intro for a
--- crazy normal pet, then the reveal
+-- Titanic, or a pet far rarer than your luck (abbreviated on auto during
+-- the cooldown), the crazy intro for a crazy normal pet, then the reveal
 local function special(best, others, fast, auto)
 	local name = Config.petName(best.Pet, best.Size)
 	local abbreviated = auto and os.clock() - lastCutscene < Hatch.CUTSCENE_COOLDOWN
@@ -1344,7 +1354,7 @@ local function special(best, others, fast, auto)
 		if auto then
 			lastCutscene = os.clock()
 		end
-		if best.Size >= 2 then
+		if best.Size >= 2 or Hatch.beatsLuck(best) then
 			-- a transparent layer over the world while it plays
 			openShade(1)
 			played = bushCutscene(best, name)
@@ -1859,7 +1869,7 @@ local function show(results, fast, mode, auto)
 	if isBoost(best) then
 		Hatch.Last = record
 		pause(if fast then 0.3 else 0.5)
-	elseif best.Size >= 2 or tier >= 6 then
+	elseif best.Size >= 2 or tier >= 6 or Hatch.beatsLuck(best) then
 		special(best, others, fast, auto)
 	elseif full then
 		openShade(0.55)

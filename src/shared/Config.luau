@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 45 (mega roll: x1K-x100K, first after 8 min)"
+Config.BUILD = "build 46 (bush cutscene for pets 200x rarer than your luck)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -614,6 +614,10 @@ end
 -- after it (including later-world pets in earlier worlds) impossible. With
 -- it, every animal always has a real, non-zero chance in every world.
 Config.MAX_HIT = 0.99
+
+-- A pet this many times rarer than the luck you rolled it with gets the
+-- bush cutscene too (like Huge and Titanic): with x3B luck, a 1 in 600B+ pet
+Config.BUSH_LUCK_RATIO = 200
 
 -- the chance one step of the roll hits this pet
 function Config.hitChance(pet, luck, world)
