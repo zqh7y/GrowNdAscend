@@ -2488,7 +2488,7 @@ if ok then
 				end
 			end
 			local W = __cache["World/init"]
-			item(126, "cartoon world look (painted floor, matte, clouds, puffs out of the way)", Lighting.EnvironmentSpecularScale == 0 and clouds ~= nil and n >= 100 and inside == 0 and tiles >= 1000 and off == 0 and (W.FloorDetails or 0) >= 500,
+			item(126, "cartoon world look (single colour floor, matte, clouds, puffs out of the way)", Lighting.EnvironmentSpecularScale == 0 and clouds ~= nil and n >= 100 and inside == 0 and tiles >= 1000 and off == 0 and (W.FloorDetails or 0) == 0,
 				string.format("%d smooth floor tiles (%d off the ground), %d painted details, specular %s, clouds %s, %d puff parts, %d in the way", tiles, off, W.FloorDetails or 0, tostring(Lighting.EnvironmentSpecularScale), tostring(clouds ~= nil), n, inside))
 		end
 		local fz = STATS.Fuse or {}

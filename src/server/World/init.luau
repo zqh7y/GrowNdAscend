@@ -959,6 +959,10 @@ terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF 
 -- under them is flat ground (never over the oasis, lava, a hill or a hole),
 -- a few hundredths above it, so everything still stands on the ground. The
 -- details don't collide or block anything.
+-- (the user picked a single colour floor: the path stripe and the painted
+-- details are switched off, but kept here to turn back on)
+World.FLOOR_PATH = false
+World.FLOOR_DETAILS = false
 World.FLOOR = {
 	-- base, path, patches (light, dark), detail kind
 	{ Base = Color3.fromRGB(112, 210, 84), Path = Color3.fromRGB(240, 200, 128), Light = Color3.fromRGB(140, 228, 104), Dark = Color3.fromRGB(92, 188, 70), Detail = "meadow" },
@@ -1022,7 +1026,7 @@ do
 						Name = "Tile",
 						Size = Vector3.new(TILE, 1, TILE),
 						CFrame = CFrame.new(cx, top - 0.5, cz),
-						Color = if math.abs(cz) < 4 then look.Path else look.Base,
+						Color = if World.FLOOR_PATH and math.abs(cz) < 4 then look.Path else look.Base,
 						Material = Enum.Material.SmoothPlastic,
 						CastShadow = false,
 					})
@@ -1030,7 +1034,11 @@ do
 				end
 			end
 		end
-		-- the painted details (only on floor, off the path's middle)
+		-- the painted details (only on floor, off the path's middle; off for now:
+		-- the user wanted a single colour floor)
+		if not World.FLOOR_DETAILS then
+			continue
+		end
 		local details = Build.folder(folder, "Details")
 		local function spot(minZ)
 			for _ = 1, 8 do
