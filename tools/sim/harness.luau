@@ -2492,7 +2492,7 @@ if ok then
 			local pcOk = c ~= nil and c.Position.X.Scale == 0 and c.Position.Y.Scale == 1 and c.AnchorPoint.Y == 1
 			-- on a phone: the card goes top left (clear of the joystick), ROLL / AUTO move up (clear of jump)
 			Hud.layout(true)
-			local phoneOk = c.Position.X.Scale == 1 and c.Position.Y.Scale == 0 and c.Position.Y.Offset >= 50 and Screen.Controls.Controls.Position.Y.Offset <= -150
+			local phoneOk = c.Position.X.Scale == 1 and c.Position.Y.Scale == 0 and c.Position.Y.Offset <= 20 and Screen.Controls.Controls.Position.Y.Offset <= -150
 				and team.LayoutOrder < level.LayoutOrder
 			Hud.layout(false)
 			local backOk = c.Position.Y.Scale == 1 and level.LayoutOrder < team.LayoutOrder
@@ -2504,7 +2504,7 @@ if ok then
 			local cardBottom = Hud.TOUCH_CARD_TOP + math.ceil(112 * Hud.TOUCH_CARD_SCALE)
 			local navTop, navBottom = Hud.TOUCH_NAV_TOP, Hud.TOUCH_NAV_TOP + 3 * 76 + 2 * 4
 			-- (Roblox's top bar on a phone is ~58pt tall: the card starts below it)
-			local underTopBar = Hud.TOUCH_CARD_TOP * scale >= 60
+			local underTopBar = Hud.TOUCH_NAV_TOP * scale >= 60 -- (the menu, top left, under Roblox's buttons)
 			-- the teleport screen fits too
 			local Travel = __cache["Client/Travel"]
 			local tf = Travel.fitFor(phone)
