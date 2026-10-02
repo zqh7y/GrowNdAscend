@@ -179,7 +179,7 @@ chase Huge and Titanic pets.**
 - **Upgrade Board**: every upgrade lives on a real board standing in the
   Forest, right of the path near the spawn (across from the leaderboards),
   like the upgrade walls in incremental games (it replaced the upgrade tree
-  screen). A green carpet and wide stairs lead up to a raised stage; walk up and the camera turns to face the board (the red EXIT button at the top, or walking away, gives the camera back). Sections down its left side:
+  screen). A green carpet and wide stairs lead up to a raised stage; walk up and the camera turns to face the board (the red EXIT button at the bottom middle of the screen (clear of the coins and luck), or walking away, gives the camera back). Sections down its left side:
   **Damage** (Damage, Pet Slots), **Coins** (Coins), **Luck** (Luck, Size
   Luck and the six Luck Board rows) and **Rolls** (Roll Speed, Rolls at
   once, Auto Hatch). The top shows the section's total in big numbers; each

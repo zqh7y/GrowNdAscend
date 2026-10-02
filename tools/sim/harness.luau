@@ -656,6 +656,7 @@ if ok then
 				Board.ExitButton.Activated:Fire()
 				frames(1)
 				fc.Exited = not Board.Focused and camera.CameraType == Enum.CameraType.Custom and not Board.FocusGui.Enabled
+					and Board.ExitButton.Position.Y.Scale == 1 -- (bottom middle, clear of the coins and luck at the top)
 				Board.check()
 				fc.StaysOut = not Board.Focused
 				root.CFrame = CFrame.new(front.X + 40, 3, front.Z)
