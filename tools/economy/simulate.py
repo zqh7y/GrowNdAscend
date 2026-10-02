@@ -65,7 +65,7 @@ SIZES = [(1, 1), (100, 10), (1000, 100)]  # (1 in chance, power multiplier)
 UP = {  # id: (value(level), cost(level), max)  -- mirrors Config.UPGRADES
     "Coins":     (lambda l: 1.35 ** l,            lambda l: 60 * 3.4 ** l, 20),
     "Damage":    (lambda l: 1.35 ** l,            lambda l: 90 * 3.4 ** l, 20),
-    "Luck":      (lambda l: 2.4 ** l,            lambda l: 250 * 3.7 ** l, 25),
+    "Luck":      (lambda l: 2.4 ** l,            lambda l: 250 * 6.5 ** l, 25),
     "RollSpeed": (lambda l: max(0.35, 1 - 0.05 * l), lambda l: 120 * 3.6 ** l, 13),
     "Rolls":     (lambda l: 1 + l,                lambda l: 2e4 * 80 ** l, 4),
     "AutoHatch": (lambda l: l,                    lambda l: [600, 1e6][l], 2),
@@ -155,6 +155,12 @@ def run(hours=8, seed=1, verbose=False):
                         size = i
                         break
                 pets.append((base_power(odds) * SIZES[size][1], odds, size))
+                if luck >= MAX_LUCK and "MAXLUCK" not in log:
+                    log["MAXLUCK"] = t
+                if odds == PETS[-1][0] and size == 2 and "BEST" not in log:
+                    log["BEST"] = t  # the Titanic of the rarest animal
+                    if verbose:
+                        print(f"  Best pet in the game at {hm(t)}")
                 if odds not in found[size]:
                     found[size].add(odds)
                     for m in MILESTONES:
@@ -232,8 +238,8 @@ if __name__ == "__main__":
         log = run(hours=hours, seed=seed, verbose=True)
         print(f"  end: level {log['level']}, rebirths {log['rebirths']}, best pet {fmt(log['best'])}, upgrades {log['upgrades']}")
         for k, v in log.items():
-            if isinstance(v, int) and (k.startswith("W") or k.startswith("R")):
+            if isinstance(v, int) and (k.startswith("W") or k.startswith("R") or k in ("BEST", "MAXLUCK")):
                 marks.setdefault(k, []).append(v)
-    for k in sorted(marks, key=lambda k: (k[0], int(k[1:]))):
+    for k in sorted(marks, key=lambda k: (k[0], int(k[1:]) if k[1:].isdigit() else 0)):
         v = marks[k]
         print(f"{k}: {hm(sum(v)/len(v))} on average ({len(v)}/{runs} runs)")

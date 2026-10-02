@@ -43,6 +43,7 @@ local Ground = require(script.Parent.Ground)
 local PetModels = require(script.Parent.PetModels)
 local PetView = require(script.Parent.PetView)
 local Screen = require(script.Parent.Screen)
+local State = require(script.Parent.State)
 local Ui = require(script.Parent.Ui)
 
 local Hatch = {}
@@ -1333,6 +1334,32 @@ local function openShade(transparency)
 	shade.BackgroundTransparency = transparency or 0.55
 end
 
+-- Does this pet make your team stronger? It does if you have a free pet
+-- slot, or it hits harder than the weakest pet in your team. The big
+-- animations (the bush, the crazy-pull intro) only play for pets that do:
+-- a Huge you'll never use isn't worth stopping the game for.
+function Hatch.helpsTeam(result)
+	if isBoost(result) then
+		return false
+	end
+	local data = State.Data
+	if not data then
+		return true
+	end
+	local equipped = data.Equipped or {}
+	if #equipped < Config.maxEquipped(data) then
+		return true
+	end
+	local function strength(name)
+		return Config.petPower(name) * Config.petStat(name, "Damage")
+	end
+	local weakest = math.huge
+	for _, name in ipairs(equipped) do
+		weakest = math.min(weakest, strength(name))
+	end
+	return strength(Config.petName(result.Pet, result.Size or 1)) > weakest
+end
+
 -- A pet much rarer than the luck it was rolled with (its odds, counting its
 -- size, at least Config.BUSH_LUCK_RATIO x that luck): it gets the bush too.
 -- Only for real rolls (they carry the luck they were rolled with).
@@ -1869,12 +1896,14 @@ local function show(results, fast, mode, auto)
 	if isBoost(best) then
 		Hatch.Last = record
 		pause(if fast then 0.3 else 0.5)
-	elseif best.Size >= 2 or tier >= 6 or Hatch.beatsLuck(best) then
+	elseif (best.Size >= 2 or tier >= 6 or Hatch.beatsLuck(best)) and Hatch.helpsTeam(best) then
+		-- (only for a pet that makes your team stronger)
 		special(best, others, fast, auto)
 	elseif full then
 		openShade(0.55)
 		Screen.blur(true)
-		showReveal(best, fast, others)
+		-- (a big pull that doesn't help your team: no crazy intro either)
+		showReveal(best, fast, others, { NoIntro = not Hatch.helpsTeam(best) })
 		Screen.blur(false)
 	end
 

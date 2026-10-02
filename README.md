@@ -65,11 +65,13 @@ chase Huge and Titanic pets.**
     a little ahead of you, the bush rustles harder and harder for about 2
     seconds, then your pet jumps out towards the screen with light and
     sound, and the reveal shows it with its exact chance. Only for a pet
-    you really rolled; it can't be skipped. On auto it plays at
+    you really rolled, and only if it makes your team stronger (a Huge that's weaker than every pet you have equipped just gets the normal reveal); it can't be skipped. On auto it plays at
     most once every 90 seconds; in between, a short reveal.
   - **Crazy pulls** (a Mythic or Secret animal) get their own show: dark
     screen, heartbeats with rings of light, rainbow cracks, a flash, then
-    "INSANE PULL!".
+    "INSANE PULL!" (again only when the pet beats one on your team).
+  - Luck stops at x100Qn (`Config.MAX_LUCK`, so even the Glitch is never
+    certain); the luck chip then says "MAX".
 
   The ROLL button and AUTO switch sit on their own layer above
   everything, so they always work. Every 10th roll has 2x luck.
@@ -237,15 +239,16 @@ chase Huge and Titanic pets.**
 
 | | Time for an active player |
 | --- | --- |
-| Rebirth 1 (level 16) | ~16 min |
-| World 2 (Sahara) | ~20 min |
-| Rebirths 2 / 3 | ~32 / 54 min |
-| World 3 (Frozen Peaks) | ~45 min |
-| Rebirths 4 / 5 / 6 | ~1.2 / 1.3 / 1.4 h |
-| World 4 (Sakura Jungle) | ~1.3 h |
-| Rebirths 7 / 8 | ~1.8 / 2.8 h |
-| World 5 (Lava Arena) | ~2.6 h |
-| Best pet | **Titanic Glitch ~4.8T** |
+| Rebirth 1 (level 16) | ~12 min |
+| World 2 (Sahara) | ~17 min |
+| Rebirths 2 / 3 | ~27 / 49 min |
+| World 3 (Frozen Peaks) | ~37 min |
+| Rebirths 4 / 5 / 6 | ~1.1 / 1.5 / 2 h |
+| World 4 (Sakura Jungle) | ~2.4 h |
+| Max luck (x100Qn) | ~2.4 h |
+| Rebirths 7 / 8 | ~2.8 / 3.6 h |
+| World 5 (Lava Arena) | ~3.3 h |
+| Best pet | **Titanic Glitch ~4.8T**, first one at ~2.5 h |
 
 Enemy health, coin rewards, EXP, upgrade costs, world costs and rebirths
 all scale together (`python3 tools/economy/simulate.py 3 --hours 10`).
@@ -342,7 +345,7 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 
 **Coins while fighting:** every hit pays its share of half the enemy's coins (by the damage it did; a small gold "+123" rises off the enemy), and the kill pays the other half and the EXP. An enemy pays the same in total as before (`Config.FIGHT_PAY`).
 
-**Gates:** each gate into the next area is a wall of coloured glass with white rails, and on both sides a gold lock, the area's name and its price (a coin and the number) in big chunky letters. The writing goes away when the gate opens. The camera can zoom out at most `Config.MAX_ZOOM` studs (45), and the place template's Baseplate is removed when the server starts.
+**Gates:** each gate into the next area is a wall of coloured glass with white rails, and on both sides a gold lock, the area's name and its price (a coin and the number) in big chunky letters. The writing goes away when the gate opens. While locked, an invisible wall goes from the ground up to the sky lid, so you can't climb over the gate or jump across from a tree. The camera can zoom out at most `Config.MAX_ZOOM` studs (45), and the place template's Baseplate is removed when the server starts.
 
 **Testing (temporary):** rebirths cost no coins (the level is still needed), area unlocks cost 0 coins (the gates still start locked and are unlocked at the gate as normal), and every join re-locks the areas so the gates can be seen (see CLAUDE.md, restore before release).
 

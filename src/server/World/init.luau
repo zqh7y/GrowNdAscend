@@ -292,6 +292,16 @@ local function buildGate(i)
 			CanCollide = false,
 		})
 	end
+	-- an invisible wall from the ground up to the lid while it's locked, so
+	-- nobody gets over by climbing onto the gate or jumping from a tree
+	local blocker = Build.part(gate, {
+		Name = "Blocker",
+		Size = Vector3.new(2, 140, HALF * 2 + 8),
+		CFrame = CFrame.new(x, 60, 0),
+		Transparency = 1,
+		CastShadow = false,
+		CanQuery = false,
+	})
 	local faces = {}
 	for _, face in ipairs({ Enum.NormalId.Left, Enum.NormalId.Right }) do
 		table.insert(faces, gateFace(barrier, face, area, i))
@@ -319,7 +329,7 @@ local function buildGate(i)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = button
 
-	World.Gates[i] = { Barrier = barrier, Sign = sign, Button = button, Prompt = prompt, Faces = faces }
+	World.Gates[i] = { Barrier = barrier, Blocker = blocker, Sign = sign, Button = button, Prompt = prompt, Faces = faces }
 end
 
 -- Opens (or closes) the gate into area i
@@ -330,6 +340,7 @@ function World.setGateOpen(i, open)
 	end
 	local area = Config.AREAS[i]
 	gate.Barrier.CanCollide = not open
+	gate.Blocker.CanCollide = not open
 	gate.Barrier.Transparency = if open then 1 else 0.25
 	for _, rail in ipairs(gate.Barrier:GetChildren()) do
 		if rail.Name == "Rail" then

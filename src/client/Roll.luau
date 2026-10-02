@@ -172,6 +172,10 @@ local function refreshLuck()
 	-- exactly what the next roll uses (the same function the server rolls with)
 	local luck = Config.luck(data, nextIsBonus, world)
 	luckText.Text = if luck < 1000 then times(luck) else "x" .. Config.formatNumber(luck)
+	-- at the cap more luck does nothing, so say so
+	if luck >= Config.MAX_LUCK then
+		luckText.Text ..= " MAX"
+	end
 	Roll.ShownLuck = luck
 	detailRows[1].Text = times(Config.upgradeValue(data, "Luck"))
 	detailRows[7].Text = (function()

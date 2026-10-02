@@ -1159,11 +1159,37 @@ if ok then
 		do
 			-- a normal pet far rarer than the luck it was rolled with: the bush too
 			local rareLuck = Config.PETS_BY_NAME.Lion.Odds / (Config.BUSH_LUCK_RATIO * 2)
+			-- (an empty team: any pet helps it)
+			-- (on the server too, so a sync during the hatch doesn't bring the real team back)
+			local st = C("State")
+			local saved = st.Data and st.Data.Equipped
+			local savedServer = data.Equipped
+			local function setTeam(team)
+				data.Equipped = team
+				if st.Data then st.Data.Equipped = team end
+			end
+			setTeam({})
 			Hatch.LastCutscene = nil
 			try("hatch beats luck", Hatch.play, { { Pet = "Lion", Size = 1, Luck = rareLuck, SizeLuck = 1, World = 1 } }, true, 1, "compact", false)
 			hatchReport.BeatsLuck = Hatch.LastCutscene and Hatch.LastCutscene.Bush == true and Hatch.LastCutscene.Name == "Lion"
+			local lionCutscene = Hatch.LastCutscene
 			hatchReport.LuckyEnough = Hatch.beatsLuck({ Pet = "Lion", Size = 1, Luck = Config.PETS_BY_NAME.Lion.Odds }) == false
 				and Hatch.beatsLuck({ Pet = "Lion", Size = 1 }) == false
+			-- a Huge that wouldn't make a full team of strong pets stronger: no bush
+			if st.Data then
+				local team = {}
+				for _ = 1, Config.maxEquipped(st.Data) do table.insert(team, "Titanic Glitch") end
+				setTeam(team)
+				Hatch.LastCutscene = nil
+				try("hatch weak huge", Hatch.play, { { Pet = "Dog", Size = 2, SizeLuck = 1, World = 1 } }, true, 1, "compact", false)
+				hatchReport.WeakHugeQuiet = Hatch.LastCutscene == nil and Hatch.helpsTeam({ Pet = "Dog", Size = 2 }) == false
+					and Hatch.helpsTeam({ Pet = "Lion", Size = 1, Luck = rareLuck }) == false
+				setTeam({})
+				hatchReport.EmptyTeamHelps = Hatch.helpsTeam({ Pet = "Dog", Size = 1 })
+			end
+			data.Equipped = savedServer
+			if st.Data then st.Data.Equipped = saved end
+			Hatch.LastCutscene = lionCutscene
 		end
 		hatchReport.SkipCutscene = Hatch.LastCutscene and table.clone(Hatch.LastCutscene)
 		-- AUTO: the bush cutscene plays once, then a short reveal during the cooldown
@@ -2290,8 +2316,9 @@ if ok then
 		local titanC = (hh.titanic or {}).Cutscene or {}
 		local commonC = (hh.common or {}).Cutscene
 		local rareC = (hh.rare or {}).Cutscene
-		item(120, "bush cutscene for a pet far rarer than your luck", (STATS.Hatch or {}).BeatsLuck == true and (STATS.Hatch or {}).LuckyEnough == true,
-			string.format("a 1 in %s Lion rolled with %dx less luck gets the bush; with enough luck, or a pet from elsewhere, it doesn't",
+		item(120, "bush cutscene for a pet far rarer than your luck", (STATS.Hatch or {}).BeatsLuck == true and (STATS.Hatch or {}).LuckyEnough == true
+			and (STATS.Hatch or {}).WeakHugeQuiet == true and (STATS.Hatch or {}).EmptyTeamHelps == true,
+			string.format("a 1 in %s Lion rolled with %dx less luck gets the bush; with enough luck, or a pet that doesn't beat your team (a Huge Dog next to Titanic Glitches), it doesn't",
 				Config.formatNumber(Config.PETS_BY_NAME.Lion.Odds), Config.BUSH_LUCK_RATIO * 2))
 		item(70, "bush cutscene for a real Huge/Titanic", hugeC.Name == "Huge Lion" and hugeC.Bush == true and hugeC.Jumped == true and (hugeC.Shake or 0) >= 1.8 and (hugeC.Shake or 0) <= 2.3
 			and titanC.Name == "Titanic Cat" and titanC.Jumped == true and commonC == nil and rareC == nil and (hh.huge or {}).Revealed == "Huge Lion",

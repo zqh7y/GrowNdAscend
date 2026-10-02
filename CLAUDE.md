@@ -51,9 +51,12 @@ for how it plays and where the code lives.
 - Economy: `python3 tools/economy/simulate.py 3 --hours 10` simulates an
   active player (it reads worlds, rebirths, levels and animals from
   Config; only the upgrade tree is mirrored in its UP table). Targets
-  (the user's): Rebirth 1 ~10 min, Rebirth 8 ~3 h (now: R1 ~11 min, R8
-  ~2.9 h; World 2 ~16 min, World 3 ~37 min, World 4 ~2 h); best pet
-  Titanic Glitch ~5T.
+  (the user's): Rebirth 1 ~10 min, Rebirth 8 ~3 h (now: R1 ~12 min, R8
+  ~3.6 h; World 2 ~17 min, World 3 ~37 min, World 4 ~2.4 h); best pet
+  Titanic Glitch ~5T. The sim also prints BEST (first Titanic Glitch) and
+  MAXLUCK; the user wanted those ~2x slower than 1.3 h, so the Luck
+  upgrade (250 * 6.5^level, mirrored in the sim's UP table) and the Luck
+  Board costs were raised (build 47): now ~2.5 h.
 - Ground: the playable strip is flat terrain at Y = 0 (terrain above it is
   cleared after building). Put things on the ground with
   `World.groundAt`/`World.flatGround`, never an assumed Y.

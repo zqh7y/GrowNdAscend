@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 46 (bush cutscene for pets 200x rarer than your luck)"
+Config.BUILD = "build 47 (big animations only when the pet helps your team, luck 2x pricier, locked gates can't be climbed)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -533,12 +533,12 @@ end
 -- with everything else, so luck climbs fast. Saved in data.LuckBoard.
 -- (One row per line: tools/economy/simulate.py reads them.)
 Config.LUCK_BOARD = {
-	{ Id = "paw", Name = "Lucky Paw", Icon = "paw", Color = Color3.fromRGB(110, 210, 120), Per = 1.5, Max = 20, BaseCost = 40, Growth = 2.1 },
-	{ Id = "clover", Name = "Four-Leaf Clover", Icon = "clover", Color = Color3.fromRGB(46, 196, 120), Per = 1.5, Max = 20, BaseCost = 2500, Growth = 2.3 },
-	{ Id = "horseshoe", Name = "Golden Horseshoe", Icon = "star", Color = Color3.fromRGB(255, 196, 40), Per = 1.5, Max = 20, BaseCost = 2e6, Growth = 2.6 },
-	{ Id = "rainbow", Name = "Rainbow", Icon = "spark", Color = Color3.fromRGB(255, 110, 170), Per = 1.65, Max = 15, BaseCost = 3e9, Growth = 3 },
-	{ Id = "star", Name = "Lucky Star", Icon = "star", Color = Color3.fromRGB(140, 110, 255), Per = 1.75, Max = 12, BaseCost = 5e12, Growth = 3.4 },
-	{ Id = "cosmic", Name = "Cosmic Fortune", Icon = "spark", Color = Color3.fromRGB(40, 220, 230), Per = 2, Max = 10, BaseCost = 1e15, Growth = 4 },
+	{ Id = "paw", Name = "Lucky Paw", Icon = "paw", Color = Color3.fromRGB(110, 210, 120), Per = 1.5, Max = 20, BaseCost = 400, Growth = 3.1 },
+	{ Id = "clover", Name = "Four-Leaf Clover", Icon = "clover", Color = Color3.fromRGB(46, 196, 120), Per = 1.5, Max = 20, BaseCost = 25000, Growth = 3.3 },
+	{ Id = "horseshoe", Name = "Golden Horseshoe", Icon = "star", Color = Color3.fromRGB(255, 196, 40), Per = 1.5, Max = 20, BaseCost = 2e7, Growth = 3.6 },
+	{ Id = "rainbow", Name = "Rainbow", Icon = "spark", Color = Color3.fromRGB(255, 110, 170), Per = 1.65, Max = 15, BaseCost = 3e10, Growth = 4 },
+	{ Id = "star", Name = "Lucky Star", Icon = "star", Color = Color3.fromRGB(140, 110, 255), Per = 1.75, Max = 12, BaseCost = 5e13, Growth = 4.4 },
+	{ Id = "cosmic", Name = "Cosmic Fortune", Icon = "spark", Color = Color3.fromRGB(40, 220, 230), Per = 2, Max = 10, BaseCost = 1e16, Growth = 5 },
 }
 Config.BOARD_UNLOCK = 5 -- a row unlocks when the row before reaches this level
 Config.LUCK_BOARD_BY_ID = {}
@@ -855,7 +855,7 @@ Config.UPGRADES = {
 			return multiplier(value) .. " luck"
 		end,
 		Cost = function(level)
-			return math.floor(250 * 3.7 ^ level)
+			return math.floor(250 * 6.5 ^ level)
 		end,
 		Requires = { "Coins", 1 },
 	},
