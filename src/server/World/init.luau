@@ -136,6 +136,126 @@ end
 
 -- Gates between areas ----------------------------------------------------------------
 
+-- One side of a gate's wall: a lock, the world's name and the price in big
+-- chunky white letters with a dark outline (like the area gates in pet
+-- simulator games). Drawn with a SurfaceGui so it is crisp up close.
+local function gateFace(barrier, face, area, i)
+	local dark = area.Color:Lerp(Color3.new(0, 0, 0), 0.55)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "PriceFace"
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 20
+	gui.LightInfluence = 0
+	gui.MaxDistance = 250
+	gui.Parent = barrier
+
+	local function label(props)
+		local l = Instance.new("TextLabel")
+		l.BackgroundTransparency = 1
+		l.Font = Enum.Font.FredokaOne
+		l.TextScaled = true
+		l.TextColor3 = Color3.new(1, 1, 1)
+		l.AnchorPoint = Vector2.new(0.5, 0.5)
+		for k, v in pairs(props) do
+			l[k] = v
+		end
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = dark
+		stroke.Thickness = props.Name == "Price" and 7 or 5
+		stroke.LineJoinMode = Enum.LineJoinMode.Round
+		stroke.Parent = l
+		l.Parent = gui
+		return l
+	end
+	local function round(frame, radius)
+		local c = Instance.new("UICorner")
+		c.CornerRadius = radius
+		c.Parent = frame
+	end
+
+	-- the lock: a shackle over a body with a keyhole
+	local lock = Instance.new("Frame")
+	lock.Name = "Lock"
+	lock.BackgroundTransparency = 1
+	lock.AnchorPoint = Vector2.new(0.5, 0.5)
+	lock.Position = UDim2.fromScale(0.5, 0.2)
+	lock.Size = UDim2.fromOffset(70, 80)
+	lock.Parent = gui
+	local shackle = Instance.new("Frame")
+	shackle.BackgroundTransparency = 1
+	shackle.Position = UDim2.fromOffset(15, 0)
+	shackle.Size = UDim2.fromOffset(40, 50)
+	round(shackle, UDim.new(0.5, 0))
+	local ring = Instance.new("UIStroke")
+	ring.Color = Color3.new(1, 1, 1)
+	ring.Thickness = 9
+	ring.Parent = shackle
+	shackle.Parent = lock
+	local body = Instance.new("Frame")
+	body.BackgroundColor3 = Color3.fromRGB(255, 205, 60)
+	body.Position = UDim2.fromOffset(0, 32)
+	body.Size = UDim2.fromOffset(70, 48)
+	round(body, UDim.new(0, 10))
+	local edge = Instance.new("UIStroke")
+	edge.Color = dark
+	edge.Thickness = 5
+	edge.Parent = body
+	body.Parent = lock
+	local hole = Instance.new("Frame")
+	hole.BackgroundColor3 = dark
+	hole.AnchorPoint = Vector2.new(0.5, 0.5)
+	hole.Position = UDim2.fromScale(0.5, 0.5)
+	hole.Size = UDim2.fromOffset(12, 20)
+	round(hole, UDim.new(0.5, 0))
+	hole.Parent = body
+
+	label({ Name = "World", Text = area.Name:upper(), Position = UDim2.fromScale(0.5, 0.42), Size = UDim2.fromScale(0.7, 0.13) })
+
+	-- the price: a gold coin and the number, big
+	local row = Instance.new("Frame")
+	row.Name = "PriceRow"
+	row.BackgroundTransparency = 1
+	row.AnchorPoint = Vector2.new(0.5, 0.5)
+	row.Position = UDim2.fromScale(0.5, 0.66)
+	row.Size = UDim2.fromScale(0.9, 0.26)
+	row.Parent = gui
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
+	layout.Padding = UDim.new(0, 16)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = row
+	local coin = Instance.new("Frame")
+	coin.Name = "Coin"
+	coin.LayoutOrder = 1
+	coin.BackgroundColor3 = Color3.fromRGB(255, 200, 40)
+	coin.Size = UDim2.fromOffset(74, 74)
+	round(coin, UDim.new(0.5, 0))
+	local rim = Instance.new("UIStroke")
+	rim.Color = Color3.fromRGB(200, 120, 10)
+	rim.Thickness = 6
+	rim.Parent = coin
+	local shine = Instance.new("Frame")
+	shine.BackgroundColor3 = Color3.fromRGB(255, 240, 160)
+	shine.AnchorPoint = Vector2.new(0.5, 0.5)
+	shine.Position = UDim2.fromScale(0.5, 0.5)
+	shine.Size = UDim2.fromScale(0.5, 0.5)
+	round(shine, UDim.new(0.5, 0))
+	shine.Parent = coin
+	coin.Parent = row
+	local cost = Config.AREA_COST_FOR_TESTING or area.Cost
+	local price = label({ Name = "Price", Text = Config.formatNumber(cost), AnchorPoint = Vector2.new(0, 0.5), LayoutOrder = 2,
+		AutomaticSize = Enum.AutomaticSize.X, TextScaled = false, TextSize = 76, Size = UDim2.fromOffset(0, 80),
+		TextColor3 = Color3.fromRGB(255, 226, 90) })
+	price.Parent = row
+
+	label({ Name = "Hint", Text = if Config.AREA_COST_FOR_TESTING then "TEST PRICE  ·  UNLOCK AT THE BUTTON" else "UNLOCK AT THE BUTTON",
+		Position = UDim2.fromScale(0.5, 0.89), Size = UDim2.fromScale(0.6, 0.08) })
+	return gui
+end
+
 local function buildGate(i)
 	local area = Config.AREAS[i]
 	local x = Config.areaStart(i)
@@ -149,15 +269,31 @@ local function buildGate(i)
 	end
 	Build.block(gate, Vector3.new(x, 17, 0), Vector3.new(4, 3, HALF * 2 - 4), { Color = white })
 
+	-- the wall itself: coloured glass you can see, with white rails and the
+	-- price written on both sides in big chunky letters
 	local barrier = Build.part(gate, {
 		Name = "Barrier",
-		Size = Vector3.new(0.6, 17, HALF * 2 - 10),
-		CFrame = CFrame.new(x, 8.5, 0),
+		Size = Vector3.new(1, 15, HALF * 2 - 10),
+		CFrame = CFrame.new(x, 7.5 + 0.6, 0),
 		Color = area.Color,
-		Material = Enum.Material.ForceField,
-		Transparency = 0.2,
+		Material = Enum.Material.Glass,
+		Reflectance = 0.15,
+		Transparency = 0.25,
 		CastShadow = false,
 	})
+	for _, y in ipairs({ 0.6, 15.6 }) do
+		Build.part(barrier, {
+			Name = "Rail",
+			Size = Vector3.new(1.6, 1.2, HALF * 2 - 10),
+			CFrame = CFrame.new(x, y, 0),
+			Color = white,
+			CanCollide = false,
+		})
+	end
+	local faces = {}
+	for _, face in ipairs({ Enum.NormalId.Left, Enum.NormalId.Right }) do
+		table.insert(faces, gateFace(barrier, face, area, i))
+	end
 	local sign = Build.sign(
 		gate,
 		CFrame.new(x, 23.5, 0) * CFrame.Angles(0, math.rad(90), 0),
@@ -181,7 +317,7 @@ local function buildGate(i)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = button
 
-	World.Gates[i] = { Barrier = barrier, Sign = sign, Button = button, Prompt = prompt }
+	World.Gates[i] = { Barrier = barrier, Sign = sign, Button = button, Prompt = prompt, Faces = faces }
 end
 
 -- Opens (or closes) the gate into area i
@@ -192,12 +328,125 @@ function World.setGateOpen(i, open)
 	end
 	local area = Config.AREAS[i]
 	gate.Barrier.CanCollide = not open
-	gate.Barrier.Transparency = if open then 1 else 0.2
+	gate.Barrier.Transparency = if open then 1 else 0.25
+	for _, rail in ipairs(gate.Barrier:GetChildren()) do
+		if rail.Name == "Rail" then
+			rail.Transparency = if open then 1 else 0
+		end
+	end
+	for _, face in ipairs(gate.Faces) do
+		face.Enabled = not open
+	end
 	gate.Prompt.Enabled = not open
 	gate.Button.Transparency = if open then 1 else 0
 	Build.setSignText(gate.Sign, if open
 		then area.Name:upper()
 		else area.Name:upper() .. "  ·  " .. Config.areaCostText(i))
+end
+
+-- The Mega Roll pad ------------------------------------------------------------------
+-- A round pale-blue pad with a glowing ring, a pile of big white dice with
+-- navy pips, potion bottles around it and a second little pile of dice
+-- beside it. The client hangs the sign over it ("x50,000 Roll!" and the
+-- timer) and claims the roll when you step on it once it's ready.
+
+local PIP_PATTERNS = {
+	{ { 0, 0 } },
+	{ { -1, -1 }, { 1, 1 } },
+	{ { -1, -1 }, { 0, 0 }, { 1, 1 } },
+	{ { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } },
+	{ { -1, -1 }, { 1, -1 }, { 0, 0 }, { -1, 1 }, { 1, 1 } },
+	{ { -1, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 1, 1 } },
+}
+local DIE_WHITE = Color3.fromRGB(236, 243, 255)
+local PIP_NAVY = Color3.fromRGB(22, 34, 92)
+
+-- one die of `size` studs at `cf` (its centre), pips on every side
+local function die(parent, cf, size)
+	local model = Build.model(parent, "Die")
+	Build.part(model, { Size = Vector3.new(size, size, size), CFrame = cf, Color = DIE_WHITE })
+	local half, spread, pip = size / 2, size * 0.26, size * 0.2
+	-- each face: where its centre is and how a pip (a flat cylinder along X) turns to lie on it
+	local faces = {
+		{ N = 1, At = function(a, b) return CFrame.new(0, half, 0) * CFrame.new(a, 0, b) * CFrame.Angles(0, 0, math.rad(90)) end },
+		{ N = 6, At = function(a, b) return CFrame.new(0, -half, 0) * CFrame.new(a, 0, b) * CFrame.Angles(0, 0, math.rad(90)) end },
+		{ N = 2, At = function(a, b) return CFrame.new(half, 0, 0) * CFrame.new(0, a, b) end },
+		{ N = 5, At = function(a, b) return CFrame.new(-half, 0, 0) * CFrame.new(0, a, b) end },
+		{ N = 3, At = function(a, b) return CFrame.new(0, 0, half) * CFrame.new(a, b, 0) * CFrame.Angles(0, math.rad(90), 0) end },
+		{ N = 4, At = function(a, b) return CFrame.new(0, 0, -half) * CFrame.new(a, b, 0) * CFrame.Angles(0, math.rad(90), 0) end },
+	}
+	for _, face in ipairs(faces) do
+		for _, p in ipairs(PIP_PATTERNS[face.N]) do
+			Build.part(model, {
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.12, pip, pip),
+				CFrame = cf * face.At(p[1] * spread, p[2] * spread),
+				Color = PIP_NAVY,
+				CanCollide = false,
+				CastShadow = false,
+			})
+		end
+	end
+	return model
+end
+
+-- a little potion bottle standing at `base`
+local function potion(parent, base, liquid, tilt)
+	local model = Build.model(parent, "Potion")
+	local cf = CFrame.new(base) * CFrame.Angles(0, tilt, math.rad(8) * math.sin(tilt * 3))
+	local up = CFrame.Angles(0, 0, math.rad(90))
+	Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.6, 1.3, 1.3), CFrame = cf * CFrame.new(0, 0.8, 0) * up,
+		Color = Color3.fromRGB(220, 240, 255), Material = Enum.Material.Glass, Transparency = 0.45, CanCollide = false })
+	Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.1, 1.1, 1.1), CFrame = cf * CFrame.new(0, 0.6, 0) * up,
+		Color = liquid, Material = Enum.Material.Neon, CanCollide = false })
+	Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 0.55, 0.55), CFrame = cf * CFrame.new(0, 1.85, 0) * up,
+		Color = Color3.fromRGB(220, 240, 255), Material = Enum.Material.Glass, Transparency = 0.45, CanCollide = false })
+	Build.part(model, { Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.45, 0.6, 0.6), CFrame = cf * CFrame.new(0, 2.3, 0) * up,
+		Color = Color3.fromRGB(176, 120, 70), CanCollide = false })
+end
+
+function World.buildMegaRoll(center)
+	local model = Build.model(map, "MegaRoll")
+	local r = Config.MEGA_ROLL.Radius
+	-- the pad: a white rim, the pale blue top and a glowing ring on it
+	Build.cylinder(model, center, 1, r * 2 + 1.2, { Name = "Rim", Color = Color3.fromRGB(250, 252, 255) })
+	local pad = Build.cylinder(model, center, 1.3, r * 2, { Name = "Pad", Color = Color3.fromRGB(184, 210, 255) })
+	Build.cylinder(model, center + Vector3.new(0, 1.3, 0), 0.06, r * 2 - 2.5, { Name = "Ring", Color = Color3.fromRGB(255, 236, 150), Material = Enum.Material.Neon, CanCollide = false })
+	Build.cylinder(model, center + Vector3.new(0, 1.32, 0), 0.06, r * 2 - 3.3, { Color = Color3.fromRGB(184, 210, 255), CanCollide = false })
+	local top = center.Y + 1.3
+	-- the big pile at the back of the pad: three dice and one on top
+	local back = center + Vector3.new(2.5, top - center.Y, -3)
+	local s = 3.4
+	die(model, CFrame.new(back + Vector3.new(-s * 0.55, s / 2, 0)) * CFrame.Angles(0, math.rad(12), 0), s)
+	die(model, CFrame.new(back + Vector3.new(s * 0.55, s / 2, 0.3)) * CFrame.Angles(0, math.rad(-20), 0), s)
+	die(model, CFrame.new(back + Vector3.new(0, s / 2, -s * 0.9)) * CFrame.Angles(0, math.rad(35), 0), s)
+	die(model, CFrame.new(back + Vector3.new(0, s * 1.5, -0.3)) * CFrame.Angles(0, math.rad(-8), 0), s)
+	-- potions around it
+	local colours = { Color3.fromRGB(80, 220, 120), Color3.fromRGB(255, 90, 120), Color3.fromRGB(255, 220, 60), Color3.fromRGB(80, 120, 255), Color3.fromRGB(255, 140, 60) }
+	for k, at in ipairs({ { -3.5, 0.5 }, { -2.6, 2.2 }, { 4.6, 1.6 }, { 5.6, -0.4 }, { 3.4, 2.6 } }) do
+		potion(model, Vector3.new(back.X + at[1], top, back.Z + at[2]), colours[k], k * 1.3)
+	end
+	-- a small pile beside the pad
+	local side = center + Vector3.new(-r - 3.5, 0, -1)
+	local t = 2.6
+	die(model, CFrame.new(side + Vector3.new(-t * 0.55, t / 2, 0)) * CFrame.Angles(0, math.rad(25), 0), t)
+	die(model, CFrame.new(side + Vector3.new(t * 0.55, t / 2, 0.4)) * CFrame.Angles(0, math.rad(-10), 0), t)
+	die(model, CFrame.new(side + Vector3.new(0, t * 1.5, 0.2)) * CFrame.Angles(0, math.rad(40), 0), t)
+	-- where the sign hangs (the client puts the text there)
+	Build.part(model, { Name = "Sign", Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(back + Vector3.new(0, s * 2 + 4.5, 0)), Transparency = 1, CanCollide = false, CastShadow = false })
+	-- soft sparkles rising from the pad
+	local sparkles = Instance.new("ParticleEmitter")
+	sparkles.Color = ColorSequence.new(Color3.fromRGB(255, 246, 190))
+	sparkles.LightEmission = 1
+	sparkles.Size = NumberSequence.new(0.35, 0)
+	sparkles.Lifetime = NumberRange.new(1.5, 2.5)
+	sparkles.Rate = 6
+	sparkles.Speed = NumberRange.new(1.5, 3)
+	sparkles.SpreadAngle = Vector2.new(25, 25)
+	sparkles.EmissionDirection = Enum.NormalId.Top
+	sparkles.Parent = pad
+	World.MegaPad = Vector3.new(center.X, top, center.Z)
+	return model
 end
 
 -- The Upgrade Board --------------------------------------------------------------------
@@ -297,6 +546,11 @@ for i, area in ipairs(Config.AREAS) do
 			space:add(center + Vector3.new(dx, 0, -7), 4.5)
 		end
 		space:add(center + Vector3.new(0, 0, -13), 5)
+		-- the Mega Roll pad, on the left past the leaderboards
+		local megaAt = Vector3.new(x0 + 60, 0, -(HALF - 14))
+		World.buildMegaRoll(megaAt)
+		space:add(megaAt, Config.MEGA_ROLL.Radius + 2)
+		space:add(megaAt + Vector3.new(-Config.MEGA_ROLL.Radius - 3.5, 0, -1), 3.5)
 	end
 
 	local ctx = {

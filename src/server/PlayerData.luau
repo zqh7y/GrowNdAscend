@@ -168,6 +168,8 @@ function PlayerData.sync(player)
 		Milestones = data.Milestones or {},
 		Obtained = data.Obtained or {},
 		LuckBoard = data.LuckBoard or {},
+		MegaReady = data.MegaReady,
+		MegaMult = data.MegaMult,
 		ServerTime = os.time(),
 	})
 end

@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local PlayerData = require(script.Parent.PlayerData)
+local World = require(script.Parent.World)
 local Leaderboard = require(script.Parent.Leaderboards)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -19,6 +20,7 @@ end
 local rollFunction = remote("RemoteFunction", "Roll")
 local equipFunction = remote("RemoteFunction", "Equip")
 local equipBestFunction = remote("RemoteFunction", "EquipBest")
+local megaFunction = remote("RemoteFunction", "MegaRoll")
 
 local Rolling = {}
 local random = Random.new()
@@ -29,9 +31,23 @@ function Rolling.setRandom(source)
 end
 local lastRoll = {} -- [player] = os.clock() of their last roll
 
+-- gives the player their next Mega Roll (multiplier and when it's ready)
+-- (the server clock: unix time, the same one the client counts down with)
+local function now()
+	return workspace:GetServerTimeNow()
+end
+local function nextMega(data, wait)
+	data.MegaMult = Config.pickMega(random)
+	data.MegaReady = now() + wait
+end
+
 local function onLoaded(player)
-	if not PlayerData.get(player) then
+	local data = PlayerData.get(player)
+	if not data then
 		return
+	end
+	if type(data.MegaMult) ~= "number" or type(data.MegaReady) ~= "number" then
+		nextMega(data, Config.MEGA_ROLL.First)
 	end
 	PlayerData.updateStrongest(player)
 	PlayerData.sync(player)
@@ -74,6 +90,35 @@ local function equippedCount(data, name)
 		end
 	end
 	return n
+end
+
+-- Adds a hatched pet to the player's collection; returns the result for
+-- the client (`extra` fields added to it)
+local function award(data, outcome, extra)
+	local pet, sizeIndex = outcome.Pet, outcome.Size
+	local name = Config.petName(pet.Name, sizeIndex)
+	local isFirst = not data.Discovered[pet.Name]
+	local isFirstOfSize = not data.Discovered[name]
+	PlayerData.discover(data, name)
+	data.Pets[name] = (data.Pets[name] or 0) + 1
+	data.Obtained = data.Obtained or {}
+	data.Obtained[name] = data.Rolls -- (for sorting by newest)
+	local best = data.Best and Config.PETS_BY_NAME[data.Best]
+	if not best or pet.Odds > best.Odds then
+		data.Best = pet.Name
+	end
+	local result = {
+		Kind = "Pet",
+		Pet = pet.Name,
+		Size = sizeIndex,
+		Name = name,
+		First = isFirst,
+		FirstOfSize = isFirstOfSize,
+	}
+	for k, v in pairs(extra) do
+		result[k] = v
+	end
+	return result
 end
 
 rollFunction.OnServerInvoke = function(player)
@@ -119,31 +164,13 @@ rollFunction.OnServerInvoke = function(player)
 				Multiplier = multiplier,
 			})
 		else
-			local pet, sizeIndex = outcome.Pet, outcome.Size
-			local name = Config.petName(pet.Name, sizeIndex)
-			local isFirst = not data.Discovered[pet.Name]
-			local isFirstOfSize = not data.Discovered[name]
-			PlayerData.discover(data, name)
-			data.Pets[name] = (data.Pets[name] or 0) + 1
-			data.Obtained = data.Obtained or {}
-			data.Obtained[name] = data.Rolls -- (for sorting by newest)
-			local best = data.Best and Config.PETS_BY_NAME[data.Best]
-			if not best or pet.Odds > best.Odds then
-				data.Best = pet.Name
-			end
-			table.insert(results, {
-				Kind = "Pet",
-				Pet = pet.Name,
-				Size = sizeIndex,
-				Name = name,
+			table.insert(results, award(data, outcome, {
 				Bonus = isBonus,
-				First = isFirst,
-				FirstOfSize = isFirstOfSize,
 				World = world,
 				Luck = luck,
 				SizeLuck = rollSizeLuck,
 				Multiplier = multiplier,
-			})
+			}))
 		end
 	end
 	-- the boost for the next spin: this one's x 2 per boost hatched, or none
@@ -159,6 +186,65 @@ rollFunction.OnServerInvoke = function(player)
 	PlayerData.updateStrongest(player)
 	PlayerData.sync(player)
 	return results
+end
+
+-- The Mega Roll: one roll with the multiplier shown on the pad, claimed by
+-- standing on the pad once its timer is done. Its luck goes past MAX_LUCK
+-- (up to MEGA_ROLL.LuckCap) and it always gives a pet. The next one gets a
+-- new random multiplier and a fresh timer. Returns the results (like Roll),
+-- or nil and why not.
+function Rolling.megaRoll(player)
+	local data = PlayerData.get(player)
+	if not data or type(data.MegaReady) ~= "number" then
+		return nil, "loading"
+	end
+	if now() < data.MegaReady then
+		return nil, "not ready"
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local pad = World.MegaPad
+	if not root or not pad then
+		return nil, "no pad"
+	end
+	local flat = Vector3.new(root.Position.X - pad.X, 0, root.Position.Z - pad.Z)
+	if flat.Magnitude > Config.MEGA_ROLL.Radius + 4 then
+		return nil, "too far"
+	end
+	local world = PlayerData.worldOf(player)
+	local mega = data.MegaMult
+	local luck = math.min(Config.luck(data, false, world, 1) * mega, Config.MEGA_ROLL.LuckCap)
+	local sizeLuck = Config.sizeLuck(data)
+	local outcome
+	for _ = 1, 50 do
+		outcome = Config.rollResult(luck, sizeLuck, world, random)
+		if outcome.Kind ~= "Boost" then
+			break
+		end
+	end
+	if outcome.Kind == "Boost" then
+		return nil, "no pet"
+	end
+	data.Rolls += 1
+	local result = award(data, outcome, {
+		World = world,
+		Luck = luck,
+		SizeLuck = sizeLuck,
+		Multiplier = 1,
+		Mega = mega,
+		NextMultiplier = Config.luckMultiplier(data),
+	})
+	nextMega(data, Config.MEGA_ROLL.Cooldown)
+	if Config.upgradeLevel(data, "AutoHatch") >= 2 then
+		equipBest(data)
+	end
+	PlayerData.updateStrongest(player)
+	PlayerData.sync(player)
+	return { result }
+end
+
+megaFunction.OnServerInvoke = function(player)
+	return (Rolling.megaRoll(player))
 end
 
 -- Equips a pet, or unequips it. Several copies of the same pet can be

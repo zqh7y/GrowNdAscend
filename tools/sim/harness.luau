@@ -134,6 +134,16 @@ if ok then
 				Posts = #g.Barrier.Parent:GetChildren(),
 			})
 		end
+		local wall = { Faces = 0, Priced = 0 }
+		for i = 2, #Config.AREAS do
+			for _, f in ipairs(W.Gates[i].Faces or {}) do
+				if f.Enabled ~= false then wall.Faces += 1 end
+				local price = f:FindFirstChild("Price", true)
+				if price and price.Text == Config.formatNumber(Config.AREA_COST_FOR_TESTING or Config.AREAS[i].Cost) then wall.Priced += 1 end
+			end
+		end
+		wall.Want = (#Config.AREAS - 1) * 2
+		wall.Visible = W.Gates[2].Barrier.Transparency <= 0.3 and W.Gates[2].Barrier.Material ~= Enum.Material.ForceField
 		local unlockedBefore = data.Unlocked
 		data.Coins = 0
 		W.Gates[2].Prompt.Triggered:Fire(player)
@@ -141,6 +151,7 @@ if ok then
 		local g2 = W.Gates[2]
 		STATS.Gates = {
 			UnlockedBefore = unlockedBefore, Locked = locked, UnlockedAfter = data.Unlocked, CoinsAfter = data.Coins,
+			Wall = wall, OpenFacesOff = not g2.Faces[1].Enabled and not g2.Faces[2].Enabled,
 			Open = { Collide = g2.Barrier.CanCollide, Transparency = g2.Barrier.Transparency, Prompt = g2.Prompt.Enabled, Posts = #g2.Barrier.Parent:GetChildren(),
 				Sign = signText(g2.Sign) },
 		}
@@ -566,6 +577,64 @@ if ok then
 				fc.WalkAway = not Board.Focused and camera.CameraType == Enum.CameraType.Custom
 				root.CFrame = savedAt
 				STATS.BoardFocus = fc
+			end
+			do
+				-- the Mega Roll pad: a sign with the multiplier and a timer; claimed on the pad once ready
+				local Mega = C("MegaRoll")
+				local Rolling = __cache["Rolling"]
+				local W = __cache["World/init"]
+				local root = player.Character.HumanoidRootPart
+				local savedAt = root.CFrame
+				local mr = {}
+				local dice = 0
+				for _, d in ipairs(workspace.Map.MegaRoll:GetChildren()) do
+					if d.Name == "Die" then dice += 1 end
+				end
+				mr.Dice = dice
+				mr.MultOk = type(data.MegaMult) == "number" and data.MegaMult >= Config.MEGA_ROLL.Min and data.MegaMult <= Config.MEGA_ROLL.Max
+				data.MegaReady = workspace:GetServerTimeNow() + 600
+				PlayerData.sync(player)
+				Mega.refresh()
+				mr.Title = Mega.Title.Text
+				mr.Timer = Mega.Timer.Text
+				mr.WantTitle = "x" .. Config.commas(data.MegaMult) .. " Roll!"
+				root.CFrame = CFrame.new(W.MegaPad + Vector3.new(1, 3, 0))
+				local r1, why1 = Rolling.megaRoll(player)
+				mr.EarlyRefused = r1 == nil and why1 == "not ready"
+				data.MegaReady = workspace:GetServerTimeNow() - 1
+				PlayerData.sync(player)
+				Mega.refresh()
+				mr.ReadyText = Mega.Timer.Text
+				root.CFrame = CFrame.new(W.MegaPad + Vector3.new(40, 3, 0))
+				local r2, why2 = Rolling.megaRoll(player)
+				mr.FarRefused = r2 == nil and why2 == "too far"
+				root.CFrame = CFrame.new(W.MegaPad + Vector3.new(1, 3, 0))
+				local mult = data.MegaMult
+				local rollsBefore = data.Rolls
+				local wantLuck = math.min(Config.luck(data, false, __cache["PlayerData"].worldOf(player), 1) * mult, Config.MEGA_ROLL.LuckCap)
+				local res = Rolling.megaRoll(player)
+				local r = res and res[1]
+				mr.Got = r and r.Kind == "Pet" and r.Mega == mult and math.abs(r.Luck - wantLuck) < 1e-6 * wantLuck and data.Rolls == rollsBefore + 1
+					and (data.Pets[r.Name] or 0) >= 1
+				mr.Pet = r and r.Name
+				mr.Luck = r and r.Luck
+				mr.NextLater = data.MegaReady > workspace:GetServerTimeNow() + Config.MEGA_ROLL.Cooldown - 5
+				mr.Again = Rolling.megaRoll(player) == nil
+				-- picks spread between Min and Max, rounded to two figures
+				local rng = Random.new(5)
+				local lo, hi, round = math.huge, 0, true
+				for _ = 1, 400 do
+					local v = Config.pickMega(rng)
+					lo, hi = math.min(lo, v), math.max(hi, v)
+					local step = 10 ^ (math.floor(math.log10(v)) - 1)
+					if v % step ~= 0 then round = false end
+				end
+				mr.Range = lo >= Config.MEGA_ROLL.Min and hi <= Config.MEGA_ROLL.Max and hi > lo * 5 and round
+				mr.Lo, mr.Hi = lo, hi
+				mr.Commas = Config.commas(50000) == "50,000" and Config.commas(5000) == "5,000" and Config.commas(100000) == "100,000"
+				mr.Countdown = Config.countdown(19 * 60 + 26) == "19m 26s"
+				root.CFrame = savedAt
+				STATS.MegaRoll = mr
 			end
 			STATS.Outfits = { Dressed = dressed, Distinct = distinct, Broken = table.concat(broken, ", "), Titanic = okT and titanic:GetAttribute("Outfit") ~= nil }
 			data.Pets.Cat = 2
@@ -2230,6 +2299,20 @@ if ok then
 			and fc.StaysOut == true and fc.Again == true and fc.WalkAway == true,
 			string.format("walk up -> camera on the board (%.1f studs back, facing it); EXIT -> camera back on the player and stays there until you walk away; back again -> focus; walking off -> camera back (%s)",
 				fc.Distance or -1, tostring(fc.Exited)))
+		local gw = (STATS.Gates or {}).Wall or {}
+		item(108, "gate walls: visible, price written on them", gw.Visible == true and gw.Faces == gw.Want and gw.Priced == gw.Want and (STATS.Gates or {}).OpenFacesOff == true,
+			string.format("%d/%d wall sides show the lock and the price in big letters, the wall is solid coloured glass, the writing goes away when the gate opens (%s)",
+				gw.Priced or 0, gw.Want or 0, tostring((STATS.Gates or {}).OpenFacesOff)))
+		local zoom = game:GetService("StarterPlayer").CameraMaxZoomDistance
+		item(109, "camera can't zoom out far", zoom == Config.MAX_ZOOM and zoom <= 60,
+			string.format("max zoom out %s studs (Roblox default 128)", tostring(zoom)))
+		local mr = STATS.MegaRoll or {}
+		item(110, "Mega Roll pad", mr.Dice == 7 and mr.MultOk == true and mr.Title == mr.WantTitle and string.find(mr.Timer or "", "^Claim in ") ~= nil
+			and mr.EarlyRefused == true and mr.ReadyText == "Ready! Step on the pad" and mr.FarRefused == true and mr.Got == true and mr.NextLater == true
+			and mr.Again == true and mr.Range == true and mr.Commas == true and mr.Countdown == true,
+			string.format("%d dice; sign '%s' / '%s'; refused before the timer and off the pad; claimed -> %s at luck %s; next one in %d min; picks %s..%s",
+				mr.Dice or 0, tostring(mr.Title), tostring(mr.Timer), tostring(mr.Pet), Config.formatNumber(mr.Luck or 0), Config.MEGA_ROLL.Cooldown // 60,
+				Config.commas(mr.Lo or 0), Config.commas(mr.Hi or 0)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))

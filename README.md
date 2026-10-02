@@ -306,6 +306,12 @@ accents (realistic materials are swapped out automatically in `Build.part`).
 The Pet Aura Machine turns its rings slowly with sparkles and an orb in
 the colour of the rarest aura; walk up and press the prompt to open it.
 
+**Mega Roll pad:** in the Forest, on the left past the leaderboards: a pale blue pad with a pile of big dice and potion bottles. The sign over it shows the roll waiting for you, a random insanely high luck multiplier (x5,000 to x100,000, e.g. "x50,000 Roll!"), and "Claim in 19m 26s". When the timer is done, step on the pad: one roll with that luck (it can go past the normal luck cap, up to x1e9, and always hatches a pet) with the full hatch show. Then a new multiplier and a fresh 20 minute timer (the first one is ready 2 minutes after joining). Tuned in `Config.MEGA_ROLL`.
+
+**Roll button:** an orange studded tile with a white 3D die and a chunky "ROLL" caption; AUTO sits to its left.
+
+**Gates:** each gate into the next area is a wall of coloured glass with white rails, and on both sides a gold lock, the area's name and its price (a coin and the number) in big chunky letters. The writing goes away when the gate opens. The camera can zoom out at most `Config.MAX_ZOOM` studs (45), and the place template's Baseplate is removed when the server starts.
+
 **Testing (temporary):** rebirths cost no coins (the level is still needed), area unlocks cost 0 coins (the gates still start locked and are unlocked at the gate as normal), and every join re-locks the areas so the gates can be seen (see CLAUDE.md, restore before release).
 
 ## Solo servers
@@ -340,6 +346,7 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/client/Hud.luau` | Coins, team bar, the icon dock |
 | `src/client/Roll.luau`, `Hatch.luau` | Rolling, the luck chip, auto roll; the hatch show |
 | `src/client/UpgradeBoard.luau` | The Upgrade Board in the world (every upgrade) |
+| `src/client/MegaRoll.luau` | The Mega Roll pad's sign (multiplier, timer) and claiming it |
 | `src/client/Rebirth.luau` | The rebirth screen |
 | `src/client/Inventory.luau`, `Index.luau`, `PetView.luau` | Inventory, Animal Index, 3D pet previews |
 | `src/client/Panels.luau` | Settings, Rebirth (and the old Top panel) |

@@ -390,10 +390,18 @@ function methods:GetDescendants()
 	walk(self)
 	return list
 end
-function methods:FindFirstChild(name)
+function methods:FindFirstChild(name, recursive)
 	for _, c in ipairs(rawget(self, "_children")) do
 		if c.Name == name then
 			return c
+		end
+	end
+	if recursive then
+		for _, c in ipairs(rawget(self, "_children")) do
+			local found = methods.FindFirstChild(c, name, true)
+			if found then
+				return found
+			end
 		end
 	end
 	return nil

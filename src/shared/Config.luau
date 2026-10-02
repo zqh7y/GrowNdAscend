@@ -3,7 +3,10 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 36 (camera focuses the upgrade board)"
+Config.BUILD = "build 37 (mega roll pad, gate walls with prices, dice roll button, closer camera)"
+
+-- How far players can scroll the camera out (studs; Roblox's default is 128)
+Config.MAX_ZOOM = 45
 
 -- Pets -------------------------------------------------------------------------
 
@@ -360,6 +363,41 @@ Config.CHAIN_MAX = 1024
 -- Total luck never goes above this, so no pet is ever certain (the rarest
 -- animal stays at 1 in 10 or worse even with every multiplier stacked)
 Config.MAX_LUCK = 1e6
+
+-- The Mega Roll pad (first area, by the spawn): every MEGA_ROLL.Cooldown
+-- seconds you can claim one roll with an insanely high luck multiplier
+-- (random between Min and Max, shown on the pad before you claim it). Step
+-- onto the pad when the timer is done. Its luck may go past MAX_LUCK, up to
+-- LuckCap, and it always hatches a pet (never a x2 boost).
+Config.MEGA_ROLL = { Cooldown = 20 * 60, First = 2 * 60, Min = 5000, Max = 100000, Radius = 8, LuckCap = 1e9 }
+
+-- A random Mega Roll multiplier: low ones are more common (spread evenly
+-- by order of magnitude), rounded to two figures (5,000 ... 47,000 ... 100,000)
+function Config.pickMega(random)
+	local m = Config.MEGA_ROLL
+	local v = math.exp(random:NextNumber(math.log(m.Min), math.log(m.Max)))
+	local step = 10 ^ (math.floor(math.log10(v)) - 1)
+	return math.clamp(math.floor(v / step + 0.5) * step, m.Min, m.Max)
+end
+
+-- "50,000" (whole numbers with commas, for the Mega Roll sign)
+function Config.commas(n)
+	local s = tostring(math.floor(n + 0.5))
+	local out = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	return (out:gsub("^,", ""))
+end
+
+-- "19m 26s", "1h 05m", "42s"
+function Config.countdown(seconds)
+	seconds = math.max(math.ceil(seconds), 0)
+	local h, m, s = math.floor(seconds / 3600), math.floor(seconds % 3600 / 60), seconds % 60
+	if h > 0 then
+		return string.format("%dh %02dm", h, m)
+	elseif m > 0 then
+		return string.format("%dm %02ds", m, s)
+	end
+	return string.format("%ds", s)
+end
 
 -- The multiplier for the coming spin (always a power of two, 1..1024)
 function Config.luckMultiplier(data)
