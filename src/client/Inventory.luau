@@ -40,7 +40,8 @@ local CARD_TARGET, CARD_GAP = 100, 10
 local EASE = TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 local modal, box = Screen.modal(WIDTH, HEIGHT, "Inventory")
-Screen.title(box, "My Pets")
+local title = Screen.title(box, "My Pets")
+Inventory.Modal, Inventory.Box = modal, box
 local hint = Screen.subtitle(box, "")
 hint.Position = UDim2.new(1, -40, 0, 2)
 
@@ -708,10 +709,96 @@ function refresh(force)
 	select(Inventory.Selected)
 end
 
-function Inventory.open()
+-- Sections: Pets (everything above) and Boosts (client/Boosts.luau adds
+-- its view with Inventory.addSection). Two tabs sit on the panel's top edge.
+local sectionTabs = Ui.new("Frame", {
+	Name = "Sections",
+	AnchorPoint = Vector2.new(1, 1),
+	Position = UDim2.new(1, -44, 0, -8),
+	Size = UDim2.fromOffset(0, 40),
+	AutomaticSize = Enum.AutomaticSize.X,
+	BackgroundTransparency = 1,
+	ZIndex = 40,
+	Parent = box,
+}, {
+	Ui.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+})
+local petParts = {}
+for _, child in ipairs(box:GetChildren()) do
+	if child:IsA("GuiObject") and child ~= title and child ~= sectionTabs and child.Name ~= "Close" then
+		table.insert(petParts, child)
+	end
+end
+local sections = { { Name = "Pets", Title = "My Pets", Icon = "paw" } }
+Inventory.Section = "Pets"
+Inventory.SectionButtons = {}
+
+function Inventory.showSection(name)
+	local was = Inventory.Section
+	Inventory.Section = name
+	-- leaving Pets: hide its parts (remembering which showed); back: restore
+	if was == "Pets" and name ~= "Pets" then
+		for _, part in ipairs(petParts) do
+			part:SetAttribute("WasVisible", part.Visible)
+			part.Visible = false
+		end
+	elseif was ~= "Pets" and name == "Pets" then
+		for _, part in ipairs(petParts) do
+			part.Visible = part:GetAttribute("WasVisible") ~= false
+		end
+	end
+	for _, section in ipairs(sections) do
+		if section.View then
+			section.View.Visible = section.Name == name
+		end
+		local b = Inventory.SectionButtons[section.Name]
+		if b then
+			Ui.setStyle(b, if section.Name == name then "blue" else "glass")
+		end
+		if section.Name == name then
+			title.Text = section.Title
+			if section.Refresh then
+				section.Refresh()
+			end
+		end
+	end
+	if name == "Pets" then
+		refresh(true)
+	end
+end
+
+local function sectionButton(section, order)
+	local b = Ui.button({
+		LayoutOrder = order,
+		Size = UDim2.fromOffset(118, 40),
+		Radius = 14,
+		Text = section.Name,
+		Icon = section.Icon,
+		TextSize = 16,
+		ZIndex = 41,
+		Parent = sectionTabs,
+	}, function()
+		Effects.play("Click", 1.1, 0.05)
+		Inventory.showSection(section.Name)
+	end, "glass")
+	Inventory.SectionButtons[section.Name] = b
+end
+sectionButton(sections[1], 1)
+
+-- adds a section: `view` (a frame covering the panel) and `refresh` (redraws it)
+function Inventory.addSection(name, titleText, icon, view, onRefresh)
+	local section = { Name = name, Title = titleText, Icon = icon, View = view, Refresh = onRefresh }
+	table.insert(sections, section)
+	view.Visible = false
+	view.Parent = box
+	sectionButton(section, #sections)
+	return section
+end
+
+function Inventory.open(section)
 	Screen.open(modal)
 	fitGrid(if Inventory.Selected then INNER_W - DETAIL_W - GAP else INNER_W)
-	refresh(true)
+	Inventory.showSection(section or "Pets")
 end
 
 State.watch(function()

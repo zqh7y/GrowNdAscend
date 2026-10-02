@@ -16,7 +16,8 @@ local PetView = require(script.Parent.PetView)
 local Roll = require(script.Parent.Roll)
 local Index = require(script.Parent.Index)
 local Inventory = require(script.Parent.Inventory)
-require(script.Parent.UpgradeBoard) -- every upgrade, on the board standing in the world
+local Travel = require(script.Parent.Travel)
+local UpgradeBoard = require(script.Parent.UpgradeBoard) -- every upgrade, on the board standing in the world (and on screen)
 local Panels = require(script.Parent.Panels)
 
 local Hud = {}
@@ -333,7 +334,7 @@ local nav = Ui.new("Frame", {
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 12),
+		Padding = UDim.new(0, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
@@ -353,10 +354,14 @@ local function button(parent, order, icon, label, onClick, size, style)
 	return holder, b
 end
 
-button(nav, 1, "paw", "Inventory", Inventory.open, nil, "blue")
+button(nav, 1, "paw", "Inventory", function()
+	Inventory.open()
+end, nil, "blue")
 local _, indexButton = button(nav, 2, "book", "Index", Index.open, nil, "purple")
-button(nav, 3, "star", "Rebirth", Panels.openRebirth, nil, "magenta")
-button(nav, 4, "gear", "Settings", Panels.openSettings, nil, "gray")
+button(nav, 3, "grow", "Upgrades", UpgradeBoard.openScreen, nil, "green")
+button(nav, 4, "teleport", "Teleport", Travel.open, nil, "orange")
+button(nav, 5, "star", "Rebirth", Panels.openRebirth, nil, "magenta")
+button(nav, 6, "gear", "Settings", Panels.openSettings, nil, "gray")
 
 -- a gold dot on Index when a collection reward is ready
 local indexDot = Ui.new("Frame", {

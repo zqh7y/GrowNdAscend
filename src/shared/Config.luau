@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 41 (lava arena boss world, coins while fighting, props on the real ground)"
+Config.BUILD = "build 42 (boosts inventory, boost machine, teleport, upgrades button, rebirth perks)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -376,6 +376,60 @@ Config.MAX_LUCK = 1e6
 -- onto the pad when the timer is done. Its luck may go past MAX_LUCK, up to
 -- LuckCap, and it always hatches a pet (never a x2 boost).
 Config.MEGA_ROLL = { Cooldown = 20 * 60, First = 2 * 60, Min = 5000, Max = 100000, Radius = 8, LuckCap = 1e9 }
+-- (claiming it puts a Mega Roll in your Boosts, data.MegaRolls; you use it
+-- from the Inventory whenever you like, in the world you stand in)
+
+-- Boost items (the Inventory's Boosts section): using one multiplies a
+-- stat for a while. One of each stat runs at a time: using another adds
+-- its time (and the bigger multiplier wins). The Boost Machine in the
+-- Frozen Peaks gives one for free every BOOST_MACHINE.Cooldown seconds
+-- (picked by Weight).
+Config.ITEMS = {
+	{ Id = "Luck2", Name = "x2 Luck", Stat = "Luck", Value = 2, Seconds = 600, Icon = "clover", Color = Color3.fromRGB(90, 200, 110), Weight = 45 },
+	{ Id = "Coins2", Name = "x2 Coins", Stat = "Coins", Value = 2, Seconds = 600, Icon = "coin", Color = Color3.fromRGB(255, 190, 50), Weight = 45 },
+	{ Id = "Luck5", Name = "x5 Luck", Stat = "Luck", Value = 5, Seconds = 300, Icon = "clover", Color = Color3.fromRGB(170, 110, 255), Weight = 10 },
+}
+Config.ITEMS_BY_ID = {}
+for _, item in ipairs(Config.ITEMS) do
+	Config.ITEMS_BY_ID[item.Id] = item
+end
+Config.BOOST_MACHINE = { Cooldown = 15 * 60, First = 60, Radius = 3.5 }
+
+-- The multiplier an active boost item gives a stat now (1 if none)
+function Config.boostValue(data, stat)
+	local active = data.ActiveBoosts and data.ActiveBoosts[stat]
+	if active and active.Ends > workspace:GetServerTimeNow() then
+		return active.Value
+	end
+	return 1
+end
+
+-- Rebirth perks: one pad in each world. A perk is yours for good as soon as
+-- you have its number of rebirths (they're not spent). At = where its pad
+-- stands in its world (X from the world's start, Z).
+Config.PERKS = {
+	{ Area = 1, Rebirths = 1, Stat = "Coins", Value = 1.15, Name = "Golden Touch", Icon = "coin", At = { 59, -24 } },
+	{ Area = 2, Rebirths = 2, Stat = "Luck", Value = 1.15, Name = "Desert Luck", Icon = "clover", At = { 87, -24 } },
+	{ Area = 3, Rebirths = 3, Stat = "Damage", Value = 1.1, Name = "Ice Power", Icon = "sword", At = { 84, -24 } },
+	{ Area = 4, Rebirths = 5, Stat = "Exp", Value = 1.25, Name = "Sakura Wisdom", Icon = "star", At = { 84, 24 } },
+	{ Area = 5, Rebirths = 7, Stat = "Coins", Value = 1.25, Name = "Lava Riches", Icon = "coin", At = { 14, -24 } },
+}
+
+-- All the perks you have for a stat, multiplied together
+function Config.perkValue(data, stat)
+	local value = 1
+	for _, perk in ipairs(Config.PERKS) do
+		if perk.Stat == stat and (data.Rebirths or 0) >= perk.Rebirths then
+			value *= perk.Value
+		end
+	end
+	return value
+end
+
+-- What a perk does, in words ("+25% Coins")
+function Config.perkText(perk)
+	return string.format("+%d%% %s", math.floor((perk.Value - 1) * 100 + 0.5), if perk.Stat == "Exp" then "EXP" else perk.Stat)
+end
 
 -- Boost zones (server/BoostZones.luau): every `Every` seconds a circle of
 -- `Radius` studs appears in a world where a player is, for `Lasts` seconds.
@@ -518,6 +572,7 @@ function Config.luck(data, isBonus, world, multiplier)
 	end
 	luck *= multiplier or Config.luckMultiplier(data)
 	luck *= data.ZoneLuck or 1 -- standing in a Luck boost zone
+	luck *= Config.boostValue(data, "Luck") * Config.perkValue(data, "Luck") -- a Luck boost item, rebirth perks
 	return math.min(luck, Config.MAX_LUCK)
 end
 
@@ -935,7 +990,7 @@ Config.FIGHT_PAY = 0.5
 
 -- One hit of a pet: its power x the Damage upgrade x its own Damage stat
 function Config.hitDamage(data, name)
-	return Config.petPower(name) * Config.upgradeValue(data, "Damage") * Config.petStat(name, "Damage")
+	return Config.petPower(name) * Config.upgradeValue(data, "Damage") * Config.petStat(name, "Damage") * Config.perkValue(data, "Damage")
 end
 
 -- One equipped pet's damage per second
@@ -1158,8 +1213,8 @@ Config.REBIRTHS = {
 	{ Cost = 1.5e10, Level = 64 },
 	{ Cost = 4e10, Level = 70 },
 	{ Cost = 7.5e10, Level = 75 },
-	{ Cost = 1e13, Level = 82 },
-	{ Cost = 4e13, Level = 88 },
+	{ Cost = 1.6e13, Level = 82 },
+	{ Cost = 3e14, Level = 88 },
 }
 Config.MAX_REBIRTHS = #Config.REBIRTHS
 
@@ -1241,11 +1296,12 @@ end
 -- pets' Coins stats (added up)
 function Config.coinGain(data)
 	return Config.coinMultiplier(data.Rebirths) * Config.upgradeValue(data, "Coins") * Config.teamStat(data, "Coins") * (data.ZoneCoins or 1)
+		* Config.boostValue(data, "Coins") * Config.perkValue(data, "Coins")
 end
 
 -- EXP bonus: the equipped pets' EXP stats (added up)
 function Config.expGain(data)
-	return Config.teamStat(data, "Exp")
+	return Config.teamStat(data, "Exp") * Config.perkValue(data, "Exp")
 end
 
 -- Formatting -------------------------------------------------------------------

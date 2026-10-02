@@ -574,6 +574,32 @@ player.CharacterAdded:Connect(function()
 	UpgradeBoard.unfocus(false)
 end)
 
+-- The board on screen (the Upgrades button on the left, from anywhere): the
+-- very same board, moved into a panel while it's open and put back on its
+-- stand when the panel closes
+local Screen = require(script.Parent.Screen)
+local panel, panelBox = Screen.modal(848, 648, "Default")
+Screen.title(panelBox, "Upgrades")
+UpgradeBoard.Modal = panel
+
+function UpgradeBoard.openScreen()
+	if panel.Visible and not panel:GetAttribute("Closing") then
+		return
+	end
+	if UpgradeBoard.Focused then
+		UpgradeBoard.unfocus(true)
+	end
+	box.Parent = panelBox
+	Screen.open(panel)
+	refresh()
+	task.spawn(function()
+		repeat
+			task.wait(0.2)
+		until not panel.Visible
+		box.Parent = gui
+	end)
+end
+
 selectSection("Damage")
 State.watch(refresh)
 

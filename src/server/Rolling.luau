@@ -188,11 +188,10 @@ rollFunction.OnServerInvoke = function(player)
 	return results
 end
 
--- The Mega Roll: one roll with the multiplier shown on the pad, claimed by
--- standing on the pad once its timer is done. Its luck goes past MAX_LUCK
--- (up to MEGA_ROLL.LuckCap) and it always gives a pet. The next one gets a
--- new random multiplier and a fresh timer. Returns the results (like Roll),
--- or nil and why not.
+-- The Mega Roll pad: once its timer is done, standing on it claims a Mega
+-- Roll (the multiplier shown on the pad) into your Boosts (data.MegaRolls).
+-- The pad then gets a new random multiplier and a fresh timer. Returns the
+-- multiplier claimed, or nil and why not.
 function Rolling.megaRoll(player)
 	local data = PlayerData.get(player)
 	if not data or type(data.MegaReady) ~= "number" then
@@ -211,8 +210,27 @@ function Rolling.megaRoll(player)
 	if flat.Magnitude > Config.MEGA_ROLL.Radius + 4 then
 		return nil, "too far"
 	end
-	local world = PlayerData.worldOf(player)
 	local mega = data.MegaMult
+	data.MegaRolls = data.MegaRolls or {}
+	table.insert(data.MegaRolls, mega)
+	nextMega(data, Config.MEGA_ROLL.Cooldown)
+	PlayerData.sync(player)
+	return mega
+end
+
+-- Uses one Mega Roll with multiplier `mega` from your Boosts: one roll with
+-- that luck (past MAX_LUCK, up to MEGA_ROLL.LuckCap) in the world you stand
+-- in; it always gives a pet. Returns the results (like Roll), or nil and why.
+function Rolling.useMega(player, mega)
+	local data = PlayerData.get(player)
+	if not data or type(mega) ~= "number" then
+		return nil, "loading"
+	end
+	local index = table.find(data.MegaRolls or {}, mega)
+	if not index then
+		return nil, "none"
+	end
+	local world = PlayerData.worldOf(player)
 	local luck = math.min(Config.luck(data, false, world, 1) * mega, Config.MEGA_ROLL.LuckCap)
 	local sizeLuck = Config.sizeLuck(data)
 	local outcome
@@ -225,6 +243,7 @@ function Rolling.megaRoll(player)
 	if outcome.Kind == "Boost" then
 		return nil, "no pet"
 	end
+	table.remove(data.MegaRolls, index)
 	data.Rolls += 1
 	local result = award(data, outcome, {
 		World = world,
@@ -234,7 +253,6 @@ function Rolling.megaRoll(player)
 		Mega = mega,
 		NextMultiplier = Config.luckMultiplier(data),
 	})
-	nextMega(data, Config.MEGA_ROLL.Cooldown)
 	if Config.upgradeLevel(data, "AutoHatch") >= 2 then
 		equipBest(data)
 	end

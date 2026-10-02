@@ -105,6 +105,7 @@ if ok then
 	local root = Instance.new("Part")
 	root.Name = "HumanoidRootPart"
 	root.Parent = character
+	character.PrimaryPart = root -- (like a real character)
 	root.CFrame = CFrame.new(50, 3, 0)
 	rawget(player, "_props").Character = character
 	player.Parent = Players
@@ -617,10 +618,14 @@ if ok then
 				local mult = data.MegaMult
 				local rollsBefore = data.Rolls
 				local wantLuck = math.min(Config.luck(data, false, __cache["PlayerData"].worldOf(player), 1) * mult, Config.MEGA_ROLL.LuckCap)
-				local res = Rolling.megaRoll(player)
+				-- claiming puts the roll in your Boosts; using it rolls (anywhere)
+				local claimed = Rolling.megaRoll(player)
+				mr.Claimed = claimed == mult and table.find(data.MegaRolls or {}, mult) ~= nil and data.Rolls == rollsBefore
+				local res = Rolling.useMega(player, mult)
+				mr.UsedUp = table.find(data.MegaRolls or {}, mult) == nil
 				local r = res and res[1]
 				mr.Got = r and r.Kind == "Pet" and r.Mega == mult and math.abs(r.Luck - wantLuck) < 1e-6 * wantLuck and data.Rolls == rollsBefore + 1
-					and (data.Pets[r.Name] or 0) >= 1
+					and (data.Pets[r.Name] or 0) >= 1 and mr.Claimed and mr.UsedUp
 				mr.Pet = r and r.Name
 				mr.Luck = r and r.Luck
 				mr.NextLater = data.MegaReady > workspace:GetServerTimeNow() + Config.MEGA_ROLL.Cooldown - 5
@@ -790,6 +795,96 @@ if ok then
 				root.CFrame = savedAt
 				PlayerData.sync(player)
 				STATS.BossWorld = bw
+			end
+			do
+				-- boosts: the Boost Machine, using boosts, the Boosts section, teleport,
+				-- the Upgrades screen and the rebirth perk pads
+				local Items = __cache["Items"]
+				local W = __cache["World/init"]
+				local Inv = C("Inventory")
+				local BoostsUI = C("Boosts")
+				local root = player.Character.HumanoidRootPart
+				local savedAt = root.CFrame
+				local savedUnlocked, savedRebirths = data.Unlocked, data.Rebirths
+				local bo = {}
+				local nowT = workspace:GetServerTimeNow()
+				-- the machine: not before its timer, not from afar, then a boost item
+				local circle = W.BoostMachine and W.BoostMachine.Circle
+				bo.Machine = circle ~= nil and Config.areaAt(circle.Position.X) == 3 and circle.Position.Y + circle.Size.X / 2 > Config.GROUND_Y + 0.5
+				data.BoostReady = nowT + 100
+				root.CFrame = CFrame.new(circle.Position + Vector3.new(0, 3, 0))
+				local i1, why1 = Items.claimBoost(player)
+				bo.EarlyRefused = i1 == nil and why1 == "not ready"
+				data.BoostReady = nowT - 1
+				root.CFrame = CFrame.new(circle.Position + Vector3.new(30, 3, 0))
+				local i2, why2 = Items.claimBoost(player)
+				bo.FarRefused = i2 == nil and why2 == "too far"
+				root.CFrame = CFrame.new(circle.Position + Vector3.new(0, 3, 0))
+				data.Items = {}
+				local got = Items.claimBoost(player)
+				bo.Claimed = got ~= nil and (data.Items[got] or 0) == 1 and data.BoostReady > nowT + Config.BOOST_MACHINE.Cooldown - 5
+				-- using x2 Luck doubles luck; a second one adds its time
+				data.ActiveBoosts = {}
+				data.Items = { Luck2 = 2 }
+				local before = Config.luck(data, false, 1, 1)
+				local a1 = Items.useBoost(player, "Luck2")
+				local after = Config.luck(data, false, 1, 1)
+				bo.Doubled = a1 ~= nil and math.abs(after / before - 2) < 1e-6
+				local ends1 = a1 and a1.Ends or 0
+				local a2 = Items.useBoost(player, "Luck2")
+				bo.Stacked = a2 ~= nil and math.abs(a2.Ends - ends1 - 600) < 1 and data.Items.Luck2 == nil
+				bo.NoneLeft = Items.useBoost(player, "Luck2") == nil
+				data.ActiveBoosts = {}
+				-- the Boosts section: cards with USE for a Mega Roll and a boost
+				data.Items = { Coins2 = 1 }
+				data.MegaRolls = { 25000 }
+				PlayerData.sync(player)
+				Inv.open("Boosts")
+				local cards = {}
+				for _, c in ipairs(BoostsUI.Cards) do cards[c.Kind] = c end
+				bo.Section = Inv.Section == "Boosts" and BoostsUI.View.Visible == true and cards.MegaRoll ~= nil and cards.Boost ~= nil
+					and Inv.TeamRow.Visible == false
+				local used = BoostsUI.use("Boost", "Coins2")
+				bo.UsedFromCard = used ~= nil and Config.boostValue(data, "Coins") == 2
+				Inv.showSection("Pets")
+				bo.BackToPets = Inv.TeamRow.Visible == true and BoostsUI.View.Visible == false
+				C("Screen").close(Inv.Modal)
+				data.ActiveBoosts, data.Items, data.MegaRolls = {}, {}, {}
+				-- teleport: locked worlds refused, unlocked ones go to their start
+				data.Unlocked = 2
+				bo.TeleLocked = Items.teleport(player, 4) == false
+				local okT = Items.teleport(player, 2)
+				bo.Teleported = okT == true and (root.Position - W.Spawns[2].Position).Magnitude < 1
+				PlayerData.sync(player)
+				local Travel = C("Travel")
+				Travel.refresh()
+				bo.TravelRows = #Travel.Rows == #Config.AREAS and string.find(Travel.Rows[4].Status.Text, "Locked") ~= nil
+				-- the Upgrades screen: the board moves into a panel and back
+				local Board = C("UpgradeBoard")
+				Board.openScreen()
+				local boardBox = Board.Gui:FindFirstChildWhichIsA("Frame")
+				bo.UpgradesOpen = Board.Modal.Visible == true and boardBox == nil
+				C("Screen").close(Board.Modal)
+				for _ = 1, 10 do STEP(0.1) end
+				bo.UpgradesBack = Board.Gui:FindFirstChildWhichIsA("Frame") ~= nil
+				-- rebirth perks: a pad in every world, yours once you have the rebirths
+				local pads = workspace.Map:FindFirstChild("Perks")
+				bo.Pads = if pads then #pads:GetChildren() else 0
+				data.Rebirths = 0
+				local base = Config.coinGain(data)
+				data.Rebirths = 1
+				local withPerk = Config.coinGain(data) / (base * Config.coinMultiplier(1) / Config.coinMultiplier(0))
+				bo.PerkCoins = math.abs(withPerk - Config.PERKS[1].Value) < 1e-6
+				PlayerData.sync(player)
+				local Perks = C("Perks")
+				Perks.refresh()
+				local s1, s2 = Perks.statusOf(1), Perks.statusOf(2)
+				bo.Status1, bo.Status2 = s1 and s1.Text, s2 and s2.Text
+				bo.Statuses = bo.Status1 == "Owned" and string.find(bo.Status2 or "", "^Need 2") ~= nil
+				data.Unlocked, data.Rebirths = savedUnlocked, savedRebirths
+				root.CFrame = savedAt
+				PlayerData.sync(player)
+				STATS.Boosts = bo
 			end
 			STATS.Outfits = { Dressed = dressed, Distinct = distinct, Broken = table.concat(broken, ", "), Titanic = okT and titanic:GetAttribute("Outfit") ~= nil }
 			data.Pets.Cat = 2
@@ -1793,7 +1888,7 @@ if ok then
 	local before = data.Coins
 	Breakables.damage(target, math.huge, player)
 	local reward = data.Coins - before
-	local expectedReward = math.floor(Config.AREAS[2].Breakable.Coins * Config.coinMultiplier(1) * 1.35 ^ 3 * Config.teamStat(data, "Coins"))
+	local expectedReward = math.floor(Config.AREAS[2].Breakable.Coins * Config.coinMultiplier(1) * 1.35 ^ 3 * Config.teamStat(data, "Coins") * Config.perkValue(data, "Coins"))
 	item(7, "coin rewards", reward == expectedReward, Config.formatNumber(reward) .. " for a World 2 cactus")
 	data.Rebirths = 0
 
@@ -1972,7 +2067,7 @@ if ok then
 	local ratios = {}
 	for r = 1, 8 do
 		base.Rebirths = r
-		ratios[r] = Config.luck(base, false, 1)
+		ratios[r] = Config.luck(base, false, 1) / Config.perkValue(base, "Luck") -- (the rebirth part; perks are item 119)
 	end
 	base.Rebirths = 0
 	local luck0 = Config.luck(base, false, 1)
@@ -1980,7 +2075,8 @@ if ok then
 	item(37, "rebirth luck x1.5 each, stacking", luckOk, string.format("x%.2f, x%.2f ... x%.1f", ratios[1] / luck0, ratios[2] / luck0, ratios[8] / luck0))
 	local money = {}
 	for r = 0, 8 do
-		money[r] = Config.coinGain({ Rebirths = r, Upgrades = { Coins = 2 } }) / Config.coinGain({ Rebirths = 0, Upgrades = { Coins = 2 } })
+		local d = { Rebirths = r, Upgrades = { Coins = 2 } }
+		money[r] = Config.coinGain(d) / Config.perkValue(d, "Coins") / Config.coinGain({ Rebirths = 0, Upgrades = { Coins = 2 } })
 	end
 	local function near(a, b) return math.abs(a - b) < 1e-6 end
 	item(38, "rebirth money +200% each, stacking", near(money[1], 3) and near(money[2], 5) and near(money[8], 17), string.format("x%d, x%d, x%d ... x%d", money[1], money[2], money[3], money[8]))
@@ -1992,7 +2088,7 @@ if ok then
 	end
 	local before2 = data.Coins
 	Breakables.damage(target2, math.huge, player)
-	item(39, "rebirth bonuses apply in play", data.Coins - before2 == math.floor(Config.AREAS[1].Breakable.Coins * 5 * Config.teamStat(data, "Coins")), "a tree pays " .. (data.Coins - before2) .. " at rebirth 2")
+	item(39, "rebirth bonuses apply in play", data.Coins - before2 == math.floor(Config.AREAS[1].Breakable.Coins * 5 * Config.teamStat(data, "Coins") * Config.perkValue(data, "Coins")), "a tree pays " .. (data.Coins - before2) .. " at rebirth 2")
 	Config.REBIRTH_FREE_FOR_TESTING = wasFree
 
 	-- 40-44. worlds: 5 targets drawn in each, attacked, destroyed, paid, respawned
@@ -2485,6 +2581,17 @@ if ok then
 			string.format("%d boss in the middle of the arena; pets go for it from anywhere in the area; boss bar shows (then 'DEFEATED'); it comes back in the middle", bw.Bosses or 0))
 		item(115, "props on the real ground", bw.Ground == true,
 			string.format("Mega Roll pad top Y %.1f, Aura Machine circle top Y %.1f (ground ~%.1f)", bw.Pad or -1, bw.Circle or -1, Config.GROUND_Y))
+		local bo = STATS.Boosts or {}
+		item(116, "Boost Machine and boosts", bo.Machine == true and bo.EarlyRefused == true and bo.FarRefused == true and bo.Claimed == true
+			and bo.Doubled == true and bo.Stacked == true and bo.NoneLeft == true,
+			"machine in the Frozen Peaks gives a boost when ready and you're on its circle; x2 Luck doubles luck; another adds 10 minutes")
+		item(117, "Inventory Boosts section", bo.Section == true and bo.UsedFromCard == true and bo.BackToPets == true,
+			"Pets / Boosts tabs; Mega Roll and boost cards with USE; using x2 Coins from its card works; back to the pets")
+		item(118, "teleport and Upgrades buttons", bo.TeleLocked == true and bo.Teleported == true and bo.TravelRows == true and bo.UpgradesOpen == true and bo.UpgradesBack == true,
+			string.format("teleport to unlocked worlds only (locked ones show a lock): %s %s %s; the upgrade board opens on screen and goes back on its stand: %s %s",
+				tostring(bo.TeleLocked), tostring(bo.Teleported), tostring(bo.TravelRows), tostring(bo.UpgradesOpen), tostring(bo.UpgradesBack)))
+		item(119, "rebirth perk pads", bo.Pads == #Config.PERKS and bo.PerkCoins == true and bo.Statuses == true,
+			string.format("%d pads; 1 rebirth -> %s; pad 1 says '%s', pad 2 says '%s'", bo.Pads or 0, Config.perkText(Config.PERKS[1]), tostring(bo.Status1), tostring(bo.Status2)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))

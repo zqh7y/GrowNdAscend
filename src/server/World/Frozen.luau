@@ -5,6 +5,7 @@
 -- snow-laden pines, snowy rocks and falling snow. Breakable: ice cubes (a
 -- few kinds: clear, with a frozen fish, with a gem, and a stack).
 local Build = require(game:GetService("ReplicatedStorage").Shared.Build)
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 
 local Frozen = {}
 
@@ -331,6 +332,53 @@ end
 
 -- Building the area ----------------------------------------------------------------------------------
 
+-- The Boost Machine: an icy dispenser with a round window where a gift box
+-- spins, glass tubes on its sides, and a circle in front to step on (the
+-- client puts "FREE BOOST" and the timer over it; Items.luau gives the boost)
+local function boostMachine(parent, base)
+	local model = Build.model(parent, "BoostMachine")
+	local g = Config.GROUND_Y
+	local at = Vector3.new(base.X, g, base.Z)
+	local white = Color3.fromRGB(245, 250, 255)
+	Build.block(model, at - Vector3.new(0, 0.3, 0), Vector3.new(7, 1, 5), { Color = white })
+	Build.block(model, at + Vector3.new(0, 0.7, 0), Vector3.new(5.6, 6, 3.6), { Color = Color3.fromRGB(150, 210, 250) })
+	Build.cylinder(model, at + Vector3.new(0, 6.7, 0), 0.8, 5.8, { Color = white })
+	Build.ball(model, at + Vector3.new(0, 8, 0), 2, { Color = Color3.fromRGB(110, 190, 250) })
+	-- the window with the spinning gift box
+	local window = Build.part(model, {
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 3.4, 3.4),
+		CFrame = CFrame.new(at + Vector3.new(0, 4.4, -1.85)) * CFrame.Angles(0, math.rad(90), 0),
+		Color = Color3.fromRGB(220, 240, 255),
+		Material = Enum.Material.Glass,
+		Transparency = 0.5,
+		CanCollide = false,
+	})
+	Build.part(model, {
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.25, 3.9, 3.9),
+		CFrame = window.CFrame * CFrame.new(-0.05, 0, 0),
+		Color = white,
+	})
+	local gift = Build.part(model, { Name = "Gift", Size = Vector3.new(1.4, 1.4, 1.4), CFrame = CFrame.new(at + Vector3.new(0, 4.4, -1.2)), Color = Color3.fromRGB(255, 90, 120), CanCollide = false })
+	Build.part(model, { Size = Vector3.new(1.45, 1.45, 0.3), CFrame = gift.CFrame, Color = Color3.fromRGB(255, 220, 90), CanCollide = false })
+	Build.part(model, { Size = Vector3.new(0.3, 1.45, 1.45), CFrame = gift.CFrame, Color = Color3.fromRGB(255, 220, 90), CanCollide = false })
+	Build.spin(gift, 60, "Y")
+	-- glass tubes up the sides and a chute at the bottom
+	for _, side in ipairs({ -1, 1 }) do
+		Build.cylinder(model, at + Vector3.new(side * 3.2, 0.7, 0), 6, 1, { Color = Color3.fromRGB(190, 230, 255), Material = Enum.Material.Glass, Transparency = 0.3 })
+		Build.ball(model, at + Vector3.new(side * 3.2, 7, 0), 1.2, { Color = white })
+	end
+	Build.block(model, at + Vector3.new(0, 0.7, -2), Vector3.new(2.4, 1.2, 0.8), { Color = white })
+	-- the circle to step on, in front
+	local circleAt = at + Vector3.new(0, -0.4, -6.5)
+	Build.cylinder(model, circleAt, 1.2, 6.5, { Name = "BoostRim", Color = white })
+	local circle = Build.cylinder(model, circleAt, 1.35, 5.6, { Name = "BoostCircle", Color = Color3.fromRGB(120, 200, 255) })
+	Build.cylinder(model, circleAt + Vector3.new(0, 1.35, 0), 0.04, 4.4, { Color = white, CanCollide = false })
+	local sign = Build.part(model, { Name = "Sign", Size = Vector3.one, CFrame = CFrame.new(at + Vector3.new(0, 12, 0)), Transparency = 1, CanCollide = false, CastShadow = false })
+	return { Model = model, Circle = circle, Sign = sign }
+end
+
 function Frozen.build(ctx)
 	local folder, rng, space = ctx.Folder, ctx.Rng, ctx.Space
 	local x0, x1, half, side = ctx.X0, ctx.X1, ctx.Half, ctx.Side
@@ -406,6 +454,12 @@ function Frozen.build(ctx)
 	local archBase = Vector3.new(x0 + 30, 0, -(half - 9))
 	iceArch(deco, rng, archBase, 0)
 	space:add(archBase, 7)
+
+	-- the Boost Machine near the gate in: step on its circle for a free boost
+	local machineAt = Vector3.new(x0 + 20, 0, half - 12)
+	ctx.World.BoostMachine = boostMachine(deco, machineAt)
+	space:add(machineAt, 6)
+	space:add(machineAt + Vector3.new(0, 0, -7), 4)
 
 	ctx.reserveSpots() -- breakables get their room before the small props
 

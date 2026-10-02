@@ -56,14 +56,22 @@ RunService.RenderStepped:Connect(function(dt)
 	for part, spin in pairs(spinning) do
 		-- the speed can change (the fusion machine speeds up), so keep adding
 		spin.Angle += math.rad(part:GetAttribute("SpinSpeed") or 0) * dt
-		local rotate = AXES[part:GetAttribute("SpinAxis") or "Y"] or AXES.Y
-		setCFrame(part, spin.Origin * rotate(spin.Angle))
+		if not bobbing[part] then -- (a part that also bobs is placed below)
+			local rotate = AXES[part:GetAttribute("SpinAxis") or "Y"] or AXES.Y
+			setCFrame(part, spin.Origin * rotate(spin.Angle))
+		end
 	end
 	for part, bob in pairs(bobbing) do
 		local origin = bob.Origin
+		local spin = spinning[part]
+		if spin then
+			-- spinning and bobbing: turn first, then float
+			local rotate = AXES[part:GetAttribute("SpinAxis") or "Y"] or AXES.Y
+			origin = spin.Origin * rotate(spin.Angle)
+		end
 		local height = part:GetAttribute("BobHeight") or 0.5
 		local speed = part:GetAttribute("BobSpeed") or 1
-		local phase = origin.Position.X * 0.37 + origin.Position.Z * 0.21 -- so they don't all move together
+		local phase = bob.Origin.Position.X * 0.37 + bob.Origin.Position.Z * 0.21 -- so they don't all move together
 		setCFrame(part, origin + Vector3.new(0, math.sin(t * speed * 2 + phase) * height, 0))
 	end
 end)

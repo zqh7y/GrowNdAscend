@@ -31,6 +31,16 @@ WORLDS = []
 for block in re.findall(r'Name = "[^"]+",\s*Luck = ([\d.]+).*?Cost = ([\d.e]+),.*?Health = ([\d.e]+), Coins = ([\d.e]+), Exp = ([\d.e]+)', _config, re.S):
     luck, cost, hp, coins, exp = map(float, block)
     WORLDS.append((hp, coins, exp, cost, luck))
+# rebirth perks (Config.PERKS): (rebirths needed, stat, multiplier)
+PERKS = [(int(r), st, float(v)) for r, st, v in re.findall(r'\{ Area = \d+, Rebirths = (\d+), Stat = "(\w+)", Value = ([\d.]+)', _config)]
+
+def perk(stat, rebirths):  # Config.perkValue
+    value = 1.0
+    for need, st, v in PERKS:
+        if st == stat and rebirths >= need:
+            value *= v
+    return value
+
 REBIRTHS = [(float(c), int(l)) for c, l in re.findall(r'\{ Cost = ([\d.e]+), Level = (\d+) \}', _config)]
 REBIRTH_LUCK, REBIRTH_COINS = num(r'REBIRTH_LUCK = ([\d.]+)'), num(r'REBIRTH_COINS = ([\d.]+)')
 LEVEL_BASE, LEVEL_GROWTH = num(r'LEVEL_BASE = ([\d.]+)'), num(r'LEVEL_GROWTH = ([\d.]+)')
@@ -131,7 +141,7 @@ def run(hours=8, seed=1, verbose=False):
                 for key in BOARD_IDS:
                     board *= val(key)
                 luck = val("Luck") * board * (1 + sum(pet_bonus(o, s, 0) for _, o, s in team)) * bonus
-                luck = min(luck * REBIRTH_LUCK ** rebirths * world_luck * multiplier, MAX_LUCK)
+                luck = min(luck * REBIRTH_LUCK ** rebirths * world_luck * multiplier * perk("Luck", rebirths), MAX_LUCK)
                 odds = 2
                 for o, w in reversed(PETS[1:]):
                     if rng.random() < min(luck / (o * WORLD_PENALTY ** max(0, w - world)), MAX_HIT):
@@ -156,14 +166,14 @@ def run(hours=8, seed=1, verbose=False):
             pets = sorted(pets, key=lambda p: -p[0])[:60]
             refresh_team()
         # fighting: coins and EXP
-        dps = sum(p[0] * (1 + pet_bonus(p[1], p[2], 2)) for p in team) * val("Damage") / HIT_EVERY
+        dps = sum(p[0] * (1 + pet_bonus(p[1], p[2], 2)) for p in team) * val("Damage") * perk("Damage", rebirths) / HIT_EVERY
         if dps > 0:
             per_kill = hp / dps + OVERHEAD
             coin_team = 1 + sum(pet_bonus(o, s, 1) for _, o, s in team)
             exp_team = 1 + sum(pet_bonus(o, s, 3) for _, o, s in team)
-            earned = reward * val("Coins") * (1 + REBIRTH_COINS * rebirths) * coin_team / per_kill
+            earned = reward * val("Coins") * (1 + REBIRTH_COINS * rebirths) * coin_team * perk("Coins", rebirths) / per_kill
             coins += earned
-            exp += exp_per * exp_team / per_kill
+            exp += exp_per * exp_team * perk("Exp", rebirths) / per_kill
             while exp >= exp_to_next(level):
                 exp -= exp_to_next(level)
                 level += 1

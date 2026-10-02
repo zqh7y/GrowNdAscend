@@ -220,7 +220,7 @@ chase Huge and Titanic pets.**
   The level and an EXP bar sit under your team; levelling up shows a big
   "LEVEL UP!" with sparkles and a jingle.
 - **Rebirth (8 levels):** needs the coins AND a level (16, 34, 52, 64, 70,
-  75, 82, 88): the first after about 10 minutes, the 8th after about 3 hours. It's a prestige: only your coins reset; worlds, pets,
+  75, 82, 88; the last two cost 16T and 300T coins): the first after about 10 minutes, the 8th after about 2.7 hours. It's a prestige: only your coins reset; worlds, pets,
   upgrades, the Index and your level stay. Each one gives, forever and
   stacking: **Luck x1.5** and **Money +200%** (rebirth 3 = luck x3.4 and
   coins x7; rebirth 8 = x25.6 and x17).
@@ -309,7 +309,25 @@ accents (realistic materials are swapped out automatically in `Build.part`).
 The Pet Aura Machine turns its rings slowly with sparkles and an orb in
 the colour of the rarest aura; walk up and press the prompt to open it.
 
-**Mega Roll pad:** in the Sahara, on the open sand just past the gate (across from the Pet Aura Machine): a pale blue pad with a pile of big dice and potion bottles. The sign over it shows the roll waiting for you, a random insanely high luck multiplier (x5,000 to x100,000, e.g. "x50,000 Roll!"), and "Claim in 19m 26s". When the timer is done, step on the pad: one roll with that luck (it can go past the normal luck cap, up to x1e9, and always hatches a pet) with the full hatch show. Then a new multiplier and a fresh 20 minute timer (the first one is ready 2 minutes after joining). Tuned in `Config.MEGA_ROLL`.
+**Mega Roll pad:** in the Sahara, on the open sand just past the gate (across from the Pet Aura Machine): a pale blue pad with a pile of big dice and potion bottles. The sign over it shows the roll waiting for you, a random insanely high luck multiplier (x5,000 to x100,000, e.g. "x50,000 Roll!"), and "Claim in 19m 26s". When the timer is done, step on the pad: the roll goes into your Inventory's **Boosts** ("x50,000 Roll"). Use it from there whenever you like: one roll with that luck in the world you stand in (it can go past the normal luck cap, up to x1e9, and always hatches a pet) with the full hatch show. Then the pad gets a new multiplier and a fresh 20 minute timer (the first one is ready 2 minutes after joining). Tuned in `Config.MEGA_ROLL`.
+
+**Boost Machine:** in the Frozen Peaks, just past the gate: an icy dispenser with a gift box spinning in its window and a circle in front. Its sign says "FREE BOOST" and when the next one is ready; step on the circle then and a random boost item goes into your Boosts: **x2 Luck** or **x2 Coins** for 10 minutes, or (rarely) **x5 Luck** for 5 minutes. One every 15 minutes (the first a minute after joining). Using a boost of a stat that's already running adds its time. Running boosts show as small chips with their time left in the top-left. (`Config.ITEMS`, `Config.BOOST_MACHINE`)
+
+**Inventory: Pets and Boosts.** Two tabs on the Inventory's top edge. Boosts shows what's running now and a card for each Mega Roll and boost item you have (how many, what it does, a USE button).
+
+**Teleport and Upgrades buttons** (left side): Teleport lists every world; tap an unlocked one to go to its start (locked ones show a lock and their price). Upgrades opens the Upgrade Board on screen from anywhere (the same board; it goes back on its stand when you close it).
+
+**Rebirth perks:** one pad in every world, like a floating gold card over a glowing pad. A perk is yours for good as soon as you have its number of rebirths (nothing is spent); the pad says "Owned" or "Need 3 rebirths (you have 1)":
+
+| World | Rebirths | Perk |
+| --- | --- | --- |
+| Forest | 1 | Golden Touch: +15% Coins |
+| Sahara | 2 | Desert Luck: +15% Luck |
+| Frozen Peaks | 3 | Ice Power: +10% Damage |
+| Sakura Jungle | 5 | Sakura Wisdom: +25% EXP |
+| Lava Arena | 7 | Lava Riches: +25% Coins |
+
+(`Config.PERKS`; the progression simulator counts them.)
 
 **Roll button:** an orange studded tile with a white 3D die and a chunky "ROLL" caption; AUTO sits to its left.
 
@@ -350,6 +368,10 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/server/Progress.luau` | Area gates and rebirths |
 | `src/server/World/Arena.luau` | World 5, the Lava Arena (boss world) |
 | `src/client/BossBar.luau` | The boss's health bar and coins a second in the boss world |
+| `src/server/Items.luau` | Boost items, the Boost Machine, teleporting |
+| `src/client/Boosts.luau` | The Inventory's Boosts section, the Boost Machine's sign, boost timers |
+| `src/client/Travel.luau` | The Teleport panel |
+| `src/client/Perks.luau` | The rebirth perk pads' "Owned" / "Need N rebirths" |
 | `src/server/BoostZones.luau` | Boost zones: random Luck / Coins circles every 5 minutes |
 | `src/server/Aura.luau` | The Pet Aura Machine (3 pets → 1 with a random aura) |
 | `src/server/Leaderboards.luau` | The 4 global leaderboards (OrderedDataStores) |

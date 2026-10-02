@@ -453,6 +453,91 @@ function World.buildMegaRoll(center)
 	return model
 end
 
+-- Rebirth perk pads ---------------------------------------------------------------------
+-- One in each world (Config.PERKS): a square pad with a glowing ring and a
+-- gold card floating and turning over it, showing the perk. It's yours as
+-- soon as you have enough rebirths (nothing is spent); the client writes
+-- "Owned" or "Need 3 rebirths" under the card.
+local PERK_ICONS = { Coins = "💰", Luck = "🍀", Damage = "⚔️", Exp = "⭐" }
+
+function World.buildPerkPad(index, perk)
+	local folder = map:FindFirstChild("Perks") or Build.folder(map, "Perks")
+	local model = Build.model(folder, "PerkPad" .. index)
+	model:SetAttribute("PerkIndex", index)
+	local x0 = Config.areaStart(perk.Area)
+	local at = Vector3.new(x0 + perk.At[1], Config.GROUND_Y, perk.At[2])
+	Build.block(model, at - Vector3.new(0, 0.5, 0), Vector3.new(9.6, 1.1, 9.6), { Color = Color3.fromRGB(250, 252, 255) })
+	Build.block(model, at - Vector3.new(0, 0.45, 0), Vector3.new(8.4, 1.1, 8.4), { Color = Color3.fromRGB(205, 218, 245) })
+	local top = at + Vector3.new(0, 0.65, 0)
+	Build.cylinder(model, top, 0.06, 5.4, { Color = Color3.fromRGB(255, 225, 110), Material = Enum.Material.Neon, CanCollide = false })
+	Build.cylinder(model, top + Vector3.new(0, 0.02, 0), 0.06, 4.6, { Color = Color3.fromRGB(205, 218, 245), CanCollide = false })
+	-- the card
+	local card = Build.part(model, {
+		Name = "Card",
+		Size = Vector3.new(3.6, 4.6, 0.35),
+		CFrame = CFrame.new(top + Vector3.new(0, 4.4, 0)),
+		Color = Color3.fromRGB(255, 205, 80),
+		CanCollide = false,
+	})
+	Build.spin(card, 30, "Y")
+	Build.bob(card, 0.3, 1)
+	local glow = Instance.new("PointLight")
+	glow.Color = Color3.fromRGB(255, 220, 140)
+	glow.Range = 10
+	glow.Brightness = 0.8
+	glow.Parent = card
+	for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 50
+		gui.LightInfluence = 0
+		gui.Parent = card
+		local function label(text, y, h, color)
+			local l = Instance.new("TextLabel")
+			l.BackgroundTransparency = 1
+			l.Position = UDim2.fromScale(0.06, y)
+			l.Size = UDim2.fromScale(0.88, h)
+			l.Font = Enum.Font.FredokaOne
+			l.TextScaled = true
+			l.TextColor3 = color
+			l.Text = text
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = Color3.fromRGB(150, 95, 20)
+			stroke.Thickness = 2
+			stroke.Parent = l
+			l.Parent = gui
+		end
+		label(PERK_ICONS[perk.Stat] or "✨", 0.06, 0.36, Color3.new(1, 1, 1))
+		label(perk.Name, 0.46, 0.16, Color3.new(1, 1, 1))
+		label(Config.perkText(perk), 0.64, 0.14, Color3.fromRGB(255, 250, 220))
+		label(perk.Rebirths .. (if perk.Rebirths == 1 then " rebirth" else " rebirths"), 0.81, 0.12, Color3.fromRGB(255, 240, 200))
+	end
+	-- the status under the card (the client fills it in for you)
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "Status"
+	gui.Size = UDim2.fromScale(8, 1.6)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 1.6, 0)
+	gui.MaxDistance = 80
+	gui.LightInfluence = 0
+	gui.Adornee = model:FindFirstChildWhichIsA("BasePart")
+	gui.Parent = model
+	local status = Instance.new("TextLabel")
+	status.Name = "Text"
+	status.BackgroundTransparency = 1
+	status.Size = UDim2.fromScale(1, 1)
+	status.Font = Enum.Font.FredokaOne
+	status.TextScaled = true
+	status.TextColor3 = Color3.new(1, 1, 1)
+	status.Text = "Need " .. perk.Rebirths .. " rebirths"
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(40, 40, 70)
+	stroke.Thickness = 2.5
+	stroke.Parent = status
+	status.Parent = gui
+	return model
+end
+
 -- The Upgrade Board --------------------------------------------------------------------
 -- A big stand like an incremental game's upgrade wall: a white frame with
 -- a green cap and an "UPGRADES" sign, clovers on top and a screen part the
@@ -536,6 +621,14 @@ for i, area in ipairs(Config.AREAS) do
 			if #spots >= 24 then
 				break
 			end
+		end
+	end
+
+	-- this world's rebirth perk pad (kept clear of props)
+	for k, perk in ipairs(Config.PERKS) do
+		if perk.Area == i then
+			space:add(Vector3.new(x0 + perk.At[1], 0, perk.At[2]), 6.5)
+			World.buildPerkPad(k, perk)
 		end
 	end
 

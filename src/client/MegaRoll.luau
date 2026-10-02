@@ -1,8 +1,9 @@
 -- The Mega Roll pad in the Sahara: a sign over the pile of dice shows
 -- the roll waiting for you ("x50,000 Roll!", a random insanely high luck
 -- multiplier) and "Claim in 19m 26s" until it's ready. When it's ready the
--- sign says so; step on the pad and it rolls (the full hatch show).
--- The server builds the pad (World.buildMegaRoll) and does the roll
+-- sign says so; step on the pad and the roll goes into your Inventory's
+-- Boosts, to use whenever you like (client/Boosts.luau).
+-- The server builds the pad (World.buildMegaRoll) and gives the roll
 -- (Rolling.megaRoll); this draws the sign and claims it.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,7 +12,6 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Effects = require(script.Parent.Effects)
-local Hatch = require(script.Parent.Hatch)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
 local Ui = require(script.Parent.Ui)
@@ -115,20 +115,20 @@ end
 -- claims the Mega Roll (if it's ready and you're on the pad); plays the show
 function MegaRoll.claim()
 	local data = State.Data
-	if claiming or not data or not data.MegaMult or remaining(data) > 0 or Hatch.busy() then
+	if claiming or not data or not data.MegaMult or remaining(data) > 0 then
 		return false
 	end
 	claiming = true
-	local mega = data.MegaMult
-	local ok, results = pcall(megaFunction.InvokeServer, megaFunction)
-	if ok and type(results) == "table" and #results > 0 then
-		MegaRoll.LastResults = results
-		Screen.toast("x" .. Config.commas(mega) .. " MEGA ROLL!", "success")
-		Hatch.play(results, false, results[1].World, "full", false)
+	local ok, mega = pcall(megaFunction.InvokeServer, megaFunction)
+	local got = ok and type(mega) == "number"
+	if got then
+		MegaRoll.LastClaim = mega
+		Screen.toast("x" .. Config.commas(mega) .. " Luck Roll added to your Inventory (Boosts)!", "success")
+		Effects.jingle(3)
 	end
 	claiming = false
 	MegaRoll.refresh()
-	return ok and type(results) == "table" and #results > 0
+	return got
 end
 
 -- checks the pad: claim when standing on it with the roll ready

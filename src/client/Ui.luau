@@ -332,6 +332,13 @@ function Ui.icons.tree(parent, color)
 	dot(parent, 0.73, 0.5, 0.36, color)
 end
 
+-- teleport: a portal ring with a spark in the middle
+function Ui.icons.teleport(parent, color)
+	outline(parent, 0.5, 0.5, 0.84, 0.5, color)
+	outline(parent, 0.5, 0.5, 0.5, 0.5, color)
+	dot(parent, 0.5, 0.5, 0.18, color)
+end
+
 -- gear (settings)
 function Ui.icons.gear(parent, color)
 	for k = 0, 7 do
