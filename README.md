@@ -182,11 +182,16 @@ chase Huge and Titanic pets.**
   once, Auto Hatch). The top shows the section's total in big numbers; each
   row shows its level, now -> next, a level bar and a BUY button (LOCKED
   with what it needs, MAX when done); a gold dot marks sections with
-  something you can buy. The Luck Board rows (Lucky Paw x1.12 a level,
-  Four-Leaf Clover x1.12, Golden Horseshoe x1.12, Rainbow x1.15, Lucky Star
-  x1.18, Cosmic Fortune x1.25) each unlock when the one before reaches level
-  5, so luck climbs fast (about x5 at 10 minutes, x180 at 30, the x1M cap by
-  ~1.5 h for an active player).
+  something you can buy. The Luck Board rows (Lucky Paw x1.5 a level,
+  Four-Leaf Clover x1.5, Golden Horseshoe x1.5, Rainbow x1.65, Lucky Star
+  x1.75, Cosmic Fortune x2) each unlock when the one before reaches level
+  5, so luck climbs into huge numbers (the cap is x100Qn).
+- **Pet odds:** 10 animals in each band of odds: 1-1K (Common), 1K-1M
+  (Uncommon), 1M-1B (Rare), 1B-1T (Epic), 1T-1Qd (Legendary), 1Qd-1Qn
+  (Mythic) and 1Qn-1Sx (Secret; the rarest, Glitch, is 1 in 540Qn). Luck is
+  scaled to match, so you find each band at about the same time as before.
+  A pet's power comes from its place in the line-up (not its odds), so
+  fights and coins are balanced as before.
 - The Index shows how rare each pet really is (its odds at x1 luck),
   whatever your luck.
 - **Outfits:** every animal wears its own outfit (looks only): Fireman,
@@ -220,10 +225,10 @@ chase Huge and Titanic pets.**
   The level and an EXP bar sit under your team; levelling up shows a big
   "LEVEL UP!" with sparkles and a jingle.
 - **Rebirth (8 levels):** needs the coins AND a level (16, 34, 52, 64, 70,
-  75, 82, 88; the last two cost 16T and 300T coins): the first after about 10 minutes, the 8th after about 2.7 hours. It's a prestige: only your coins reset; worlds, pets,
+  75, 82, 88; the last two cost 16T and 300T coins): the first after about 15 minutes, the 8th after about 2.8 hours. It's a prestige: only your coins reset; worlds, pets,
   upgrades, the Index and your level stay. Each one gives, forever and
-  stacking: **Luck x1.5** and **Money +200%** (rebirth 3 = luck x3.4 and
-  coins x7; rebirth 8 = x25.6 and x17).
+  stacking: **Luck x3.8** and **Money +200%** (rebirth 3 = luck x55 and
+  coins x7; rebirth 8 = x43K and x17).
 - **Leaderboards:** each row shows the player's round avatar next to their
   name. Strongest Pet, Playtime and Rebirths in the Forest;
   Most Rolls in the Top panel.
@@ -232,21 +237,23 @@ chase Huge and Titanic pets.**
 
 | | Time for an active player |
 | --- | --- |
-| Rebirth 1 (level 16) | ~11 min |
-| World 2 (Sahara) | ~16 min |
-| Rebirths 2 / 3 | ~26 / 48 min |
-| World 3 (Frozen Peaks) | ~37 min |
-| Rebirths 4 / 5 / 6 | ~1.1 / 1.5 / 1.9 h |
-| World 4 (Sakura Jungle) | ~2 h |
-| Rebirths 7 / 8 | ~2.3 / 2.9 h |
+| Rebirth 1 (level 16) | ~16 min |
+| World 2 (Sahara) | ~20 min |
+| Rebirths 2 / 3 | ~32 / 54 min |
+| World 3 (Frozen Peaks) | ~45 min |
+| Rebirths 4 / 5 / 6 | ~1.2 / 1.3 / 1.4 h |
+| World 4 (Sakura Jungle) | ~1.3 h |
+| Rebirths 7 / 8 | ~1.8 / 2.8 h |
+| World 5 (Lava Arena) | ~2.6 h |
 | Best pet | **Titanic Glitch ~4.8T** |
 
 Enemy health, coin rewards, EXP, upgrade costs, world costs and rebirths
 all scale together (`python3 tools/economy/simulate.py 3 --hours 10`).
 
-Pet power follows `1M x (odds / 1000)^1.17` (Dog ~700, Tiger 1M, Glitch ~48B),
-Huge is x10 and Titanic x100. Luck, Coins and Damage upgrades multiply
-(x1.25 / x1.35 per level), so they matter at every stage.
+Pet power follows `1M x (PowerOdds / 1000)^1.17` (PowerOdds is the pet's
+place in the line-up: Dog ~700, Glitch ~48B), Huge is x10 and Titanic x100.
+Luck, Coins and Damage upgrades multiply (x2.4 / x1.35 per level), so they
+matter at every stage.
 
 Adding things later is one row each: a pet in `Config.PETS`, a size in
 `Config.SIZES` (Giant, Colossal...), an upgrade branch in `Config.UPGRADES`.
@@ -267,7 +274,7 @@ Every screen shares one friendly collection look: white rounded panels, a
 big tilted title in outlined letters over the top-left corner and a big
 red X on the top-right one. Pets everywhere are **hexagon tiles**
 (`PetTile.luau`): the pet standing on a hexagon in its rarity's colours,
-HUGE/TITANIC under it and its odds in big outlined letters ("1/430K").
+HUGE/TITANIC under it and its odds in big outlined letters ("1 in 430K").
 The Inventory shows "3/5 Equipped" with your team's tiles along the top,
 then the collection grid. The Index has its info on the left (found
 count, categories, rewards) and the hexagon grid on the right; hover or tap
@@ -281,7 +288,7 @@ bounces back up and zooms to 150% with light rays, a glow and sparkles in
 its rarity's colour behind it, and stays until the next roll; the reel at the bottom is only
 used with "Big hatch reveals" on. The luck sign is a green bar
 with a clover and "x12.5". Over each pet following you: its odds in big
-outlined letters ("1/103K") with its name small under them. The rebirth screen shows REBIRTH X / 8 as a segment bar, what
+outlined letters ("1 in 103K") with its name small under them. The rebirth screen shows REBIRTH X / 8 as a segment bar, what
 resets vs what you gain, and both requirements as MET / LOCKED with
 progress bars. Under the coins a small chip shows your luck ("Luck x2.50
 · 2x in 4"). **Auto roll is free.** Settings: damage numbers, full hatch

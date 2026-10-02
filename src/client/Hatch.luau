@@ -25,7 +25,7 @@
 --   CRAZY PULLS  (Mythic/Secret animals) their own show before the reveal.
 --   RESULTS      after a compact hatch (and on auto) the pets you got float
 --                big near the top of the screen, no panel: each with its
---                odds in outlined letters ("1/3.26K") and its name under it.
+--                odds in outlined letters ("1 in 3.26K") and its name under it.
 --                They stay a moment, then rise and fade (the next roll can
 --                start meanwhile).
 --
@@ -81,14 +81,15 @@ local function pause(seconds)
 	return false
 end
 
--- A really crazy pull: a Mythic or Secret animal (1 in 1M+), a Titanic of
--- a 1 in 1,000+ animal, or a Huge of a 1 in 100,000+ one
+-- (odds read "1 in 430K" everywhere)
+-- A really crazy pull: a Secret animal, a Titanic of a Rare or better one,
+-- or a Huge of a Mythic or better one (by rarity tier: Config.RARITIES)
 function Hatch.isCrazy(result)
 	if result.Kind == "Boost" then
 		return false
 	end
-	local odds = Config.PETS_BY_NAME[result.Pet].Odds
-	return odds >= 1e6 or (result.Size >= 3 and odds >= 1000) or (result.Size == 2 and odds >= 1e5)
+	local tier = Config.rarityIndex(Config.PETS_BY_NAME[result.Pet].Odds)
+	return tier >= 7 or (result.Size >= 3 and tier >= 3) or (result.Size == 2 and tier >= 6)
 end
 
 -- How big a moment a result is: 0 common .. 3 legendary+, 4 huge, 5 titanic,
@@ -103,13 +104,13 @@ function Hatch.tier(result)
 	elseif result.Size == 2 then
 		return 4
 	end
-	local odds = Config.PETS_BY_NAME[result.Pet].Odds
-	if odds >= 10000 then
-		return 3
-	elseif odds >= 1000 then
-		return 2
-	elseif odds >= 100 then
-		return 1
+	local tier = Config.rarityIndex(Config.PETS_BY_NAME[result.Pet].Odds)
+	if tier >= 5 then
+		return 3 -- Legendary and up
+	elseif tier >= 4 then
+		return 2 -- Epic
+	elseif tier >= 3 then
+		return 1 -- Rare
 	end
 	return 0
 end
@@ -546,7 +547,7 @@ local function spin(results, best, fast, full)
 		if index ~= lastIndex then
 			lastIndex = index
 			local passing = items[index + 1]
-			Effects.play("Roll", 0.9 + u * 0.6 + (if passing and passing.Odds >= 1000 then 0.25 else 0), 0.02)
+			Effects.play("Roll", 0.9 + u * 0.6 + (if passing and Config.rarityIndex(passing.Odds) >= 3 then 0.25 else 0), 0.02)
 		end
 		if u >= 1 then
 			break
@@ -1599,7 +1600,19 @@ local function setSlot(slot, name, oddsText, landed, step)
 	end
 	slot.Name.Text = if name == BOOST then "Luck Boost" else name
 	slot.Odds.Text = oddsText
-	slot.Odds.Tint.Color = ColorSequence.new(color:Lerp(Ui.WHITE, 0.45), color)
+	-- two colours mixing diagonally: the rarity's (or the size's, or green
+	-- for a boost) from the bottom-left into its second from the top-right
+	local second = color:Lerp(Ui.WHITE, 0.55)
+	if name ~= BOOST then
+		local pet, size = Config.petInfo(name)
+		if pet and size.Index == 1 then
+			local rarity = Config.rarity(pet.Odds)
+			color, second = rarity.Color, rarity.Color2
+		elseif pet then
+			second = Config.rarity(pet.Odds).Color
+		end
+	end
+	Ui.diagonal(slot.Odds, color, second)
 end
 
 -- the odds shown for a result: the exact chance it was rolled at (the
@@ -1781,7 +1794,7 @@ local function show(results, fast, mode, auto)
 	-- the reel lands on the best pet; on a boost if the spin only gave boosts
 	local best, bestScore = results[1], -math.huge
 	for _, r in ipairs(results) do
-		local score = if r.Kind == "Boost" then -1 else Hatch.tier(r) * 10 + Config.PETS_BY_NAME[r.Pet].Odds / 1e8
+		local score = if r.Kind == "Boost" then -1 else Hatch.tier(r) * 10 + math.log10(Config.PETS_BY_NAME[r.Pet].Odds) / 100
 		if score > bestScore then
 			best, bestScore = r, score
 		end

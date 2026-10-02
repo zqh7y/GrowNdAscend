@@ -332,6 +332,16 @@ function Ui.icons.tree(parent, color)
 	dot(parent, 0.73, 0.5, 0.36, color)
 end
 
+-- Odds text in two colours mixing diagonally: `from` at the bottom-left
+-- into `to` at the top-right (uses the label's "Tint" gradient)
+function Ui.diagonal(label, from, to)
+	local tint = label:FindFirstChild("Tint") or Ui.new("UIGradient", { Name = "Tint", Parent = label })
+	tint.Color = ColorSequence.new(from, to)
+	tint.Rotation = -45
+	label.TextColor3 = Color3.new(1, 1, 1)
+	return tint
+end
+
 -- teleport: a portal ring with a spark in the middle
 function Ui.icons.teleport(parent, color)
 	outline(parent, 0.5, 0.5, 0.84, 0.5, color)

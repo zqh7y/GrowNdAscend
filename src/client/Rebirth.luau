@@ -1,7 +1,7 @@
 -- The Rebirth screen: a clear, sleek summary of the deal.
 --   top      "REBIRTH 3 / 8" and a bar of 8 segments (lit = done)
 --   middle   RESET (just your coins; everything else you keep, listed) and
---            GAIN (Luck x1.5 and Money +200%, now -> after)
+--            GAIN (Luck x3.8 and Money +200%, now -> after)
 --   bottom   the two requirements, each MET or LOCKED: the cash (with how
 --            much you have) and the level ("Current Level 48 / 50" and a
 --            bar), then the REBIRTH button, which only lights up when both

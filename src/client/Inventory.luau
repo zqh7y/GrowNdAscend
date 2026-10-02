@@ -4,7 +4,7 @@
 --   THE GRID   many pet tiles at once (about 5-8 per row, worked out from
 --              the space available, so it adapts to the panel and screen).
 --              Each is the collection tile (PetTile): the pet on a hexagon
---              in its rarity's colours, HUGE/TITANIC, its odds ("1/430K"),
+--              in its rarity's colours, HUGE/TITANIC, its odds ("1 in 430K"),
 --              "x3" for copies and a green check when equipped.
 --   DETAILS    tapping a pet slides a details panel in on the right (the
 --              grid stays visible, just narrower): a big preview, name,

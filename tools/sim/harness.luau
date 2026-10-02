@@ -2019,14 +2019,14 @@ if ok then
 	local testData = { Upgrades = {}, Equipped = {}, Rebirths = 0 }
 	local w4InWorld1, w4InWorld4, glitchInWorld1 = 0, 0, false
 	for _ = 1, 20000 do
-		if Config.roll(1e5, rng, 1).World == 4 then w4InWorld1 += 1 end
-		if Config.roll(1e5, rng, 4).World == 4 then w4InWorld4 += 1 end
+		if Config.roll(1e16, rng, 1).World == 4 then w4InWorld1 += 1 end
+		if Config.roll(1e16, rng, 4).World == 4 then w4InWorld4 += 1 end
 	end
 	for _ = 1, 50 do
-		if Config.roll(1e13, rng, 1).Name == "Glitch" then glitchInWorld1 = true end
+		if Config.roll(1e29, rng, 1).Name == "Glitch" then glitchInWorld1 = true end
 	end
 	item(30, "any pet hatches in any world", glitchInWorld1 and w4InWorld1 > 0 or glitchInWorld1, string.format("Glitch rolled in World 1; World 1 odds %s vs World 4 %s", Config.formatOdds(Config.worldOdds(Config.PETS_BY_NAME.Glitch, 1)), Config.formatOdds(Config.worldOdds(Config.PETS_BY_NAME.Glitch, 4))))
-	item(31, "the world changes the odds", w4InWorld4 > 50 * math.max(w4InWorld1, 1) and Config.luck(testData, false, 4) > Config.luck(testData, false, 1), string.format("World 4 animals in 20K rolls at x100K luck: %d in World 1, %d in World 4", w4InWorld1, w4InWorld4))
+	item(31, "the world changes the odds", w4InWorld4 > 50 * math.max(w4InWorld1, 1) and Config.luck(testData, false, 4) > Config.luck(testData, false, 1), string.format("World 4 animals in 20K rolls at x10Qd luck: %d in World 1, %d in World 4", w4InWorld1, w4InWorld4))
 	-- the server rolls with the world you stand in
 	local root = player.Character.HumanoidRootPart
 	root.CFrame = CFrame.new(Config.areaStart(1) + 50, 3, 0)
@@ -2071,8 +2071,9 @@ if ok then
 	end
 	base.Rebirths = 0
 	local luck0 = Config.luck(base, false, 1)
-	local luckOk = math.abs(ratios[1] / luck0 - 1.5) < 1e-9 and math.abs(ratios[4] / luck0 - 1.5 ^ 4) < 1e-9 and math.abs(ratios[8] / luck0 - 1.5 ^ 8) < 1e-6
-	item(37, "rebirth luck x1.5 each, stacking", luckOk, string.format("x%.2f, x%.2f ... x%.1f", ratios[1] / luck0, ratios[2] / luck0, ratios[8] / luck0))
+	local RL = Config.REBIRTH_LUCK
+	local luckOk = math.abs(ratios[1] / luck0 - RL) < 1e-9 and math.abs(ratios[4] / luck0 / RL ^ 4 - 1) < 1e-9 and math.abs(ratios[8] / luck0 / RL ^ 8 - 1) < 1e-6
+	item(37, "rebirth luck x" .. RL .. " each, stacking", luckOk, string.format("x%.2f, x%.2f ... x%.1f", ratios[1] / luck0, ratios[2] / luck0, ratios[8] / luck0))
 	local money = {}
 	for r = 0, 8 do
 		local d = { Rebirths = r, Upgrades = { Coins = 2 } }

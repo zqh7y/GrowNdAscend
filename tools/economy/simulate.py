@@ -20,11 +20,13 @@ _config = open(os.path.join(os.path.dirname(__file__), "../../src/shared/Config.
 def num(pattern):
     return float(re.search(pattern, _config).group(1))
 
-_rows = re.findall(r'Name = "([^"]+)", Odds = (\d+), World = (\d+).*?Stats = \{ Speed = ([\d.]+), Luck = ([\d.]+), Coins = ([\d.]+), Damage = ([\d.]+), Exp = ([\d.]+) \}', _config)
-PETS = [(int(o), int(w)) for _, o, w, *_ in _rows]
-ODDS_OF = {n: int(o) for n, o, *_ in _rows}
+_rows = re.findall(r'Name = "([^"]+)", Odds = ([\d.e]+), PowerOdds = ([\d.e]+), World = (\d+).*?Stats = \{ Speed = ([\d.]+), Luck = ([\d.]+), Coins = ([\d.]+), Damage = ([\d.]+), Exp = ([\d.]+) \}', _config)
+PETS = [(float(o), int(w)) for _, o, _po, w, *_ in _rows]
+ODDS_OF = {n: float(o) for n, o, *_ in _rows}
+# power comes from PowerOdds (the pet's place in the line-up), not its odds
+POWER_ODDS = {float(o): float(po) for _, o, po, *_ in _rows}
 # per-pet multipliers by odds: (luck, coins, damage, exp)
-STATS_OF = {int(o): tuple(map(float, (l, c, d, e))) for _, o, _, _sp, l, c, d, e in _rows}
+STATS_OF = {float(o): tuple(map(float, (l, c, d, e))) for _, o, _po, _w, _sp, l, c, d, e in _rows}
 WORLD_PENALTY = num(r'WORLD_PENALTY = ([\d.]+)')
 # (health, coins, exp, unlock cost, luck) for each world, from Config.AREAS
 WORLDS = []
@@ -55,15 +57,15 @@ for mid, kind, count, coins_m, boost in re.findall(r'\{ Id = "([^"]+)", Size = (
 def exp_to_next(level):  # Config.expToNext
     return math.floor(LEVEL_BASE * LEVEL_GROWTH ** (level - 1) + 0.5)
 
-def base_power(odds):  # Config pet power
-    return 1e6 * (odds / 1000) ** 1.17
+def base_power(odds):  # Config pet power (from the pet's PowerOdds)
+    return 1e6 * (POWER_ODDS[odds] / 1000) ** 1.17
 
 SIZES = [(1, 1), (100, 10), (1000, 100)]  # (1 in chance, power multiplier)
 
 UP = {  # id: (value(level), cost(level), max)  -- mirrors Config.UPGRADES
     "Coins":     (lambda l: 1.35 ** l,            lambda l: 60 * 3.4 ** l, 20),
     "Damage":    (lambda l: 1.35 ** l,            lambda l: 90 * 3.4 ** l, 20),
-    "Luck":      (lambda l: 1.25 ** l,            lambda l: 250 * 3.7 ** l, 25),
+    "Luck":      (lambda l: 2.4 ** l,            lambda l: 250 * 3.7 ** l, 25),
     "RollSpeed": (lambda l: max(0.35, 1 - 0.05 * l), lambda l: 120 * 3.6 ** l, 13),
     "Rolls":     (lambda l: 1 + l,                lambda l: 2e4 * 80 ** l, 4),
     "AutoHatch": (lambda l: l,                    lambda l: [600, 1e6][l], 2),

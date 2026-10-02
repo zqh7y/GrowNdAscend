@@ -35,7 +35,7 @@ local function build(name)
 	-- this pet's own Speed stat
 	rig.Speed *= Config.petStat(name, "Speed")
 
-	-- over its head: its odds in big outlined letters ("1/103K", in its
+	-- over its head: its odds in big outlined letters ("1 in 103K", in its
 	-- rarity's colours) and its name small under them (HUGE / TITANIC in
 	-- the size's colour)
 	local tag = Instance.new("BillboardGui")
@@ -47,15 +47,16 @@ local function build(name)
 	tag.AlwaysOnTop = false
 	tag.Adornee = model.PrimaryPart
 	tag.Parent = model
-	Ui.chunky({
+	local oddsLabel = Ui.chunky({
 		Name = "Odds",
 		Size = UDim2.new(1, 0, 0, 32),
 		TextSize = 30,
 		Text = Config.shortOdds(Config.oddsOf(name)),
-		Colors = { rarity.Color:Lerp(Color3.new(1, 1, 1), 0.45), rarity.Color },
+		Colors = { rarity.Color, rarity.Color2 },
 		Outline = 2.5,
 		Parent = tag,
 	})
+	Ui.diagonal(oddsLabel, rarity.Color, rarity.Color2)
 	Ui.chunky({
 		Name = "PetName",
 		Position = UDim2.fromOffset(0, 32),

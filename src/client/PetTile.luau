@@ -1,7 +1,7 @@
 -- One pet tile, the collection look shared by the Inventory and the Index:
 -- the pet standing on a hexagon in its rarity's colours (it spills a little
 -- over the top), the size under it for Huge/Titanic ("HUGE" in gold,
--- "TITANIC" in pink) and its odds in big outlined letters ("1/430K").
+-- "TITANIC" in pink) and its odds in big outlined letters ("1 in 430K").
 -- Copies show as "x3" in the top-right corner, an equipped pet gets a
 -- green check in the top-left.
 local TweenService = game:GetService("TweenService")
@@ -24,8 +24,8 @@ end
 -- the colours for the odds text (lighter on top)
 local function oddsColors(name)
 	local pet = Config.petInfo(name)
-	local color = Config.rarity(pet.Odds).Color
-	return color:Lerp(Ui.WHITE, 0.45), color
+	local rarity = Config.rarity(pet.Odds)
+	return rarity.Color, rarity.Color2
 end
 
 -- props: Name (pet), Width, Parent, LayoutOrder, ZIndex, Amount (copies),
@@ -113,6 +113,7 @@ function PetTile.new(props)
 		ZIndex = z + 3,
 		Parent = frame,
 	})
+	Ui.diagonal(odds, oddsTop, oddsBottom)
 	if props.Amount and props.Amount > 1 then
 		Ui.chunky({
 			Name = "Amount",
