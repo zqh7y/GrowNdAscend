@@ -1884,12 +1884,12 @@ if ok then
 		local wasOn = Roll.autoOn()
 		autoB.Activated:Fire()
 		local switchedOn = Roll.autoOn() ~= wasOn and Roll.AutoCaption.Text == "AUTO ON"
-		-- while auto rolls, the big button keeps saying ROLL (no flicker to SKIP)
+		-- while auto rolls, the button keeps saying AUTO ON (no flicker)
 		local rollLabel = rollB.Parent:FindFirstChild("Caption")
 		local labelChanges = 0
 		for _ = 1, 120 do
 			frames(1)
-			if rollLabel and rollLabel.Text ~= "ROLL" then labelChanges += 1 end
+			if rollLabel and rollLabel.Text ~= "AUTO ON" then labelChanges += 1 end
 		end
 		autoB.Activated:Fire()
 		frames(1)
@@ -1923,8 +1923,8 @@ if ok then
 		b14.Controls = { Roll = inControls, Auto = autoB ~= nil, Switched = switchedOn,
 			Back = Roll.autoOn() == wasOn, Compact = compactInControls, Setting = bigReveals,
 			Dock = dock ~= nil and rollB.Parent.Parent == dock and autoB.Parent.Parent == dock,
-			Above = rollB.Parent.LayoutOrder > autoB.Parent.LayoutOrder and panels == 0,
-			Bigger = rollB.Size.X.Offset > autoB.Size.X.Offset,
+			Above = panels == 0,
+			Bigger = rollB == autoB and #dock:GetChildren() == 2, -- (one button: the dice is the auto switch; + the layout)
 			Label = rollLabel ~= nil, LabelChanges = labelChanges }
 		STATS.B14 = b14
 		print(string.format("build 14: index %d/%d chances exact, %d 'Best in'; inventory %d small cards, %d stat blocks in grid, %s -> %s; team %d pets %d%%, %d pets %d%%; controls switched %s, compact in controls %d",
@@ -2462,9 +2462,9 @@ if ok then
 			autoB.Activated:Fire()
 			local turnedOn = autoB:GetAttribute("On") == true
 			autoB.Activated:Fire()
-			item(123, "sticker-style buttons (menu, ROLL, AUTO)", stickers >= 8 and plain == stickers and captions == stickers and dice and turnedOn and autoB:GetAttribute("On") == false
+			item(123, "sticker-style buttons (menu, the AUTO dice)", stickers >= 7 and plain == stickers and captions == stickers and dice and turnedOn and autoB:GetAttribute("On") == false
 				and arts.Body and arts.Book and arts.Head and arts.Ring and arts.Band and arts.Wheel,
-				string.format("%d sticker buttons, %d with nothing behind, %d chunky outlined captions; ROLL is a dice %s; AUTO goes green %s (was %s)", stickers, plain, captions, tostring(dice), tostring(turnedOn), tostring(before)))
+				string.format("%d sticker buttons, %d with nothing behind, %d chunky outlined captions; the AUTO button is a dice %s; it goes green %s (was %s)", stickers, plain, captions, tostring(dice), tostring(turnedOn), tostring(before)))
 		end
 		do
 		local cdr = STATS.CoinDrops or {}
@@ -2493,9 +2493,9 @@ if ok then
 			-- on a phone: the card goes top left (clear of the joystick), ROLL / AUTO move up (clear of jump)
 			Hud.layout(true)
 			local phoneOk = c.Position.X.Scale == 1 and c.Position.Y.Scale == 0 and c.Position.Y.Offset <= 20 and Screen.Controls.Controls.Position.Y.Offset <= -150
-				and team.LayoutOrder < level.LayoutOrder
+				and level.Parent ~= c and level.AnchorPoint.Y == 1 and level.AnchorPoint.X == 0 and level.Position.X.Scale == 0 and level.Position.Y.Scale == 1 and team.Parent == c
 			Hud.layout(false)
-			local backOk = c.Position.Y.Scale == 1 and level.LayoutOrder < team.LayoutOrder
+			local backOk = c.Position.Y.Scale == 1 and level.Parent == c and level.LayoutOrder < team.LayoutOrder
 			-- an iPhone in landscape (844 x 390): readable UI, panels and the reveal fit, nothing overlaps
 			local phone = Vector2.new(844, 390)
 			local scale = Screen.scaleFor(phone, true)
@@ -2516,7 +2516,7 @@ if ok then
 			print(string.format("  iPhone 844x390: UI scale %.2f (text 12 -> %.1fpt), panels x%.2f (%dx%d pt), card top right %d-%d (x%.2f), menu %d-%d of %d, teleport x%.2f", scale, 12 * scale, fit, 900 * fit * scale, 600 * fit * scale, Hud.TOUCH_CARD_TOP, cardBottom, Hud.TOUCH_CARD_SCALE, navTop, navBottom, tall, tf))
 			item(128, "player card bottom left; phone layout (iPhone)", pcOk and phoneOk and backOk
 				and level ~= nil and team ~= nil and level.LayoutOrder < team.LayoutOrder,
-				string.format("PC: bottom left, level on top of YOUR TEAM %s; iPhone: bigger readable UI, panels and reveals shrink to fit, card top right (team, then level), menu top left, ROLL/AUTO above the jump button %s", tostring(pcOk), tostring(phoneOk)))
+				string.format("PC: bottom left, level on top of YOUR TEAM %s; iPhone: bigger readable UI, panels and reveals shrink to fit, YOUR TEAM top right, level at the very bottom left, menu top left, ROLL/AUTO above the jump button %s", tostring(pcOk), tostring(phoneOk)))
 		end
 		do
 			-- security: spam is dropped, bad arguments never break anything,
@@ -2785,14 +2785,14 @@ if ok then
 		item(89, "team DPS shares add up to 100%", t.N3 == 3 and t.Sum3 == 100 and t.Ok3 and t.N2 == 2 and t.Sum2 == 100 and t.Ok2 and t.N0 == 0 and t.ZeroOk,
 			string.format("3 pets: %d%%, after unequipping one: %d%%, empty team: no shares, no errors", t.Sum3 or 0, t.Sum2 or 0))
 		local ctl = b.Controls or {}
-		item(90, "new ROLL + AUTO controls, compact in Settings", ctl.Roll == true and ctl.Auto == true and ctl.Switched == true and ctl.Back == true and ctl.Compact == 0 and (ctl.Setting or 0) >= 1,
-			"big ROLL button and an AUTO switch; the compact/full choice is 'Big hatch reveals' in Settings")
+		item(90, "the AUTO dice button, compact in Settings", ctl.Roll == true and ctl.Auto == true and ctl.Switched == true and ctl.Back == true and ctl.Compact == 0 and (ctl.Setting or 0) >= 1,
+			"one big dice button that switches auto roll on and off; the compact/full choice is 'Big hatch reveals' in Settings")
 		item(91, "pet details: stats, DPS, equip/unequip, smooth switching", inv.Before == "Equip" and inv.Equipped == true and inv.After == "Unequip" and inv.Tick == true
 			and inv.DetailStats == 5 and inv.Dps == true and inv.Same == true and inv.Normal == "Dog,Tiger" and inv.Huge == "Huge Fox",
 			string.format("Equip -> equipped, button now '%s', card has a check; all 5 stats + DPS shown; switching pets keeps the grid; Normal = %s, Huge = %s",
 				tostring(inv.After), tostring(inv.Normal), tostring(inv.Huge)))
-		item(92, "just two buttons: AUTO, then ROLL in the corner", ctl.Dock == true and ctl.Above == true and ctl.Bigger == true and ctl.Label == true and ctl.LabelChanges == 0,
-			string.format("ROLL and AUTO side by side like the other buttons, no panel behind them, ROLL bigger; label changed %d times in 120 auto-roll frames", ctl.LabelChanges or -1))
+		item(92, "just one button: the AUTO dice in the corner", ctl.Dock == true and ctl.Above == true and ctl.Bigger == true and ctl.Label == true and ctl.LabelChanges == 0,
+			string.format("one dice button (no separate ROLL), no panel behind it; it said AUTO ON all through 120 auto-roll frames (changed %d times)", ctl.LabelChanges or -1))
 		local eb = (STATS.B15 or {}).Best or {}
 		local du = (STATS.B15 or {}).Dupes or {}
 		local od = (STATS.B15 or {}).Order or {}

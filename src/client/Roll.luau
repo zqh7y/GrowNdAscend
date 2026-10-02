@@ -417,8 +417,8 @@ end
 -- The R key (or a gamepad's X) rolls too. The compact/full hatch choice
 -- lives in Settings ("Big hatch reveals").
 
-local ROLL_SIZE, AUTO_SIZE, GAP = 84, 58, 14
-Roll.DOCK_SIZE = Vector2.new(ROLL_SIZE + GAP + AUTO_SIZE, ROLL_SIZE + 14)
+local ROLL_SIZE, AUTO_SIZE, GAP = 84, 58, 14 -- (AUTO_SIZE: from when there was a separate ROLL)
+Roll.DOCK_SIZE = Vector2.new(ROLL_SIZE, ROLL_SIZE + 14)
 
 -- the shared finish: shadow under the button, shine on top, neat caption
 function Roll.buildControls(parent)
@@ -439,21 +439,23 @@ function Roll.buildControls(parent)
 		}),
 	})
 
-	-- ROLL: the icy dice sticker (Sticker.luau) with a chunky caption
-	local rollHolder, roll = Sticker.button({
-		Name = "Roll",
-		Label = "ROLL",
+	-- one button (the user's choice: no separate ROLL): the icy dice sticker
+	-- is the auto-roll switch. Tap it and it keeps rolling ("AUTO ON", the
+	-- dice turns green); tap again to stop ("AUTO OFF").
+	local holder, button = Sticker.button({
+		Name = "Auto",
+		Label = "AUTO OFF",
 		Art = "dice",
 		Size = ROLL_SIZE,
-		CaptionSize = 22,
-		LayoutOrder = 2,
+		CaptionSize = 20,
+		LayoutOrder = 1,
 		Parent = row,
 	}, function()
 		Effects.play("Click", 1, 0.05)
-		task.spawn(Roll.roll)
+		Roll.toggleAuto()
 	end)
-	roll.Name = "RollButton"
-	rollLabel = rollHolder.Caption
+	button.Name = "AutoButton"
+	Roll.AutoCaption = holder.Caption
 	-- the slim ready bar along the die's top edge
 	local bar = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -461,7 +463,7 @@ function Roll.buildControls(parent)
 		Size = UDim2.new(0.6, 0, 0, 6),
 		BackgroundColor3 = Color3.fromRGB(28, 22, 40),
 		ZIndex = 8,
-		Parent = roll,
+		Parent = button,
 	}, { Ui.corner(0.5) })
 	cooldownFill = Ui.new("Frame", {
 		Name = "Ready",
@@ -470,46 +472,31 @@ function Roll.buildControls(parent)
 		ZIndex = 9,
 		Parent = bar,
 	}, { Ui.corner(0.5) })
-
-	-- AUTO: a round badge sticker, grey off / green on
-	local autoHolder, auto = Sticker.button({
-		Name = "Auto",
-		Label = "AUTO OFF",
-		Art = "auto",
-		Size = AUTO_SIZE,
-		CaptionSize = 15,
-		LayoutOrder = 1,
-		Parent = row,
-	}, function()
-		Effects.play("Click", 1, 0.05)
-		Roll.toggleAuto()
-	end)
-	auto.Name = "AutoButton"
-	Roll.AutoCaption = autoHolder.Caption
 	-- a small status dot, lit while auto is on
 	Roll.AutoDot = Ui.new("Frame", {
 		Name = "Dot",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(1, -6, 0, 6),
-		Size = UDim2.fromOffset(12, 12),
+		Size = UDim2.fromOffset(14, 14),
 		BackgroundColor3 = Color3.fromRGB(110, 236, 140),
 		Visible = false,
 		ZIndex = 8,
-		Parent = auto,
+		Parent = button,
 	}, { Ui.corner(0.5), Ui.stroke(Color3.fromRGB(28, 22, 40), 2) })
+	local roll, auto = button, button
 
 	rollButton, autoButton, autoRow = roll, auto, auto
 	refreshAuto(false)
 	return roll, auto
 end
 
--- the R key (or a gamepad's X) rolls too
+-- the R key (or a gamepad's X) switches auto roll on and off too
 game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
 	if processed then
 		return
 	end
 	if input.KeyCode == Enum.KeyCode.R or input.KeyCode == Enum.KeyCode.ButtonX then
-		task.spawn(Roll.roll)
+		Roll.toggleAuto()
 	end
 end)
 

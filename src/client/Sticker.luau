@@ -233,9 +233,18 @@ function Sticker.art.auto(art)
 	shine(badge, 0.2, 0.1, 0.4, 0.12, 6)
 end
 
--- recolours the auto badge: green when on
+-- recolours the auto switch: green when on (the round badge, or the dice's face)
 function Sticker.setAuto(button, on)
-	local badge = button:FindFirstChild("Art") and button.Art:FindFirstChild("Badge")
+	local art = button:FindFirstChild("Art")
+	local die = art and art:FindFirstChild("Die")
+	local face = die and die:FindFirstChild("Face")
+	local faceGradient = face and face:FindFirstChildOfClass("UIGradient")
+	if faceGradient then
+		faceGradient.Color = if on
+			then ColorSequence.new(Color3.fromRGB(200, 255, 200), Color3.fromRGB(90, 214, 120))
+			else ColorSequence.new(Color3.fromRGB(250, 253, 255), Color3.fromRGB(196, 222, 248))
+	end
+	local badge = art and art:FindFirstChild("Badge")
 	local gradient = badge and badge:FindFirstChildOfClass("UIGradient")
 	if gradient then
 		gradient.Color = if on

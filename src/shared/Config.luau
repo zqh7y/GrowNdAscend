@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 63 (phone: every screen at 85%)"
+Config.BUILD = "build 64 (one AUTO dice button; phone: level bottom left)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
