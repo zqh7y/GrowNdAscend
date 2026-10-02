@@ -2,8 +2,9 @@
 --   top centre   coins and luck
 --   bottom left  the player card: your LEVEL with its EXP bar, and under it
 --                YOUR TEAM (equipped pets + damage), out of the way (on
---                phones it goes top left, clear of the joystick, and ROLL /
---                AUTO move up above the jump button: Hud.layout)
+--                phones it goes top right, team first and the level under
+--                it, the menu goes top left, and ROLL / AUTO move up above
+--                the jump button: Hud.layout)
 --   left side    navigation: Inventory, Index, Upgrades, Rebirth, Settings
 --                (the leaderboards are in the world, in the Forest)
 --   right side   gameplay: the big Roll button and Auto
@@ -476,28 +477,31 @@ Roll.buildControls(controls)
 -- Phones and tablets ---------------------------------------------------------------------------
 -- Roblox puts its movement joystick in the bottom-left corner and the jump
 -- button in the bottom-right on touch screens. There the player card moves
--- to the top-left (under Roblox's own menu buttons) and ROLL / AUTO move up
--- above the jump button; with a mouse and keyboard nothing changes.
+-- to the top right (team on top, level under it), the menu to the top left
+-- under Roblox's own buttons, and ROLL / AUTO up above the jump button;
+-- with a mouse and keyboard nothing changes.
 Hud.Touch = false
 Hud.TOUCH_CARD_TOP = 92 -- (under Roblox's top bar on a phone)
 Hud.TOUCH_CARD_SCALE = 0.75
+Hud.TOUCH_NAV_TOP = 92 -- (the menu, top left, under Roblox's buttons)
 function Hud.layout(touch)
 	Hud.Touch = touch
 	if touch then
-		-- card top left under Roblox's buttons, the menu right under the card,
-		-- ROLL / AUTO up above the jump button
-		-- (a quarter smaller, and low enough to clear Roblox's logo and menu
-		-- buttons along the top of a phone)
-		card.AnchorPoint = Vector2.new(0, 0)
-		card.Position = UDim2.new(0, 12, 0, Hud.TOUCH_CARD_TOP)
+		-- the card top right (YOUR TEAM, the level under it), a quarter
+		-- smaller; the menu top left under Roblox's buttons; ROLL / AUTO up
+		-- above the jump button
+		card.AnchorPoint = Vector2.new(1, 0)
+		card.Position = UDim2.new(1, -12, 0, Hud.TOUCH_CARD_TOP)
 		cardScale.Scale = Hud.TOUCH_CARD_SCALE
+		team.LayoutOrder, levelBar.LayoutOrder = 1, 2
 		nav.AnchorPoint = Vector2.new(0, 0)
-		nav.Position = UDim2.new(0, 12, 0, Hud.TOUCH_CARD_TOP + math.ceil(112 * Hud.TOUCH_CARD_SCALE) + 10)
+		nav.Position = UDim2.new(0, 12, 0, Hud.TOUCH_NAV_TOP)
 		controls.Position = UDim2.new(1, -18, 1, -210)
 	else
 		card.AnchorPoint = Vector2.new(0, 1)
 		card.Position = UDim2.new(0, 16, 1, -16)
 		cardScale.Scale = 1
+		levelBar.LayoutOrder, team.LayoutOrder = 1, 2
 		nav.AnchorPoint = Vector2.new(0, 0.5)
 		nav.Position = UDim2.new(0, 16, 0.5, 20)
 		controls.Position = UDim2.new(1, -18, 1, -16)
