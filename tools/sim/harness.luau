@@ -499,7 +499,7 @@ if ok then
 				data.Pets[res.Pet] = nil
 			end
 			STATS.AuraClient.Gun = hasGun
-			-- every animal wears its own outfit (70 different looks)
+			-- every animal wears its own outfit (100 different looks)
 			local dressed, looks, broken = 0, {}, {}
 			for _, pet in ipairs(Config.PETS) do
 				local ok2, model = pcall(C("PetModels").build, pet.Name)
@@ -509,7 +509,7 @@ if ok then
 				else
 					table.insert(broken, pet.Name)
 				end
-				looks[look.Name .. (if look.Alt then "/2" else "/1")] = true
+				looks[look.Name .. "/" .. (look.Variant or 1)] = true
 			end
 			local distinct = 0
 			for _ in pairs(looks) do distinct += 1 end
@@ -1327,7 +1327,7 @@ if ok then
 		STATS.LevelUi = { Badge = levelBadge and levelBadge.Text, Celebrated = shown, Text = shownText }
 		print("level ui:", STATS.LevelUi.Badge, shown, shownText)
 
-		-- INDEX: 70 per category, categories on the right, silhouettes for the unfound
+		-- INDEX: 100 per category, categories on the right, silhouettes for the unfound
 		local Index = C("Index")
 		data.Discovered = { Dog = true, Cat = true, ["Huge Dog"] = true, Tiger = true, ["Huge Tiger"] = true, ["Titanic Glitch"] = true, Glitch = true }
 		PlayerData.sync(player)
@@ -1408,6 +1408,13 @@ if ok then
 		polish.LuckPill = { Before = before, After = after, Expected = expectedLuck(), Ok = okBefore and math.abs((after or 0) - expectedLuck()) < 1e-9 and after > before,
 			InCoinPill = Roll.LuckPill.Parent ~= nil and Roll.LuckPill.Parent.Parent == player.PlayerGui.GameGui }
 		-- the boost badge: next to the Roll button, never a sentence in the middle
+		-- (after any hatch that's still playing)
+		for _ = 1, 1200 do
+			if not C("Hatch").busy() then
+				break
+			end
+			frames(1)
+		end
 		data.LuckChain = 8
 		PlayerData.sync(player)
 		frames(2)
@@ -2039,10 +2046,10 @@ if ok then
 	end)(), "no terrain above the ground in the play area")
 
 	-- 21-24: animals, the index, and the living worlds
-	item(21, "pets move like their animal", STATS.MoveProblems == 0, "all 70 animals, normal and Titanic: walk/hop/waddle/fly/hover/swim/slither")
+	item(21, "pets move like their animal", STATS.MoveProblems == 0, "all " .. #Config.PETS .. " animals, normal and Titanic: walk/hop/waddle/fly/hover/swim/slither")
 	local Index = __cache["Client/Index"]
 	local Inventory = __cache["Client/Inventory"]
-	item(22, "separate Inventory and 70-animal Index", #Config.PETS == 70 and Index ~= nil and Inventory ~= nil and Index ~= Inventory, #Config.PETS .. " animals in the Index")
+	item(22, "separate Inventory and 100-animal Index", #Config.PETS == 100 and Index ~= nil and Inventory ~= nil and Index ~= Inventory, #Config.PETS .. " animals in the Index")
 	local amb = STATS.Ambient
 	local lively = amb ~= nil
 	if amb then
@@ -2056,13 +2063,13 @@ if ok then
 	item(23, "every world has ambient life", lively and amb.Errors == 0 and amb.OffGround == 0, amb and string.format("peaks %d/%d/%d/%d animals, %d off the ground", amb.Worlds[1].Peak, amb.Worlds[2].Peak, amb.Worlds[3].Peak, amb.Worlds[4].Peak, amb.OffGround))
 	item(24, "ambient life capped and cleaned up", amb ~= nil and amb.Peak <= 12 and amb.Leftovers == 0, amb and string.format("at most %d animals at once, %d left behind", amb.Peak, amb.Leftovers))
 
-	-- 25-30. the Index: all 70, Huge and Titanic categories, on the right, silhouettes
+	-- 25-30. the Index: all 100, Huge and Titanic categories, on the right, silhouettes
 	local ix = STATS.Index
-	item(25, "Index: all 70 normal animals", ix and ix[1].Cards == 70, ix and (ix[1].Cards .. " cards, " .. ix[1].Found .. " found"))
-	item(26, "Index: Huge category works", ix and ix[2].Cards == 70 and ix[2].Found == 2 and ix[2].Shown == 2, ix and string.format("%d cards, %d/70 found", ix[2].Cards, ix[2].Found))
-	item(27, "Index: Titanic category works", ix and ix[3].Cards == 70 and ix[3].Found == 1 and ix[3].Shown == 1, ix and string.format("%d cards, %d/70 found", ix[3].Cards, ix[3].Found))
+	item(25, "Index: all 100 normal animals", ix and ix[1].Cards == #Config.PETS, ix and (ix[1].Cards .. " cards, " .. ix[1].Found .. " found"))
+	item(26, "Index: Huge category works", ix and ix[2].Cards == #Config.PETS and ix[2].Found == 2 and ix[2].Shown == 2, ix and string.format("%d cards, %d/" .. #Config.PETS .. " found", ix[2].Cards, ix[2].Found))
+	item(27, "Index: Titanic category works", ix and ix[3].Cards == #Config.PETS and ix[3].Found == 1 and ix[3].Shown == 1, ix and string.format("%d cards, %d/" .. #Config.PETS .. " found", ix[3].Cards, ix[3].Found))
 	item(28, "Index: info and categories on the left", ix and ix.SideOnLeft)
-	item(29, "Index: unfound pets are silhouettes", ix and ix[1].Silhouettes == 70 - ix[1].Found and ix[2].Silhouettes == 68, ix and (ix[1].Silhouettes .. " silhouettes in Normal"))
+	item(29, "Index: unfound pets are silhouettes", ix and ix[1].Silhouettes == #Config.PETS - ix[1].Found and ix[2].Silhouettes == #Config.PETS - 2, ix and (ix[1].Silhouettes .. " silhouettes in Normal"))
 	-- every pet in every world; the world changes the odds
 	local rng = Random.new(5)
 	local testData = { Upgrades = {}, Equipped = {}, Rebirths = 0 }
@@ -2514,10 +2521,10 @@ if ok then
 				end
 			end
 		end
-		item(85, "every pet can hatch in every world", zero == 0, string.format("%d zero chances over 70 pets x 4 worlds x 5 luck levels (rarest later-world pet early: %s)", zero, Config.formatChance(worst)))
+		item(85, "every pet can hatch in every world", zero == 0, string.format("%d zero chances over " .. #Config.PETS .. " pets x 4 worlds x 5 luck levels (rarest later-world pet early: %s)", zero, Config.formatChance(worst)))
 		local b = STATS.B14 or {}
 		local ix = b.Index or {}
-		item(86, "Index: every world, rarity at x1 luck", ix.BestIn == 0 and (ix.Cards or 0) == 70 and ix.EveryWorld == 70 and ix.ChanceOk == 70,
+		item(86, "Index: every world, rarity at x1 luck", ix.BestIn == 0 and (ix.Cards or 0) == #Config.PETS and ix.EveryWorld == #Config.PETS and ix.ChanceOk == #Config.PETS,
 			string.format("%d/%d cards say 'Hatches in every world', %d/%d show the pet's rarity at x1 luck (not changed by your luck), %d 'Best in'", ix.EveryWorld or 0, ix.Cards or 0, ix.ChanceOk or 0, ix.Cards or 0, ix.BestIn or -1))
 		local g = STATS.Gates or {}
 		local lockedOk = g.Locked ~= nil
@@ -2593,7 +2600,7 @@ if ok then
 			string.format("damage x%s from the aura; %s has mini bees (%s), the reveal says '%s', its tile says '%s'", tostring(au.WantBoost), tostring(ac.Result), tostring(ac.Bees), tostring(ac.RevealName), tostring(ac.Tag)))
 		local of = STATS.Outfits or {}
 		item(105, "every pet wears its own outfit", of.Dressed == #Config.PETS and of.Distinct == #Config.PETS and of.Titanic == true,
-			string.format("%d/%d animals dressed, %d different looks (%d outfits x 2 colourways), a Titanic wears its outfit under its crown%s",
+			string.format("%d/%d animals dressed, %d different looks (%d outfits x 3 colourways), a Titanic wears its outfit under its crown%s",
 				of.Dressed or 0, #Config.PETS, of.Distinct or 0, #Config.OUTFITS, if of.Broken and of.Broken ~= "" then "; broken: " .. of.Broken else ""))
 		local lb = STATS.LuckBoard or {}
 		item(106, "Luck Board: rows, unlocks, real luck", lb.LockedRefused == true and lb.Bought == Config.BOARD_UNLOCK and math.abs((lb.PawRatio or 0) - (lb.WantRatio or -1)) < 1e-6

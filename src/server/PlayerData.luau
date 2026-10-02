@@ -44,7 +44,7 @@ local loadFailed = {} -- [player] = true: don't overwrite their save
 local removingHooks = {}
 
 -- Marks a pet as found in the Index: its size ("Huge Tiger") and the animal
--- itself ("Tiger", which is what the 70-animal count uses)
+-- itself ("Tiger", which is what the 100-animal count uses)
 function PlayerData.discover(data, name)
 	local pet = Config.petInfo(name)
 	if pet then

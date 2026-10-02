@@ -1,9 +1,9 @@
 -- The Animal Index: every animal there is, as hexagon tiles (PetTile) on
 -- the right; on the left, how many you've found, the three categories and
 -- the collection rewards. Hover (or tap) a tile for its card: name,
--- rarity, the chance here, power and stats. Categories: NORMAL (the 70 animals, the collection
+-- rarity, the chance here, power and stats. Categories: NORMAL (the 100 animals, the collection
 -- count), HUGE and TITANIC (the same 70 in those sizes, tracked separately;
--- they don't add to the 70). Found ones show in full colour; the rest are
+-- they don't add to the 100). Found ones show in full colour; the rest are
 -- dark silhouettes marked "???". Every animal can hatch in every world, so
 -- each card shows the exact chance of your next roll in the world you're
 -- standing in (animals from worlds ahead are much rarer there, never
@@ -94,7 +94,7 @@ local foundCount = Ui.chunky({
 	LayoutOrder = 1,
 	Size = UDim2.new(1, 0, 0, 34),
 	TextSize = 30,
-	Text = "[0/70]",
+	Text = "[0/100]",
 	TextColor3 = Color3.fromRGB(235, 230, 245),
 	Outline = 2.5,
 	ZIndex = 33,
@@ -129,7 +129,7 @@ for i, size in ipairs(Config.SIZES) do
 		Size = UDim2.new(1, 0, 0, 24),
 		TextScaled = false,
 		TextSize = 20,
-		Text = "0/70",
+		Text = "0/100",
 		ZIndex = 35,
 		Parent = b,
 	})

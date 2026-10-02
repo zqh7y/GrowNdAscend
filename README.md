@@ -23,8 +23,9 @@ chase Huge and Titanic pets.**
   switch to its enemies; other worlds' enemies aren't shown. Stronger pets (rarer, bigger)
   hit harder. Hits show lunges, flashes and damage numbers; a broken coin
   bursts and its coins fly into your counter. No clicking needed.
-- **Rolling:** the Roll button gives a random animal (70 animals, 1 in 2 to
-  1 in 10,000,000) and a random **size**: Normal, Huge (1 in 100, 10x power)
+- **Rolling:** the Roll button gives a random animal (100 animals, 1 in 2 to
+  1 in 660Qn: 10 animals up to 1 in 1K, then 15 in each band after, 1K-1M,
+  1M-1B, 1B-1T and so on) and a random **size**: Normal, Huge (1 in 100, 10x power)
   or Titanic (1 in 1,000, 100x power). **Every animal can hatch in every
   world**, but animals from worlds ahead of the one you stand in are 25x
   rarer per world (a World 4 animal in World 1: 15,625x rarer), and each
@@ -139,7 +140,7 @@ chase Huge and Titanic pets.**
   "+1 level" up. The side panel shows the selected upgrade in full (now →
   next, level pips, BUY).
 - **Collection rewards** in the Index: discovering animals unlocks
-  surprise rewards (5, 10, 15 … 70 animals, the first Huge and Titanic
+  surprise rewards (5, 10, 15 … 70, 85 and 100 animals, the first Huge and Titanic
   animals, and more). A small card under the categories shows how close
   the next one is ("18 / 20 animals"); when one is reached it turns gold,
   the Index button gets a gold dot and a CLAIM button appears. Claiming
@@ -164,9 +165,9 @@ chase Huge and Titanic pets.**
   breathe and look around (`Creature.luau`).
 - **Inventory and Animal Index:** the Inventory shows the pets you own
   (3D previews, size, rarity, power, amount, equipped) with filters and
-  sorting. The Index shows all 70 animals: "X / 70 Animals Discovered",
+  sorting. The Index shows all 100 animals: "X / 100 Animals Discovered",
   NORMAL / HUGE / TITANIC buttons on the right (each with its own count;
-  Huge and Titanic don't add to the 70), per-world tabs, silhouettes marked
+  Huge and Titanic don't add to the 100), per-world tabs, silhouettes marked
   ??? for what you haven't found, and each animal's odds where you stand.
 - **Living worlds:** birds fly across the sky and land on treetops,
   butterflies and bees visit flowers, wild animals wander and cross the
@@ -201,7 +202,7 @@ chase Huge and Titanic pets.**
   Astronaut, Graduate, Party, DJ, Surfer, Viking, Ninja, Santa, Skater,
   Detective, Sailor, Knight, Farmer, Painter, Scientist, Pilot, Baseball,
   Nurse, Explorer, Mechanic, Superhero, Gamer, Gardener, Angel and Devil,
-  each in two colourways, so all 70 look different. The Index card and the
+  each in three colourways, so all 100 look different. The Index card and the
   Inventory details say which; a Titanic wears its crown on top of its hat.
 - **Pet Aura Machine** (Sahara, where the fusion machine was; step on the
   circle in front of it to open it: it stays open while you stand there and
@@ -241,14 +242,14 @@ chase Huge and Titanic pets.**
 | --- | --- |
 | Rebirth 1 (level 16) | ~12 min |
 | World 2 (Sahara) | ~17 min |
-| Rebirths 2 / 3 | ~27 / 49 min |
-| World 3 (Frozen Peaks) | ~37 min |
-| Rebirths 4 / 5 / 6 | ~1.1 / 1.5 / 2 h |
-| World 4 (Sakura Jungle) | ~2.4 h |
-| Max luck (x100Qn) | ~2.4 h |
-| Rebirths 7 / 8 | ~2.8 / 3.6 h |
-| World 5 (Lava Arena) | ~3.3 h |
-| Best pet | **Titanic Glitch ~4.8T**, first one at ~2.5 h |
+| Rebirths 2 / 3 | ~28 / 52 min |
+| World 3 (Frozen Peaks) | ~40 min |
+| Rebirths 4 / 5 / 6 | ~1.2 / 1.6 / 1.9 h |
+| World 4 (Sakura Jungle) | ~2.2 h |
+| Max luck (x100Qn) | ~2.3 h |
+| Rebirths 7 / 8 | ~2.5 / 3.4 h |
+| World 5 (Lava Arena) | ~3 h |
+| Best pet | **Titanic Glitch ~4.8T**, first one at ~2.3 h |
 
 Enemy health, coin rewards, EXP, upgrade costs, world costs and rebirths
 all scale together (`python3 tools/economy/simulate.py 3 --hours 10`).
@@ -399,6 +400,6 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/client/Effects.luau` | Sounds, damage numbers, flying coins, confetti |
 | `src/client/Ui.luau`, `Screen.luau`, `State.luau` | UI kit and icons, panels and toasts, the client's data |
 | `src/shared/Coins.luau`, `Build.luau` | Living coin looks and jump styles; model-building helpers |
-| `src/client/PetModels.luau` | All 70 species (body, features, movement) and the tech details by rarity |
+| `src/client/PetModels.luau` | All 100 species (body, features, movement) and the tech details by rarity |
 | `tools/sim/` | Runs the server and client on a fake Roblox and plays through a 63-point checklist |
 | `tools/economy/simulate.py` | Simulates players to check the progression targets |

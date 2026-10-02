@@ -3,16 +3,17 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 47 (big animations only when the pet helps your team, luck 2x pricier, locked gates can't be climbed)"
+Config.BUILD = "build 48 (100 pets: 10 up to 1 in 1K, then 15 per band)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
 
 -- Pets -------------------------------------------------------------------------
 
--- Every animal in the game (the Index has all 70), from most common to
--- rarest. Odds is "1 in Odds": 10 animals in each band (1-1K, 1K-1M,
--- 1M-1B, 1B-1T, 1T-1Qd, 1Qd-1Qn, 1Qn-1Sx), so luck grows into huge numbers.
+-- Every animal in the game (the Index has all 100), from most common to
+-- rarest. Odds is "1 in Odds": 10 animals from 1 in 2 to 1 in 1K, then 15
+-- in each band after (1K-1M, 1M-1B, 1B-1T, 1T-1Qd, 1Qd-1Qn, 1Qn-1Sx), so
+-- luck grows into huge numbers.
 -- PowerOdds sets the pet's power (its place in the line-up). World is where
 -- it lives: rolling in an earlier world makes it much rarer.
 Config.PETS = {
@@ -28,68 +29,98 @@ Config.PETS = {
 	{ Name = "Piglet", Odds = 290, PowerOdds = 21, World = 1, Color = Color3.fromRGB(255, 170, 190), Stats = { Speed = 0.75, Luck = 1.07, Coins = 1.1, Damage = 1.01, Exp = 1.02 } },
 	{ Name = "Lamb", Odds = 540, PowerOdds = 28, World = 1, Color = Color3.fromRGB(250, 248, 240), Stats = { Speed = 0.75, Luck = 1.07, Coins = 1.01, Damage = 1.01, Exp = 1.11 } },
 	{ Name = "Squirrel", Odds = 2000, PowerOdds = 38, World = 1, Color = Color3.fromRGB(205, 120, 60), Stats = { Speed = 0.9, Luck = 1.08, Coins = 1.11, Damage = 1.01, Exp = 1.02 } },
-	{ Name = "Hedgehog", Odds = 3700, PowerOdds = 50, World = 1, Color = Color3.fromRGB(170, 130, 100), Stats = { Speed = 0.6, Luck = 1.08, Coins = 1.02, Damage = 1.01, Exp = 1.03 } },
-	{ Name = "Fox", Odds = 6900, PowerOdds = 70, World = 1, Color = Color3.fromRGB(240, 110, 40), Stats = { Speed = 1.1, Luck = 1.19, Coins = 1.02, Damage = 1.01, Exp = 1.03 } },
-	{ Name = "Raccoon", Odds = 13000, PowerOdds = 90, World = 1, Color = Color3.fromRGB(150, 150, 160), Stats = { Speed = 0.9, Luck = 1.1, Coins = 1.12, Damage = 1.02, Exp = 1.03 } },
-	{ Name = "Deer", Odds = 24000, PowerOdds = 125, World = 1, Color = Color3.fromRGB(200, 140, 90), Stats = { Speed = 1.1, Luck = 1.1, Coins = 1.02, Damage = 1.02, Exp = 1.03 } },
-	{ Name = "Owl", Odds = 45000, PowerOdds = 170, World = 1, Color = Color3.fromRGB(140, 100, 70), Stats = { Speed = 0.9, Luck = 1.11, Coins = 1.02, Damage = 1.02, Exp = 1.14 } },
-	{ Name = "Bear", Odds = 83000, PowerOdds = 225, World = 1, Color = Color3.fromRGB(150, 95, 60), Stats = { Speed = 0.85, Luck = 1.12, Coins = 1.02, Damage = 1.13, Exp = 1.04 } },
-	{ Name = "Wolf", Odds = 150000, PowerOdds = 300, World = 1, Color = Color3.fromRGB(120, 130, 160), Stats = { Speed = 1.2, Luck = 1.12, Coins = 1.02, Damage = 1.13, Exp = 1.04 } },
-	{ Name = "Parrot", Odds = 290000, PowerOdds = 400, World = 1, Color = Color3.fromRGB(70, 200, 110), Stats = { Speed = 1, Luck = 1.24, Coins = 1.03, Damage = 1.02, Exp = 1.04 } },
-	{ Name = "Moose", Odds = 540000, PowerOdds = 550, World = 1, Color = Color3.fromRGB(130, 90, 60), Stats = { Speed = 0.9, Luck = 1.14, Coins = 1.03, Damage = 1.14, Exp = 1.04 } },
-	{ Name = "Unicorn", Odds = 2000000, PowerOdds = 750, World = 1, Color = Color3.fromRGB(255, 170, 230), Stats = { Speed = 1.1, Luck = 1.26, Coins = 1.03, Damage = 1.02, Exp = 1.04 } },
-	{ Name = "Forest Guardian", Odds = 3700000, PowerOdds = 1000, World = 1, Color = Color3.fromRGB(90, 220, 140), Stats = { Speed = 1.1, Luck = 1.27, Coins = 1.03, Damage = 1.02, Exp = 1.04 } },
+	{ Name = "Badger", Odds = 3000, PowerOdds = 46, World = 1, Color = Color3.fromRGB(110, 110, 120), Stats = { Speed = 0.85, Luck = 1.08, Coins = 1.02, Damage = 1.09, Exp = 1.02 } },
+	{ Name = "Hedgehog", Odds = 4600, PowerOdds = 56, World = 1, Color = Color3.fromRGB(170, 130, 100), Stats = { Speed = 0.6, Luck = 1.08, Coins = 1.02, Damage = 1.01, Exp = 1.03 } },
+	{ Name = "Skunk", Odds = 6900, PowerOdds = 70, World = 1, Color = Color3.fromRGB(50, 50, 60), Stats = { Speed = 0.8, Luck = 1.08, Coins = 1.02, Damage = 1.01, Exp = 1.14 } },
+	{ Name = "Fox", Odds = 10000, PowerOdds = 81, World = 1, Color = Color3.fromRGB(240, 110, 40), Stats = { Speed = 1.1, Luck = 1.19, Coins = 1.02, Damage = 1.01, Exp = 1.03 } },
+	{ Name = "Raccoon", Odds = 16000, PowerOdds = 101, World = 1, Color = Color3.fromRGB(150, 150, 160), Stats = { Speed = 0.9, Luck = 1.1, Coins = 1.12, Damage = 1.02, Exp = 1.03 } },
+	{ Name = "Beaver", Odds = 24000, PowerOdds = 125, World = 1, Color = Color3.fromRGB(140, 95, 60), Stats = { Speed = 0.8, Luck = 1.1, Coins = 1.12, Damage = 1.02, Exp = 1.03 } },
+	{ Name = "Deer", Odds = 36000, PowerOdds = 152, World = 1, Color = Color3.fromRGB(200, 140, 90), Stats = { Speed = 1.1, Luck = 1.1, Coins = 1.02, Damage = 1.02, Exp = 1.03 } },
+	{ Name = "Owl", Odds = 55000, PowerOdds = 186, World = 1, Color = Color3.fromRGB(140, 100, 70), Stats = { Speed = 0.9, Luck = 1.11, Coins = 1.02, Damage = 1.02, Exp = 1.14 } },
+	{ Name = "Goat", Odds = 83000, PowerOdds = 225, World = 1, Color = Color3.fromRGB(235, 230, 215), Stats = { Speed = 0.9, Luck = 1.11, Coins = 1.02, Damage = 1.02, Exp = 1.14 } },
+	{ Name = "Bear", Odds = 130000, PowerOdds = 280, World = 1, Color = Color3.fromRGB(150, 95, 60), Stats = { Speed = 0.85, Luck = 1.12, Coins = 1.02, Damage = 1.13, Exp = 1.04 } },
+	{ Name = "Wolf", Odds = 190000, PowerOdds = 333, World = 1, Color = Color3.fromRGB(120, 130, 160), Stats = { Speed = 1.2, Luck = 1.12, Coins = 1.02, Damage = 1.13, Exp = 1.04 } },
+	{ Name = "Robin", Odds = 290000, PowerOdds = 400, World = 1, Color = Color3.fromRGB(220, 90, 60), Stats = { Speed = 1, Luck = 1.27, Coins = 1.02, Damage = 1.02, Exp = 1.04 } },
+	{ Name = "Parrot", Odds = 440000, PowerOdds = 495, World = 1, Color = Color3.fromRGB(70, 200, 110), Stats = { Speed = 1, Luck = 1.24, Coins = 1.03, Damage = 1.02, Exp = 1.04 } },
+	{ Name = "Moose", Odds = 660000, PowerOdds = 577, World = 1, Color = Color3.fromRGB(130, 90, 60), Stats = { Speed = 0.9, Luck = 1.14, Coins = 1.03, Damage = 1.14, Exp = 1.04 } },
+	{ Name = "Unicorn", Odds = 2e6, PowerOdds = 750, World = 1, Color = Color3.fromRGB(255, 170, 230), Stats = { Speed = 1.1, Luck = 1.26, Coins = 1.03, Damage = 1.02, Exp = 1.04 } },
+	{ Name = "Forest Guardian", Odds = 3e6, PowerOdds = 907, World = 1, Color = Color3.fromRGB(90, 220, 140), Stats = { Speed = 1.1, Luck = 1.27, Coins = 1.03, Damage = 1.02, Exp = 1.04 } },
 	-- World 2: Sahara
-	{ Name = "Camel", Odds = 6900000, PowerOdds = 1250, World = 2, Color = Color3.fromRGB(230, 180, 115), Stats = { Speed = 0.8, Luck = 1.15, Coins = 1.15, Damage = 1.02, Exp = 1.05 } },
-	{ Name = "Meerkat", Odds = 13000000, PowerOdds = 1500, World = 2, Color = Color3.fromRGB(215, 170, 110), Stats = { Speed = 1, Luck = 1.16, Coins = 1.16, Damage = 1.03, Exp = 1.05 } },
-	{ Name = "Fennec Fox", Odds = 24000000, PowerOdds = 1800, World = 2, Color = Color3.fromRGB(250, 210, 150), Stats = { Speed = 1.1, Luck = 1.16, Coins = 1.03, Damage = 1.03, Exp = 1.05 } },
-	{ Name = "Lizard", Odds = 45000000, PowerOdds = 2200, World = 2, Color = Color3.fromRGB(120, 200, 90), Stats = { Speed = 1, Luck = 1.17, Coins = 1.03, Damage = 1.03, Exp = 1.05 } },
-	{ Name = "Tortoise", Odds = 83000000, PowerOdds = 2600, World = 2, Color = Color3.fromRGB(130, 170, 90), Stats = { Speed = 0.4, Luck = 1.17, Coins = 1.03, Damage = 1.03, Exp = 1.18 } },
-	{ Name = "Scorpion", Odds = 150000000, PowerOdds = 3200, World = 2, Color = Color3.fromRGB(230, 110, 60), Stats = { Speed = 0.9, Luck = 1.18, Coins = 1.04, Damage = 1.16, Exp = 1.05 } },
-	{ Name = "Cobra", Odds = 290000000, PowerOdds = 3800, World = 2, Color = Color3.fromRGB(200, 170, 60), Stats = { Speed = 0.7, Luck = 1.18, Coins = 1.04, Damage = 1.16, Exp = 1.05 } },
-	{ Name = "Vulture", Odds = 540000000, PowerOdds = 4500, World = 2, Color = Color3.fromRGB(120, 100, 110), Stats = { Speed = 0.9, Luck = 1.18, Coins = 1.04, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Camel", Odds = 4.6e6, PowerOdds = 1081, World = 2, Color = Color3.fromRGB(230, 180, 115), Stats = { Speed = 0.8, Luck = 1.15, Coins = 1.15, Damage = 1.02, Exp = 1.05 } },
+	{ Name = "Jerboa", Odds = 6.9e6, PowerOdds = 1250, World = 2, Color = Color3.fromRGB(225, 190, 140), Stats = { Speed = 1.1, Luck = 1.27, Coins = 1.15, Damage = 1.02, Exp = 1.05 } },
+	{ Name = "Meerkat", Odds = 1e7, PowerOdds = 1391, World = 2, Color = Color3.fromRGB(215, 170, 110), Stats = { Speed = 1, Luck = 1.16, Coins = 1.16, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Fennec Fox", Odds = 1.6e7, PowerOdds = 1596, World = 2, Color = Color3.fromRGB(250, 210, 150), Stats = { Speed = 1.1, Luck = 1.16, Coins = 1.03, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Armadillo", Odds = 2.4e7, PowerOdds = 1800, World = 2, Color = Color3.fromRGB(180, 150, 130), Stats = { Speed = 0.6, Luck = 1.16, Coins = 1.03, Damage = 1.16, Exp = 1.05 } },
+	{ Name = "Lizard", Odds = 3.6e7, PowerOdds = 2049, World = 2, Color = Color3.fromRGB(120, 200, 90), Stats = { Speed = 1, Luck = 1.17, Coins = 1.03, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Tortoise", Odds = 5.5e7, PowerOdds = 2324, World = 2, Color = Color3.fromRGB(130, 170, 90), Stats = { Speed = 0.4, Luck = 1.17, Coins = 1.03, Damage = 1.03, Exp = 1.18 } },
+	{ Name = "Ostrich", Odds = 8.3e7, PowerOdds = 2600, World = 2, Color = Color3.fromRGB(90, 80, 80), Stats = { Speed = 1.3, Luck = 1.17, Coins = 1.03, Damage = 1.03, Exp = 1.18 } },
+	{ Name = "Scorpion", Odds = 1.3e8, PowerOdds = 3043, World = 2, Color = Color3.fromRGB(230, 110, 60), Stats = { Speed = 0.9, Luck = 1.18, Coins = 1.04, Damage = 1.16, Exp = 1.05 } },
+	{ Name = "Cobra", Odds = 1.9e8, PowerOdds = 3403, World = 2, Color = Color3.fromRGB(200, 170, 60), Stats = { Speed = 0.7, Luck = 1.18, Coins = 1.04, Damage = 1.16, Exp = 1.05 } },
+	{ Name = "Sand Cat", Odds = 2.9e8, PowerOdds = 3800, World = 2, Color = Color3.fromRGB(230, 200, 150), Stats = { Speed = 1, Luck = 1.18, Coins = 1.18, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Vulture", Odds = 4.4e8, PowerOdds = 4256, World = 2, Color = Color3.fromRGB(120, 100, 110), Stats = { Speed = 0.9, Luck = 1.18, Coins = 1.04, Damage = 1.03, Exp = 1.05 } },
+	{ Name = "Oryx", Odds = 6.6e8, PowerOdds = 4641, World = 2, Color = Color3.fromRGB(240, 235, 225), Stats = { Speed = 1.1, Luck = 1.18, Coins = 1.04, Damage = 1.16, Exp = 1.05 } },
 	{ Name = "Hyena", Odds = 2e9, PowerOdds = 5500, World = 2, Color = Color3.fromRGB(200, 170, 120), Stats = { Speed = 1.1, Luck = 1.19, Coins = 1.04, Damage = 1.16, Exp = 1.06 } },
-	{ Name = "Cheetah", Odds = 3.7e9, PowerOdds = 6500, World = 2, Color = Color3.fromRGB(250, 195, 90), Stats = { Speed = 1.5, Luck = 1.19, Coins = 1.04, Damage = 1.03, Exp = 1.06 } },
+	{ Name = "Caracal", Odds = 3e9, PowerOdds = 6140, World = 2, Color = Color3.fromRGB(210, 150, 90), Stats = { Speed = 1.3, Luck = 1.19, Coins = 1.04, Damage = 1.16, Exp = 1.06 } },
+	{ Name = "Cheetah", Odds = 4.6e9, PowerOdds = 6989, World = 2, Color = Color3.fromRGB(250, 195, 90), Stats = { Speed = 1.5, Luck = 1.19, Coins = 1.04, Damage = 1.03, Exp = 1.06 } },
 	{ Name = "Lion", Odds = 6.9e9, PowerOdds = 8000, World = 2, Color = Color3.fromRGB(240, 175, 70), Stats = { Speed = 1.1, Luck = 1.2, Coins = 1.18, Damage = 1.03, Exp = 1.06 } },
-	{ Name = "Falcon", Odds = 1.3e10, PowerOdds = 9500, World = 2, Color = Color3.fromRGB(150, 120, 100), Stats = { Speed = 1.3, Luck = 1.2, Coins = 1.04, Damage = 1.03, Exp = 1.06 } },
+	{ Name = "Falcon", Odds = 1e10, PowerOdds = 8847, World = 2, Color = Color3.fromRGB(150, 120, 100), Stats = { Speed = 1.3, Luck = 1.2, Coins = 1.04, Damage = 1.03, Exp = 1.06 } },
+	{ Name = "Pharaoh Cat", Odds = 1.6e10, PowerOdds = 10135, World = 2, Color = Color3.fromRGB(60, 60, 80), Stats = { Speed = 1, Luck = 1.34, Coins = 1.04, Damage = 1.03, Exp = 1.06 } },
 	{ Name = "Golden Scarab", Odds = 2.4e10, PowerOdds = 11500, World = 2, Color = Color3.fromRGB(255, 200, 50), Stats = { Speed = 0.8, Luck = 1.34, Coins = 1.04, Damage = 1.03, Exp = 1.06 } },
-	{ Name = "Anubis Jackal", Odds = 4.5e10, PowerOdds = 14000, World = 2, Color = Color3.fromRGB(50, 55, 80), Stats = { Speed = 1.2, Luck = 1.21, Coins = 1.04, Damage = 1.03, Exp = 1.21 } },
-	{ Name = "Griffin", Odds = 8.3e10, PowerOdds = 17000, World = 2, Color = Color3.fromRGB(230, 200, 120), Stats = { Speed = 1.1, Luck = 1.21, Coins = 1.04, Damage = 1.03, Exp = 1.21 } },
-	{ Name = "Sphinx", Odds = 1.5e11, PowerOdds = 20000, World = 2, Color = Color3.fromRGB(245, 210, 140), Stats = { Speed = 0.9, Luck = 1.22, Coins = 1.04, Damage = 1.03, Exp = 1.21 } },
+	{ Name = "Anubis Jackal", Odds = 3.6e10, PowerOdds = 13056, World = 2, Color = Color3.fromRGB(50, 55, 80), Stats = { Speed = 1.2, Luck = 1.21, Coins = 1.04, Damage = 1.03, Exp = 1.21 } },
+	{ Name = "Griffin", Odds = 5.5e10, PowerOdds = 14920, World = 2, Color = Color3.fromRGB(230, 200, 120), Stats = { Speed = 1.1, Luck = 1.21, Coins = 1.04, Damage = 1.03, Exp = 1.21 } },
+	{ Name = "Sphinx", Odds = 8.3e10, PowerOdds = 17000, World = 2, Color = Color3.fromRGB(245, 210, 140), Stats = { Speed = 0.9, Luck = 1.22, Coins = 1.04, Damage = 1.03, Exp = 1.21 } },
 	-- World 3: Frozen Peaks
-	{ Name = "Penguin", Odds = 2.9e11, PowerOdds = 25000, World = 3, Color = Color3.fromRGB(60, 80, 120), Stats = { Speed = 0.5, Luck = 1.22, Coins = 1.04, Damage = 1.04, Exp = 1.07 } },
-	{ Name = "Snow Hare", Odds = 5.4e11, PowerOdds = 30000, World = 3, Color = Color3.fromRGB(245, 248, 255), Stats = { Speed = 0.9, Luck = 1.37, Coins = 1.04, Damage = 1.04, Exp = 1.07 } },
+	{ Name = "Penguin", Odds = 1.3e11, PowerOdds = 19229, World = 3, Color = Color3.fromRGB(60, 80, 120), Stats = { Speed = 0.5, Luck = 1.22, Coins = 1.04, Damage = 1.04, Exp = 1.07 } },
+	{ Name = "Puffin", Odds = 1.9e11, PowerOdds = 21666, World = 3, Color = Color3.fromRGB(40, 40, 55), Stats = { Speed = 0.6, Luck = 1.22, Coins = 1.12, Damage = 1.04, Exp = 1.07 } },
+	{ Name = "Snow Hare", Odds = 2.9e11, PowerOdds = 25000, World = 3, Color = Color3.fromRGB(245, 248, 255), Stats = { Speed = 0.9, Luck = 1.37, Coins = 1.04, Damage = 1.04, Exp = 1.07 } },
+	{ Name = "Ermine", Odds = 4.4e11, PowerOdds = 28251, World = 3, Color = Color3.fromRGB(250, 250, 252), Stats = { Speed = 1.1, Luck = 1.37, Coins = 1.04, Damage = 1.04, Exp = 1.23 } },
+	{ Name = "Lynx", Odds = 6.6e11, PowerOdds = 30980, World = 3, Color = Color3.fromRGB(200, 170, 140), Stats = { Speed = 1.2, Luck = 1.23, Coins = 1.05, Damage = 1.12, Exp = 1.07 } },
 	{ Name = "Arctic Fox", Odds = 2e12, PowerOdds = 37000, World = 3, Color = Color3.fromRGB(235, 240, 250), Stats = { Speed = 1.1, Luck = 1.23, Coins = 1.05, Damage = 1.04, Exp = 1.07 } },
-	{ Name = "Seal", Odds = 3.7e12, PowerOdds = 45000, World = 3, Color = Color3.fromRGB(170, 180, 200), Stats = { Speed = 0.45, Luck = 1.23, Coins = 1.05, Damage = 1.04, Exp = 1.22 } },
+	{ Name = "Seal", Odds = 3e12, PowerOdds = 42095, World = 3, Color = Color3.fromRGB(170, 180, 200), Stats = { Speed = 0.45, Luck = 1.23, Coins = 1.05, Damage = 1.04, Exp = 1.22 } },
+	{ Name = "Beluga", Odds = 4.6e12, PowerOdds = 48268, World = 3, Color = Color3.fromRGB(240, 245, 250), Stats = { Speed = 0.8, Luck = 1.23, Coins = 1.05, Damage = 1.04, Exp = 1.23 } },
 	{ Name = "Husky", Odds = 6.9e12, PowerOdds = 55000, World = 3, Color = Color3.fromRGB(150, 160, 180), Stats = { Speed = 1.2, Luck = 1.24, Coins = 1.05, Damage = 1.04, Exp = 1.07 } },
-	{ Name = "Snowy Owl", Odds = 1.3e13, PowerOdds = 67000, World = 3, Color = Color3.fromRGB(248, 250, 255), Stats = { Speed = 0.9, Luck = 1.24, Coins = 1.05, Damage = 1.04, Exp = 1.23 } },
+	{ Name = "Snowy Owl", Odds = 1e13, PowerOdds = 61741, World = 3, Color = Color3.fromRGB(248, 250, 255), Stats = { Speed = 0.9, Luck = 1.24, Coins = 1.05, Damage = 1.04, Exp = 1.23 } },
+	{ Name = "Musk Ox", Odds = 1.6e13, PowerOdds = 71745, World = 3, Color = Color3.fromRGB(110, 80, 60), Stats = { Speed = 0.7, Luck = 1.24, Coins = 1.05, Damage = 1.21, Exp = 1.07 } },
 	{ Name = "Walrus", Odds = 2.4e13, PowerOdds = 82000, World = 3, Color = Color3.fromRGB(180, 130, 100), Stats = { Speed = 0.4, Luck = 1.25, Coins = 1.05, Damage = 1.2, Exp = 1.07 } },
-	{ Name = "Reindeer", Odds = 4.5e13, PowerOdds = 100000, World = 3, Color = Color3.fromRGB(170, 120, 80), Stats = { Speed = 1.1, Luck = 1.25, Coins = 1.05, Damage = 1.04, Exp = 1.23 } },
-	{ Name = "Polar Bear", Odds = 8.3e13, PowerOdds = 120000, World = 3, Color = Color3.fromRGB(250, 250, 245), Stats = { Speed = 0.85, Luck = 1.25, Coins = 1.05, Damage = 1.2, Exp = 1.08 } },
-	{ Name = "Snow Leopard", Odds = 1.5e14, PowerOdds = 150000, World = 3, Color = Color3.fromRGB(230, 232, 240), Stats = { Speed = 1.3, Luck = 1.26, Coins = 1.05, Damage = 1.04, Exp = 1.08 } },
-	{ Name = "Orca", Odds = 2.9e14, PowerOdds = 180000, World = 3, Color = Color3.fromRGB(40, 45, 70), Stats = { Speed = 1, Luck = 1.26, Coins = 1.05, Damage = 1.21, Exp = 1.08 } },
-	{ Name = "Narwhal", Odds = 5.4e14, PowerOdds = 220000, World = 3, Color = Color3.fromRGB(150, 180, 220), Stats = { Speed = 0.9, Luck = 1.27, Coins = 1.05, Damage = 1.04, Exp = 1.25 } },
+	{ Name = "Reindeer", Odds = 3.6e13, PowerOdds = 93198, World = 3, Color = Color3.fromRGB(170, 120, 80), Stats = { Speed = 1.1, Luck = 1.25, Coins = 1.05, Damage = 1.04, Exp = 1.23 } },
+	{ Name = "Polar Bear", Odds = 5.5e13, PowerOdds = 106159, World = 3, Color = Color3.fromRGB(250, 250, 245), Stats = { Speed = 0.85, Luck = 1.25, Coins = 1.05, Damage = 1.2, Exp = 1.08 } },
+	{ Name = "Frost Wolf", Odds = 8.3e13, PowerOdds = 120000, World = 3, Color = Color3.fromRGB(190, 225, 255), Stats = { Speed = 1.3, Luck = 1.25, Coins = 1.05, Damage = 1.21, Exp = 1.08 } },
+	{ Name = "Snow Leopard", Odds = 1.3e14, PowerOdds = 142121, World = 3, Color = Color3.fromRGB(230, 232, 240), Stats = { Speed = 1.3, Luck = 1.26, Coins = 1.05, Damage = 1.04, Exp = 1.08 } },
+	{ Name = "Orca", Odds = 1.9e14, PowerOdds = 160134, World = 3, Color = Color3.fromRGB(40, 45, 70), Stats = { Speed = 1, Luck = 1.26, Coins = 1.05, Damage = 1.21, Exp = 1.08 } },
+	{ Name = "Crystal Deer", Odds = 2.9e14, PowerOdds = 180000, World = 3, Color = Color3.fromRGB(170, 230, 255), Stats = { Speed = 1.2, Luck = 1.34, Coins = 1.05, Damage = 1.04, Exp = 1.08 } },
+	{ Name = "Narwhal", Odds = 4.4e14, PowerOdds = 205927, World = 3, Color = Color3.fromRGB(150, 180, 220), Stats = { Speed = 0.9, Luck = 1.27, Coins = 1.05, Damage = 1.04, Exp = 1.25 } },
+	{ Name = "Aurora Fox", Odds = 6.6e14, PowerOdds = 227015, World = 3, Color = Color3.fromRGB(120, 255, 200), Stats = { Speed = 1.2, Luck = 1.35, Coins = 1.05, Damage = 1.04, Exp = 1.08 } },
 	{ Name = "Yeti", Odds = 2e15, PowerOdds = 270000, World = 3, Color = Color3.fromRGB(235, 245, 255), Stats = { Speed = 0.8, Luck = 1.27, Coins = 1.05, Damage = 1.21, Exp = 1.08 } },
-	{ Name = "Mammoth", Odds = 3.7e15, PowerOdds = 330000, World = 3, Color = Color3.fromRGB(150, 105, 75), Stats = { Speed = 0.7, Luck = 1.28, Coins = 1.23, Damage = 1.04, Exp = 1.08 } },
-	{ Name = "Ice Phoenix", Odds = 6.9e15, PowerOdds = 400000, World = 3, Color = Color3.fromRGB(140, 220, 255), Stats = { Speed = 1.2, Luck = 1.28, Coins = 1.06, Damage = 1.04, Exp = 1.08 } },
-	{ Name = "Frost Dragon", Odds = 1.3e16, PowerOdds = 500000, World = 3, Color = Color3.fromRGB(120, 200, 255), Stats = { Speed = 1.2, Luck = 1.28, Coins = 1.06, Damage = 1.22, Exp = 1.09 } },
+	{ Name = "Mammoth", Odds = 3e15, PowerOdds = 308180, World = 3, Color = Color3.fromRGB(150, 105, 75), Stats = { Speed = 0.7, Luck = 1.28, Coins = 1.23, Damage = 1.04, Exp = 1.08 } },
+	{ Name = "Ice Phoenix", Odds = 4.6e15, PowerOdds = 352941, World = 3, Color = Color3.fromRGB(140, 220, 255), Stats = { Speed = 1.2, Luck = 1.28, Coins = 1.06, Damage = 1.04, Exp = 1.08 } },
+	{ Name = "Frost Dragon", Odds = 6.9e15, PowerOdds = 400000, World = 3, Color = Color3.fromRGB(120, 200, 255), Stats = { Speed = 1.2, Luck = 1.28, Coins = 1.06, Damage = 1.22, Exp = 1.09 } },
 	-- World 4: Sakura Jungle
-	{ Name = "Shiba", Odds = 2.4e16, PowerOdds = 600000, World = 4, Color = Color3.fromRGB(235, 160, 90), Stats = { Speed = 1.1, Luck = 1.29, Coins = 1.06, Damage = 1.05, Exp = 1.09 } },
-	{ Name = "Red Panda", Odds = 4.5e16, PowerOdds = 720000, World = 4, Color = Color3.fromRGB(215, 90, 50), Stats = { Speed = 0.9, Luck = 1.29, Coins = 1.24, Damage = 1.05, Exp = 1.09 } },
-	{ Name = "Koi", Odds = 8.3e16, PowerOdds = 870000, World = 4, Color = Color3.fromRGB(255, 140, 60), Stats = { Speed = 0.8, Luck = 1.48, Coins = 1.06, Damage = 1.05, Exp = 1.09 } },
-	{ Name = "Crane", Odds = 1.5e17, PowerOdds = 1050000, World = 4, Color = Color3.fromRGB(250, 250, 250), Stats = { Speed = 1, Luck = 1.3, Coins = 1.06, Damage = 1.05, Exp = 1.27 } },
-	{ Name = "Tanuki", Odds = 2.9e17, PowerOdds = 1270000, World = 4, Color = Color3.fromRGB(140, 110, 90), Stats = { Speed = 0.85, Luck = 1.31, Coins = 1.24, Damage = 1.05, Exp = 1.09 } },
-	{ Name = "Panda", Odds = 5.4e17, PowerOdds = 1500000, World = 4, Color = Color3.fromRGB(40, 40, 45), Stats = { Speed = 0.75, Luck = 1.31, Coins = 1.06, Damage = 1.05, Exp = 1.28 } },
+	{ Name = "Shiba", Odds = 1e16, PowerOdds = 455859, World = 4, Color = Color3.fromRGB(235, 160, 90), Stats = { Speed = 1.1, Luck = 1.29, Coins = 1.06, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Monkey", Odds = 1.6e16, PowerOdds = 531846, World = 4, Color = Color3.fromRGB(160, 110, 70), Stats = { Speed = 1.1, Luck = 1.29, Coins = 1.06, Damage = 1.05, Exp = 1.27 } },
+	{ Name = "Red Panda", Odds = 2.4e16, PowerOdds = 600000, World = 4, Color = Color3.fromRGB(215, 90, 50), Stats = { Speed = 0.9, Luck = 1.29, Coins = 1.24, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Koi", Odds = 3.6e16, PowerOdds = 674877, World = 4, Color = Color3.fromRGB(255, 140, 60), Stats = { Speed = 0.8, Luck = 1.48, Coins = 1.06, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Toucan", Odds = 5.5e16, PowerOdds = 766078, World = 4, Color = Color3.fromRGB(30, 30, 40), Stats = { Speed = 1, Luck = 1.3, Coins = 1.24, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Crane", Odds = 8.3e16, PowerOdds = 870000, World = 4, Color = Color3.fromRGB(250, 250, 250), Stats = { Speed = 1, Luck = 1.3, Coins = 1.06, Damage = 1.05, Exp = 1.27 } },
+	{ Name = "Sloth", Odds = 1.3e17, PowerOdds = 1003000, World = 4, Color = Color3.fromRGB(170, 140, 110), Stats = { Speed = 0.4, Luck = 1.3, Coins = 1.06, Damage = 1.05, Exp = 1.28 } },
+	{ Name = "Tanuki", Odds = 1.9e17, PowerOdds = 1124000, World = 4, Color = Color3.fromRGB(140, 110, 90), Stats = { Speed = 0.85, Luck = 1.31, Coins = 1.24, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Chameleon", Odds = 2.9e17, PowerOdds = 1270000, World = 4, Color = Color3.fromRGB(120, 220, 110), Stats = { Speed = 0.7, Luck = 1.5, Coins = 1.06, Damage = 1.05, Exp = 1.09 } },
+	{ Name = "Panda", Odds = 4.4e17, PowerOdds = 1420000, World = 4, Color = Color3.fromRGB(40, 40, 45), Stats = { Speed = 0.75, Luck = 1.31, Coins = 1.06, Damage = 1.05, Exp = 1.28 } },
+	{ Name = "Lucky Cat", Odds = 6.6e17, PowerOdds = 1549000, World = 4, Color = Color3.fromRGB(255, 250, 240), Stats = { Speed = 0.9, Luck = 1.31, Coins = 1.24, Damage = 1.05, Exp = 1.09 } },
 	{ Name = "Kitsune", Odds = 2e18, PowerOdds = 1850000, World = 4, Color = Color3.fromRGB(255, 245, 235), Stats = { Speed = 1.2, Luck = 1.5, Coins = 1.06, Damage = 1.05, Exp = 1.09 } },
-	{ Name = "Tiger", Odds = 3.7e18, PowerOdds = 2200000, World = 4, Color = Color3.fromRGB(255, 140, 20), Stats = { Speed = 1.2, Luck = 1.32, Coins = 1.06, Damage = 1.24, Exp = 1.1 } },
+	{ Name = "Tiger", Odds = 3e18, PowerOdds = 2074000, World = 4, Color = Color3.fromRGB(255, 140, 20), Stats = { Speed = 1.2, Luck = 1.32, Coins = 1.06, Damage = 1.24, Exp = 1.1 } },
+	{ Name = "Moon Wolf", Odds = 4.6e18, PowerOdds = 2363000, World = 4, Color = Color3.fromRGB(200, 210, 255), Stats = { Speed = 1.3, Luck = 1.32, Coins = 1.06, Damage = 1.25, Exp = 1.1 } },
 	{ Name = "Kirin", Odds = 6.9e18, PowerOdds = 2700000, World = 4, Color = Color3.fromRGB(255, 210, 120), Stats = { Speed = 1.3, Luck = 1.32, Coins = 1.06, Damage = 1.05, Exp = 1.1 } },
-	{ Name = "Dragon", Odds = 1.3e19, PowerOdds = 3250000, World = 4, Color = Color3.fromRGB(220, 40, 40), Stats = { Speed = 1.3, Luck = 1.33, Coins = 1.07, Damage = 1.24, Exp = 1.1 } },
+	{ Name = "Dragon", Odds = 1e19, PowerOdds = 3010000, World = 4, Color = Color3.fromRGB(220, 40, 40), Stats = { Speed = 1.3, Luck = 1.33, Coins = 1.07, Damage = 1.24, Exp = 1.1 } },
+	{ Name = "Thunderbird", Odds = 1.6e19, PowerOdds = 3457000, World = 4, Color = Color3.fromRGB(255, 220, 60), Stats = { Speed = 1.4, Luck = 1.33, Coins = 1.07, Damage = 1.25, Exp = 1.1 } },
 	{ Name = "Phoenix", Odds = 2.4e19, PowerOdds = 3900000, World = 4, Color = Color3.fromRGB(255, 120, 20), Stats = { Speed = 1.3, Luck = 1.52, Coins = 1.07, Damage = 1.05, Exp = 1.1 } },
-	{ Name = "Kraken", Odds = 4.5e19, PowerOdds = 4700000, World = 4, Color = Color3.fromRGB(80, 40, 140), Stats = { Speed = 0.7, Luck = 1.33, Coins = 1.07, Damage = 1.25, Exp = 1.1 } },
-	{ Name = "Celestial Lion", Odds = 8.3e19, PowerOdds = 5700000, World = 4, Color = Color3.fromRGB(255, 240, 150), Stats = { Speed = 1.3, Luck = 1.53, Coins = 1.07, Damage = 1.05, Exp = 1.1 } },
-	{ Name = "Void Serpent", Odds = 1.5e20, PowerOdds = 6900000, World = 4, Color = Color3.fromRGB(60, 30, 110), Stats = { Speed = 0.8, Luck = 1.34, Coins = 1.07, Damage = 1.25, Exp = 1.1 } },
-	{ Name = "Galaxy Whale", Odds = 2.9e20, PowerOdds = 8300000, World = 4, Color = Color3.fromRGB(70, 60, 200), Stats = { Speed = 0.9, Luck = 1.35, Coins = 1.27, Damage = 1.06, Exp = 1.1 } },
-	{ Name = "Glitch", Odds = 5.4e20, PowerOdds = 10000000, World = 4, Color = Color3.fromRGB(0, 255, 140), Stats = { Speed = 1.1, Luck = 1.55, Coins = 1.07, Damage = 1.06, Exp = 1.1 } },
+	{ Name = "Star Bunny", Odds = 3.6e19, PowerOdds = 4399000, World = 4, Color = Color3.fromRGB(255, 230, 250), Stats = { Speed = 1.1, Luck = 1.53, Coins = 1.07, Damage = 1.05, Exp = 1.1 } },
+	{ Name = "Kraken", Odds = 5.5e19, PowerOdds = 5007000, World = 4, Color = Color3.fromRGB(80, 40, 140), Stats = { Speed = 0.7, Luck = 1.33, Coins = 1.07, Damage = 1.25, Exp = 1.1 } },
+	{ Name = "Pegasus", Odds = 8.3e19, PowerOdds = 5700000, World = 4, Color = Color3.fromRGB(250, 250, 255), Stats = { Speed = 1.3, Luck = 1.33, Coins = 1.07, Damage = 1.05, Exp = 1.18 } },
+	{ Name = "Celestial Lion", Odds = 1.3e20, PowerOdds = 6588000, World = 4, Color = Color3.fromRGB(255, 240, 150), Stats = { Speed = 1.3, Luck = 1.53, Coins = 1.07, Damage = 1.05, Exp = 1.1 } },
+	{ Name = "Cosmic Turtle", Odds = 1.9e20, PowerOdds = 7373000, World = 4, Color = Color3.fromRGB(60, 50, 150), Stats = { Speed = 0.6, Luck = 1.34, Coins = 1.27, Damage = 1.05, Exp = 1.1 } },
+	{ Name = "Void Serpent", Odds = 2.9e20, PowerOdds = 8300000, World = 4, Color = Color3.fromRGB(60, 30, 110), Stats = { Speed = 0.8, Luck = 1.34, Coins = 1.07, Damage = 1.25, Exp = 1.1 } },
+	{ Name = "Galaxy Whale", Odds = 4.4e20, PowerOdds = 9405000, World = 4, Color = Color3.fromRGB(70, 60, 200), Stats = { Speed = 0.9, Luck = 1.35, Coins = 1.27, Damage = 1.06, Exp = 1.1 } },
+	{ Name = "Glitch", Odds = 6.6e20, PowerOdds = 10000000, World = 4, Color = Color3.fromRGB(0, 255, 140), Stats = { Speed = 1.1, Luck = 1.55, Coins = 1.07, Damage = 1.06, Exp = 1.1 } },
 }
 -- Power grows a little faster than rarity: power = 1M x (odds / 1000)^1.17,
 -- so a Dog is ~700, a Tiger 1M, a Galaxy Whale ~3.2B and a Glitch ~48B.
@@ -177,9 +208,9 @@ end
 
 -- Outfits -----------------------------------------------------------------------
 -- Every animal wears its own outfit (only looks, no stats). There are 35
--- outfits in two colourways: animal #1 gets outfit 1, #36 gets outfit 1 in
--- its second colours, and so on, so all 70 look different. PetModels
--- builds them; the Inventory and the Index show the name.
+-- outfits in three colourways: animal #1 gets outfit 1, #36 gets outfit 1
+-- in its second colours, #71 in its third, and so on, so all 100 look
+-- different. PetModels builds them; the Inventory and the Index show the name.
 Config.OUTFITS = {
 	"Fireman", "Cop", "Doctor", "Rapper", "Millionaire", "Chef", "Pirate", "Cowboy", "Wizard",
 	"Builder", "Astronaut", "Graduate", "Party", "DJ", "Surfer", "Viking", "Ninja", "Santa",
@@ -196,7 +227,8 @@ function Config.outfitOf(name)
 	end
 	local count = #Config.OUTFITS
 	local index = (pet.Index - 1) % count + 1
-	return { Index = index, Name = Config.OUTFITS[index], Alt = pet.Index > count }
+	local variant = (pet.Index - 1) // count + 1 -- 1, 2 or 3
+	return { Index = index, Name = Config.OUTFITS[index], Alt = variant >= 2, Variant = variant }
 end
 
 -- Auras (the Pet Aura Machine in the Sahara) ---------------------------------------
@@ -748,9 +780,10 @@ Config.MILESTONES = {
 	{ Id = "n25", Size = 1, Count = 25, Coins = 1e5, Boost = 1 },
 	{ Id = "n30", Size = 1, Count = 30, Coins = 2e5, Boost = 4 },
 	{ Id = "n40", Size = 1, Count = 40, Coins = 7.5e5, Boost = 1 },
-	{ Id = "n50", Size = 1, Count = 50, Coins = 1.5e8, Boost = 8 },
-	{ Id = "n60", Size = 1, Count = 60, Coins = 1e9, Boost = 1 },
-	{ Id = "n70", Size = 1, Count = 70, Coins = 1e12, Boost = 16 },
+	{ Id = "n55", Size = 1, Count = 55, Coins = 1.5e8, Boost = 8 },
+	{ Id = "n70", Size = 1, Count = 70, Coins = 1e9, Boost = 1 },
+	{ Id = "n85", Size = 1, Count = 85, Coins = 1e11, Boost = 4 },
+	{ Id = "n100", Size = 1, Count = 100, Coins = 1e13, Boost = 16 },
 	{ Id = "h1", Size = 2, Count = 1, Coins = 800, Boost = 2 },
 	{ Id = "h5", Size = 2, Count = 5, Coins = 1.5e3, Boost = 1 },
 	{ Id = "h15", Size = 2, Count = 15, Coins = 3e5, Boost = 4 },

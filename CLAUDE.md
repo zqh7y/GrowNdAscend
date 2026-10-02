@@ -52,11 +52,13 @@ for how it plays and where the code lives.
   active player (it reads worlds, rebirths, levels and animals from
   Config; only the upgrade tree is mirrored in its UP table). Targets
   (the user's): Rebirth 1 ~10 min, Rebirth 8 ~3 h (now: R1 ~12 min, R8
-  ~3.6 h; World 2 ~17 min, World 3 ~37 min, World 4 ~2.4 h); best pet
+  ~3.4 h; World 2 ~17 min, World 3 ~40 min, World 4 ~2.2 h); best pet
   Titanic Glitch ~5T. The sim also prints BEST (first Titanic Glitch) and
   MAXLUCK; the user wanted those ~2x slower than 1.3 h, so the Luck
   upgrade (250 * 6.5^level, mirrored in the sim's UP table) and the Luck
-  Board costs were raised (build 47): now ~2.5 h.
+  Board costs were raised (build 47): now ~2.3 h with 100 pets. The big
+  collection rewards sit at 55/70/85/100 animals (a 1T reward at 70 of
+  100 paid for World 4 outright).
 - Ground: the playable strip is flat terrain at Y = 0 (terrain above it is
   cleared after building). Put things on the ground with
   `World.groundAt`/`World.flatGround`, never an assumed Y.
@@ -103,7 +105,11 @@ for how it plays and where the code lives.
 - Animals: every species row lives in `PetModels.SPECIES` (body, features,
   Move and Speed). Movement is `Creature.luau`, shared by pets and wild
   animals; don't add a second follow system. New animals need a species row.
-- The Index counts base animals only (70); Huge/Titanic don't count.
+- The Index counts base animals only (100); Huge/Titanic don't count.
+- 100 animals (the user's layout): 10 from 1 in 2 to 1 in 1K, then 15 per
+  band (1K-1M, 1M-1B, ... 1Qn-1Sx; odds 10^(3k + 0.3 + 0.18j)). Worlds stay
+  contiguous by odds. Outfits: 35 x 3 colourways (Config.outfitOf Variant;
+  the third is the first colours turned round the colour wheel).
   `data.Discovered` is set when an animal is first hatched.
 - Ambient life (`Ambient.luau`) is client-only and capped: MAX_ANIMALS,
   per-world caps in `Ambient.WORLDS`, one visitor at a time. Only the

@@ -1,4 +1,4 @@
--- Animal models for all 70 animals: chunky, blocky collectibles. Every
+-- Animal models for all 100 animals: chunky, blocky collectibles. Every
 -- animal is built from soft rounded blocks (a big head on a compact body,
 -- short sturdy legs) and has its own silhouette, face, fur and markings
 -- (see SPECIES). The faces are layered: glossy eyes with an iris and two
@@ -72,6 +72,11 @@ local SPECIES = {
 	Wolf = { Body = "beast", Move = "walk", Speed = 24, Ears = "point", Tail = "fluffy", Muzzle = true, Eyes = "sparkle", Mouth = "smile" },
 	Parrot = { Body = "bird", Move = "fly", Speed = 20, Crest = "tuft", LongTail = true, Eyes = "sparkle", Mouth = "beak", Rainbow = true },
 	Moose = { Body = "beast", Move = "walk", Speed = 18, Ears = "point", Tail = "puff", Antlers = "big", Muzzle = true, Eyes = "round", Mouth = "smile", Chunky = true },
+	Badger = { Body = "beast", Move = "walk", Speed = 16, Ears = "round", Tail = "puff", Mask = true, Muzzle = true, Chunky = true, Eyes = "round", Mouth = "smile" },
+	Skunk = { Body = "beast", Move = "walk", Speed = 15, Ears = "round", Tail = "bushy", Small = true, Eyes = "happy", Mouth = "cat" },
+	Beaver = { Body = "beast", Move = "walk", Speed = 14, Ears = "round", Tail = "thin", Muzzle = true, Chunky = true, Eyes = "round", Mouth = "tongue" },
+	Goat = { Body = "beast", Move = "hop", Speed = 18, Ears = "horns", Tail = "puff", Muzzle = true, Eyes = "happy", Mouth = "smile" },
+	Robin = { Body = "bird", Move = "fly", Speed = 20, Crest = "tuft", Eyes = "sparkle", Mouth = "beak", Small = true },
 	Unicorn = { Body = "beast", Move = "walk", Speed = 22, Ears = "point", Tail = "fluffy", Horn = true, Mane = "pink", Eyes = "sparkle", Mouth = "smile" },
 	["Forest Guardian"] = { Body = "beast", Move = "walk", Speed = 22, Ears = "point", Tail = "fluffy", Antlers = "glow", Mane = "leaf", Star = true, Muzzle = true, Eyes = "sparkle", Mouth = "smile" },
 	-- World 2: Sahara
@@ -83,6 +88,11 @@ local SPECIES = {
 	Scorpion = { Body = "beast", Move = "walk", Speed = 18, Ears = "none", Tail = "stinger", Pincers = true, Low = true, Eyes = "round", Mouth = "smile" },
 	Cobra = { Body = "serpent", Move = "slither", Speed = 14, Hood = true, Eyes = "sparkle", Mouth = "smile" },
 	Vulture = { Body = "bird", Move = "fly", Speed = 18, Eyes = "round", Mouth = "beak", BigWings = true },
+	Jerboa = { Body = "beast", Move = "hop", Speed = 20, Ears = "long", Tail = "thin", Small = true, Eyes = "big", Mouth = "cat" },
+	Armadillo = { Body = "beast", Move = "walk", Speed = 12, Ears = "point", Tail = "thin", Shell = true, Low = true, Eyes = "round", Mouth = "smile" },
+	Ostrich = { Body = "bird", Move = "waddle", Speed = 18, LongLegs = true, Crest = "tuft", Eyes = "big", Mouth = "beak" },
+	["Sand Cat"] = { Body = "beast", Move = "walk", Speed = 20, Ears = "big", Tail = "long", Small = true, Eyes = "sparkle", Mouth = "cat" },
+	Oryx = { Body = "beast", Move = "walk", Speed = 22, Ears = "point", Tail = "thin", Antlers = "small", Muzzle = true, Eyes = "round", Mouth = "smile" },
 	Hyena = { Body = "beast", Move = "walk", Speed = 22, Ears = "round", Tail = "fluffy", Spots = true, Muzzle = true, Eyes = "happy", Mouth = "tongue" },
 	Cheetah = { Body = "beast", Move = "walk", Speed = 30, Ears = "round", Tail = "long", Spots = true, Muzzle = true, Eyes = "sparkle", Mouth = "cat" },
 	Lion = { Body = "beast", Move = "walk", Speed = 22, Ears = "round", Tail = "long", Mane = "gold", Muzzle = true, Eyes = "sparkle", Mouth = "cat" },
@@ -91,9 +101,14 @@ local SPECIES = {
 	["Anubis Jackal"] = { Body = "beast", Move = "walk", Speed = 24, Ears = "big", Tail = "thin", Muzzle = true, Eyes = "sparkle", Mouth = "smile" },
 	Griffin = { Body = "bird", Move = "fly", Speed = 22, Crest = "tufts", Eyes = "sparkle", Mouth = "beak", BigWings = true, LionTail = true },
 	Sphinx = { Body = "beast", Move = "walk", Speed = 18, Ears = "none", Tail = "long", Headdress = true, Muzzle = true, Eyes = "sparkle", Mouth = "cat" },
+	Caracal = { Body = "beast", Move = "walk", Speed = 24, Ears = "point", Tail = "long", Muzzle = true, Eyes = "sparkle", Mouth = "cat" },
+	["Pharaoh Cat"] = { Body = "beast", Move = "walk", Speed = 20, Ears = "point", Tail = "long", Headdress = true, Eyes = "sparkle", Mouth = "cat" },
 	-- World 3: Frozen Peaks
 	Penguin = { Body = "bird", Move = "waddle", Speed = 10, Belly = true, Flippers = true, Eyes = "round", Mouth = "beak" },
 	["Snow Hare"] = { Body = "beast", Move = "hop", Speed = 18, Ears = "long", Tail = "puff", Eyes = "sparkle", Mouth = "cat" },
+	Puffin = { Body = "bird", Move = "waddle", Speed = 11, Belly = true, Flippers = true, Crest = "dot", Small = true, Eyes = "round", Mouth = "beak" },
+	Ermine = { Body = "beast", Move = "walk", Speed = 20, Ears = "round", Tail = "long", Low = true, Small = true, Eyes = "sparkle", Mouth = "cat" },
+	Lynx = { Body = "beast", Move = "walk", Speed = 24, Ears = "point", Tail = "puff", Spots = true, Muzzle = true, Eyes = "sparkle", Mouth = "cat" },
 	["Arctic Fox"] = { Body = "beast", Move = "walk", Speed = 22, Ears = "point", Tail = "fluffy", Muzzle = true, Eyes = "happy", Mouth = "smile" },
 	Seal = { Body = "whale", Move = "waddle", Speed = 9, Flippers = true, Small = true, Eyes = "big", Mouth = "smile" },
 	Husky = { Body = "beast", Move = "walk", Speed = 24, Ears = "point", Tail = "fluffy", Mask = true, Muzzle = true, Eyes = "sparkle", Mouth = "tongue" },
@@ -104,6 +119,11 @@ local SPECIES = {
 	["Snow Leopard"] = { Body = "beast", Move = "walk", Speed = 26, Ears = "round", Tail = "bushy", Spots = true, Muzzle = true, Eyes = "sparkle", Mouth = "cat" },
 	Orca = { Body = "whale", Move = "swim", Speed = 20, Pattern = "orca", Eyes = "happy", Mouth = "smile" },
 	Narwhal = { Body = "whale", Move = "swim", Speed = 18, Horn = true, Pattern = "spots", Eyes = "sparkle", Mouth = "smile" },
+	Beluga = { Body = "whale", Move = "swim", Speed = 16, Eyes = "happy", Mouth = "smile" },
+	["Musk Ox"] = { Body = "beast", Move = "walk", Speed = 14, Ears = "horns", Tail = "puff", Wool = true, Chunky = true, Eyes = "round", Mouth = "smile" },
+	["Frost Wolf"] = { Body = "beast", Move = "walk", Speed = 26, Ears = "point", Tail = "fluffy", Muzzle = true, Star = true, Eyes = "sparkle", Mouth = "smile" },
+	["Crystal Deer"] = { Body = "beast", Move = "walk", Speed = 24, Ears = "point", Tail = "puff", Antlers = "glow", Spots = true, Muzzle = true, Eyes = "sparkle", Mouth = "smile" },
+	["Aurora Fox"] = { Body = "beast", Move = "walk", Speed = 24, Ears = "point", Tail = "fluffy", Muzzle = true, Star = true, Eyes = "happy", Mouth = "smile" },
 	Yeti = { Body = "beast", Move = "walk", Speed = 16, Ears = "none", Tail = "none", Wool = true, Chunky = true, Eyes = "happy", Mouth = "tongue" },
 	Mammoth = { Body = "beast", Move = "walk", Speed = 14, Ears = "flop", Tail = "thin", Trunk = true, Tusks = true, Wool = true, Chunky = true, Eyes = "round", Mouth = "smile" },
 	["Ice Phoenix"] = { Body = "bird", Move = "fly", Speed = 24, Crest = "flame", LongTail = true, BigWings = true, Icy = true, Eyes = "sparkle", Mouth = "beak" },
@@ -115,6 +135,11 @@ local SPECIES = {
 	Crane = { Body = "bird", Move = "fly", Speed = 20, Crest = "dot", LongLegs = true, BigWings = true, Eyes = "happy", Mouth = "beak" },
 	Tanuki = { Body = "beast", Move = "walk", Speed = 17, Ears = "round", Tail = "bushy", Mask = true, Chunky = true, Muzzle = true, Eyes = "round", Mouth = "smile" },
 	Panda = { Body = "beast", Move = "walk", Speed = 15, Ears = "round", Tail = "puff", Eyes = "patch", Mouth = "smile", Chunky = true },
+	Monkey = { Body = "beast", Move = "hop", Speed = 22, Ears = "round", Tail = "long", Muzzle = true, Eyes = "happy", Mouth = "smile" },
+	Toucan = { Body = "bird", Move = "fly", Speed = 20, Eyes = "round", Mouth = "beak", Rainbow = true },
+	Sloth = { Body = "beast", Move = "walk", Speed = 6, Ears = "none", Tail = "none", Mask = true, Chunky = true, Eyes = "happy", Mouth = "smile" },
+	Chameleon = { Body = "beast", Move = "walk", Speed = 12, Ears = "none", Tail = "curl", Low = true, Eyes = "big", Mouth = "smile" },
+	["Lucky Cat"] = { Body = "beast", Move = "walk", Speed = 18, Ears = "point", Tail = "puff", Star = true, Eyes = "happy", Mouth = "cat" },
 	Kitsune = { Body = "beast", Move = "walk", Speed = 24, Ears = "point", Tail = "nine", Muzzle = true, Star = true, Eyes = "happy", Mouth = "smile" },
 	Tiger = { Body = "beast", Move = "walk", Speed = 24, Ears = "round", Tail = "long", Stripes = true, Muzzle = true, Eyes = "sparkle", Mouth = "cat" },
 	Kirin = { Body = "beast", Move = "walk", Speed = 26, Ears = "point", Tail = "fluffy", Antlers = "gold", Mane = "gold", Muzzle = true, Eyes = "sparkle", Mouth = "smile" },
@@ -125,6 +150,11 @@ local SPECIES = {
 	["Void Serpent"] = { Body = "serpent", Move = "slither", Speed = 16, Horns = true, Eyes = "sparkle", Mouth = "smile" },
 	["Galaxy Whale"] = { Body = "whale", Move = "swim", Speed = 18, Pattern = "galaxy", Eyes = "happy", Mouth = "smile" },
 	Glitch = { Body = "glitch", Move = "hover", Speed = 22, Eyes = "pixel", Mouth = "pixel" },
+	["Moon Wolf"] = { Body = "beast", Move = "walk", Speed = 28, Ears = "point", Tail = "fluffy", Star = true, Muzzle = true, Eyes = "sparkle", Mouth = "smile" },
+	Thunderbird = { Body = "bird", Move = "fly", Speed = 28, Crest = "flame", LongTail = true, BigWings = true, Eyes = "sparkle", Mouth = "beak" },
+	["Star Bunny"] = { Body = "beast", Move = "hop", Speed = 22, Ears = "long", Tail = "puff", Star = true, Eyes = "sparkle", Mouth = "cat" },
+	Pegasus = { Body = "beast", Move = "fly", Speed = 26, Ears = "point", Tail = "fluffy", Wings = true, Mane = "pink", Muzzle = true, Eyes = "sparkle", Mouth = "smile" },
+	["Cosmic Turtle"] = { Body = "beast", Move = "hover", Speed = 12, Ears = "none", Tail = "none", Shell = true, Star = true, Low = true, Eyes = "happy", Mouth = "smile" },
 }
 PetModels.SPECIES = SPECIES
 PetModels.SPECIES = SPECIES
@@ -1106,7 +1136,7 @@ end
 -- what a pet wears, by rarity level (1 common .. 7 secret) and size
 -- Outfits ---------------------------------------------------------------------------------------
 -- Every animal wears its own outfit (Config.OUTFITS / Config.outfitOf: 35
--- outfits in two colourways, one per animal). Sizes are in `u`, half the
+-- outfits in three colourways, one per animal). Sizes are in `u`, half the
 -- head's height, so an outfit fits any head. Each builder returns how far
 -- above the head top its hat reaches (a Titanic's crown sits on top of it).
 local function outfit(ctx, where, head, look)
@@ -1117,7 +1147,16 @@ local function outfit(ctx, where, head, look)
 	local eyeY = head.Y + u * 0.25
 	local chest = where.Chest
 	local alt = look.Alt
+	local third = look.Variant == 3
 	local function pick(a, b)
+		if third then
+			-- the third colourway: the first colours turned around the colour wheel
+			local h, sat, v = a:ToHSV()
+			if sat < 0.15 then
+				return b -- (white/black stay as they are in the second colours)
+			end
+			return Color3.fromHSV((h + 0.45) % 1, sat, v)
+		end
 		return if alt then b else a
 	end
 	local function at(x, y, z)
