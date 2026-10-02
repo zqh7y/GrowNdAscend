@@ -2480,11 +2480,29 @@ if ok then
 		do
 			-- the player card: level and team together in the bottom-left corner
 			local Hud = __cache["Client/Hud"]
+			local Screen = __cache["Client/Screen"]
 			local c = Hud.PlayerCard
 			local level, team = c and c:FindFirstChild("Level"), c and c:FindFirstChild("Team")
-			item(128, "level and team in the bottom-left player card", c ~= nil and c.Position.X.Scale == 0 and c.Position.Y.Scale == 1 and c.AnchorPoint.Y == 1
+			local pcOk = c ~= nil and c.Position.X.Scale == 0 and c.Position.Y.Scale == 1 and c.AnchorPoint.Y == 1
+			-- on a phone: the card goes top left (clear of the joystick), ROLL / AUTO move up (clear of jump)
+			Hud.layout(true)
+			local phoneOk = c.Position.Y.Scale == 0 and c.Position.Y.Offset >= 50 and Screen.Controls.Controls.Position.Y.Offset <= -150
+			Hud.layout(false)
+			local backOk = c.Position.Y.Scale == 1
+			-- an iPhone in landscape (844 x 390): readable UI, panels and the reveal fit, nothing overlaps
+			local phone = Vector2.new(844, 390)
+			local scale = Screen.scaleFor(phone, true)
+			local fit = Screen.fitScale(900, 600, phone, scale)
+			local tall = phone.Y / scale -- the screen's height in UI units
+			local cardBottom = 60 + 112
+			local navTop, navBottom = cardBottom + 12, cardBottom + 12 + 3 * 76 + 2 * 4
+			local fitsOk = scale >= 0.7 and 900 * fit * scale <= phone.X and 600 * fit * scale <= phone.Y
+			local stackOk = navTop > cardBottom and navBottom < tall - 60
+			phoneOk = phoneOk and fitsOk and stackOk
+			print(string.format("  iPhone 844x390: UI scale %.2f (text 12 -> %.1fpt), panels x%.2f (%dx%d pt), card 60-%d, menu %d-%d of %d", scale, 12 * scale, fit, 900 * fit * scale, 600 * fit * scale, cardBottom, navTop, navBottom, tall))
+			item(128, "player card bottom left; phone layout (iPhone)", pcOk and phoneOk and backOk
 				and level ~= nil and team ~= nil and level.LayoutOrder < team.LayoutOrder,
-				"player card at the bottom left: level badge + EXP bar on top, YOUR TEAM under it")
+				string.format("PC: bottom left, level on top of YOUR TEAM %s; iPhone: bigger readable UI, panels and reveals shrink to fit, card and menu top left, ROLL/AUTO above the jump button %s", tostring(pcOk), tostring(phoneOk)))
 		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true

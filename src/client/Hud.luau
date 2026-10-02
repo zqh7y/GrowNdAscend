@@ -1,7 +1,9 @@
 -- The always-on screen, laid out around the fights in the middle:
 --   top centre   coins and luck
 --   bottom left  the player card: your LEVEL with its EXP bar, and under it
---                YOUR TEAM (equipped pets + damage), out of the way
+--                YOUR TEAM (equipped pets + damage), out of the way (on
+--                phones it goes top left, clear of the joystick, and ROLL /
+--                AUTO move up above the jump button: Hud.layout)
 --   left side    navigation: Inventory, Index, Upgrades, Rebirth, Settings
 --                (the leaderboards are in the world, in the Forest)
 --   right side   gameplay: the big Roll button and Auto
@@ -469,6 +471,32 @@ local controls = Ui.new("Frame", {
 controls.Parent = Screen.Controls
 -- the ROLL and AUTO buttons, side by side (Roll.luau)
 Roll.buildControls(controls)
+
+-- Phones and tablets ---------------------------------------------------------------------------
+-- Roblox puts its movement joystick in the bottom-left corner and the jump
+-- button in the bottom-right on touch screens. There the player card moves
+-- to the top-left (under Roblox's own menu buttons) and ROLL / AUTO move up
+-- above the jump button; with a mouse and keyboard nothing changes.
+Hud.Touch = false
+function Hud.layout(touch)
+	Hud.Touch = touch
+	if touch then
+		-- card top left under Roblox's buttons, the menu right under the card,
+		-- ROLL / AUTO up above the jump button
+		card.AnchorPoint = Vector2.new(0, 0)
+		card.Position = UDim2.new(0, 12, 0, 60)
+		nav.AnchorPoint = Vector2.new(0, 0)
+		nav.Position = UDim2.new(0, 12, 0, 60 + 112 + 12)
+		controls.Position = UDim2.new(1, -18, 1, -210)
+	else
+		card.AnchorPoint = Vector2.new(0, 1)
+		card.Position = UDim2.new(0, 16, 1, -16)
+		nav.AnchorPoint = Vector2.new(0, 0.5)
+		nav.Position = UDim2.new(0, 16, 0.5, 20)
+		controls.Position = UDim2.new(1, -18, 1, -16)
+	end
+end
+Hud.layout(Screen.Touch)
 
 -- the luck boost badge sits right next to the luck chip at the top (the
 -- coin pill lines them up)
