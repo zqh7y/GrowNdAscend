@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Security = require(script.Parent.Security)
 local PlayerData = require(script.Parent.PlayerData)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -12,7 +13,7 @@ local buyFunction = Instance.new("RemoteFunction")
 buyFunction.Name = "BuyUpgrade"
 buyFunction.Parent = remotes
 
-buyFunction.OnServerInvoke = function(player, id)
+buyFunction.OnServerInvoke = Security.guard("BuyUpgrade", function(player, id)
 	local data = PlayerData.get(player)
 	if not data or type(id) ~= "string" then
 		return false
@@ -34,14 +35,14 @@ buyFunction.OnServerInvoke = function(player, id)
 	PlayerData.sync(player)
 	notifyEvent:FireClient(player, upgrade.Name .. " level " .. (level + 1) .. "!", "success")
 	return true
-end
+end, 8)
 
 -- The Luck Board: the next level of a row
 local boardFunction = Instance.new("RemoteFunction")
 boardFunction.Name = "BuyLuck"
 boardFunction.Parent = remotes
 
-boardFunction.OnServerInvoke = function(player, id)
+boardFunction.OnServerInvoke = Security.guard("BuyLuck", function(player, id)
 	local data = PlayerData.get(player)
 	if not data or type(id) ~= "string" then
 		return false
@@ -63,6 +64,6 @@ boardFunction.OnServerInvoke = function(player, id)
 	data.LuckBoard[id] = level + 1
 	PlayerData.sync(player)
 	return true
-end
+end, 8)
 
 return {}

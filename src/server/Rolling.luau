@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Security = require(script.Parent.Security)
 local PlayerData = require(script.Parent.PlayerData)
 local World = require(script.Parent.World)
 local Leaderboard = require(script.Parent.Leaderboards)
@@ -129,7 +130,7 @@ local function award(data, outcome, extra)
 	return result
 end
 
-rollFunction.OnServerInvoke = function(player)
+rollFunction.OnServerInvoke = Security.guard("Roll", function(player)
 	local data = PlayerData.get(player)
 	if not data then
 		return nil
@@ -194,7 +195,7 @@ rollFunction.OnServerInvoke = function(player)
 	PlayerData.updateStrongest(player)
 	PlayerData.sync(player)
 	return results
-end
+end, 20)
 
 -- The Mega Roll pad: once its timer is done, standing on it claims a Mega
 -- Roll (the multiplier shown on the pad) into your Boosts (data.MegaRolls).
@@ -269,13 +270,13 @@ function Rolling.useMega(player, mega)
 	return { result }
 end
 
-megaFunction.OnServerInvoke = function(player)
+megaFunction.OnServerInvoke = Security.guard("MegaRoll", function(player)
 	return (Rolling.megaRoll(player))
-end
+end, 4)
 
 -- Equips a pet, or unequips it. Several copies of the same pet can be
 -- equipped if you own them.
-equipFunction.OnServerInvoke = function(player, name, unequip)
+equipFunction.OnServerInvoke = Security.guard("Equip", function(player, name, unequip)
 	local data = PlayerData.get(player)
 	if not data or type(name) ~= "string" or not Config.petInfo(name) then
 		return false
@@ -294,9 +295,9 @@ equipFunction.OnServerInvoke = function(player, name, unequip)
 	end
 	PlayerData.sync(player)
 	return true
-end
+end, 10)
 
-equipBestFunction.OnServerInvoke = function(player)
+equipBestFunction.OnServerInvoke = Security.guard("EquipBest", function(player)
 	local data = PlayerData.get(player)
 	if not data then
 		return false
@@ -307,7 +308,7 @@ equipBestFunction.OnServerInvoke = function(player)
 	end
 	PlayerData.sync(player)
 	return { Changed = changed, Added = added, Equipped = table.clone(data.Equipped) }
-end
+end, 4)
 
 Players.PlayerRemoving:Connect(function(player)
 	lastRoll[player] = nil

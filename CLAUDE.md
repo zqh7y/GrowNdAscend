@@ -44,7 +44,7 @@ for how it plays and where the code lives.
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
   hatch show step by step, the ROLL + AUTO buttons, the dense inventory with side details
-  and Equip Best). It must say "checklist: 128/128 passed". It takes
+  and Equip Best). It must say "checklist: 129/129 passed". It takes
   a few minutes; run it in the background. The harness runs as one big
   function: wrap new test blocks in `do ... end` or Luau runs out of local
   registers (limit 200).
@@ -231,3 +231,8 @@ for how it plays and where the code lives.
   they always stand on the ground. At start the client prints the lowest
   part of any target ("[Targets] lowest part ...") to Output; the sim
   checks every part of every coin against the ground.
+- Security (build 60): every RemoteFunction handler goes through
+  `Security.guard(name, handler, perSecond)` (rate limit + pcall). New
+  remotes must too, and must validate their own arguments on the server.
+  The zone guard (Security.check) returns characters in locked worlds.
+  The simulator turns both off at the start and tests them in item 129.

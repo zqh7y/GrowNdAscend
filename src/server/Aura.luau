@@ -6,6 +6,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Security = require(script.Parent.Security)
 local PlayerData = require(script.Parent.PlayerData)
 local World = require(script.Parent.World)
 
@@ -65,7 +66,7 @@ function Aura.fuse(player, name)
 	return { Pet = result, Aura = aura.Id }
 end
 
-fuseFunction.OnServerInvoke = Aura.fuse
+fuseFunction.OnServerInvoke = Security.guard("AuraFuse", Aura.fuse, 4)
 
 -- The machine's look for the player in this (solo) server: slow rings and
 -- a soft orb in the colour of the rarest aura while idle

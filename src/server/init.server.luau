@@ -27,8 +27,9 @@ for _, player in ipairs(Players:GetPlayers()) do
 	player.CameraMaxZoomDistance = Config.MAX_ZOOM
 end
 
-require(script.PlayerData)
-require(script.World) -- builds the map
+local Security = require(script.Security) -- rate limits and the zone guard
+Security.PlayerData = require(script.PlayerData)
+Security.World = require(script.World) -- builds the map
 
 Players.CharacterAutoLoads = true
 for _, player in ipairs(Players:GetPlayers()) do

@@ -6,6 +6,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Security = require(script.Parent.Security)
 local PlayerData = require(script.Parent.PlayerData)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -54,6 +55,6 @@ function Fuse.fuse(player, name)
 	return result
 end
 
-fuseFunction.OnServerInvoke = Fuse.fuse
+fuseFunction.OnServerInvoke = Security.guard("Fuse", Fuse.fuse, 4)
 
 return Fuse
