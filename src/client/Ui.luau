@@ -473,12 +473,11 @@ function Ui.setStyle(button, styleName)
 	end
 	button.Edge.Transparency = style.EdgeT
 	button.Edge.Color = style.Edge or Ui.OUTLINE
-	button.Content.Label.TextStrokeTransparency = 1
-	-- white letters on a coloured button get a dark outline
-	local outline = button.Content.Label:FindFirstChild("Outline")
-	if outline then
-		outline.Enabled = style.A ~= nil
-	end
+	-- white letters on a coloured button get a thin dark outline: the text's
+	-- own stroke, which shrinks with the text (a UIStroke keeps its width when
+	-- a panel is scaled down and swallowed the letters on small screens)
+	button.Content.Label.TextStrokeColor3 = Ui.OUTLINE
+	button.Content.Label.TextStrokeTransparency = if style.A ~= nil then 0.3 else 1
 	local color = style.Text or Ui.TEXT
 	local iconColor = style.Icon or color
 	local content = button.Content
@@ -557,7 +556,7 @@ function Ui.button(props, onClick, styleName)
 		TextStrokeColor3 = Ui.INK,
 		Visible = text ~= "",
 		Parent = content,
-	}, { Ui.new("UIStroke", { Name = "Outline", Color = Ui.OUTLINE, Thickness = math.max(1.5, textSize / 10), LineJoinMode = Enum.LineJoinMode.Round, Enabled = false }) })
+	})
 	if iconName then
 		button:SetAttribute("IconName", iconName)
 		Ui.icon(iconName, iconSize, Ui.TEXT, { LayoutOrder = 0, Parent = content })
@@ -741,7 +740,18 @@ function Ui.chunky(props)
 	props.BackgroundTransparency = 1
 	props.TextColor3 = props.TextColor3 or Ui.WHITE
 	local label = Ui.new("TextLabel", props)
-	Ui.new("UIStroke", { Name = "Outline", Color = Ui.OUTLINE, Thickness = outline, Parent = label })
+	local stroke = Ui.new("UIStroke", { Name = "Outline", Color = Ui.OUTLINE, Thickness = outline, Parent = label })
+	-- the outline doesn't shrink with a scaled-down panel by itself: thin it
+	-- by how much smaller the label shows than it was made, so small text
+	-- stays readable
+	local function fit()
+		local made = label.Size.Y.Offset
+		if label.Size.Y.Scale == 0 and made > 0 and label.AbsoluteSize.Y > 0 then
+			stroke.Thickness = math.max(1, outline * math.min(1, label.AbsoluteSize.Y / made))
+		end
+	end
+	label:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	fit()
 	if colors then
 		Ui.new("UIGradient", { Name = "Tint", Rotation = 90, Color = ColorSequence.new(colors[1], colors[2] or colors[1]), Parent = label })
 	end
