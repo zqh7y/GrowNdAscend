@@ -2477,6 +2477,15 @@ if ok then
 			item(127, "no reset button, no AFK kick", Session ~= nil and Session.IdleNudges == nudges + 1,
 				string.format("going idle presses a virtual button (%d nudge); reset button turned off: %s", Session.IdleNudges - nudges, tostring(Session.ResetDisabled)))
 		end
+		do
+			-- the player card: level and team together in the bottom-left corner
+			local Hud = __cache["Client/Hud"]
+			local c = Hud.PlayerCard
+			local level, team = c and c:FindFirstChild("Level"), c and c:FindFirstChild("Team")
+			item(128, "level and team in the bottom-left player card", c ~= nil and c.Position.X.Scale == 0 and c.Position.Y.Scale == 1 and c.AnchorPoint.Y == 1
+				and level ~= nil and team ~= nil and level.LayoutOrder < team.LayoutOrder,
+				"player card at the bottom left: level badge + EXP bar on top, YOUR TEAM under it")
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,

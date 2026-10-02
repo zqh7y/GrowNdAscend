@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 56 (upgrade board EXIT at the bottom)"
+Config.BUILD = "build 57 (level and team in a cartoon player card, bottom left)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45

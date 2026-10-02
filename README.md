@@ -329,6 +329,8 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 
 **Luck boosts:** the boost waiting for your next roll shows as a small clover badge right next to the luck chip at the top ("×4"), in its own colour: x2 gold, x4 green, x8 cyan, x16 purple, x32 pink, x64 and up orange-red (`Config.boostColor`). When a x2 boost lands on top of one you already have, the roll shows the total (×4, green), not another ×2.
 
+**Player card (bottom left):** your level and team live together in the bottom-left corner, out of the middle of the screen: a chunky gold LEVEL badge with a white star and outlined white letters next to a thick green EXP bar with a dark cartoon outline, and YOUR TEAM (each equipped pet with its DPS and share) under them. The top of the screen only has the coins and luck.
+
 **Staying in the game:** the Roblox menu's Reset Character button is turned off, and you're never kicked for being AFK: when Roblox notices you've gone idle, the game presses a virtual mouse button for you (`client/Session.luau`), so auto roll and your pets can keep going for as long as you like.
 
 **Pet reveals never block you:** the dark layer behind a reveal lets clicks through, so you can close screens and press buttons while a pet is being shown.
