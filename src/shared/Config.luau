@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 67 (roads lifted onto the finished ground)"
+Config.BUILD = "build 68 (roads never below the real ground, Y 2.0)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -1322,6 +1322,12 @@ Config.AREA_HALF_WIDTH = 35
 -- comes out at about Y = 1.6, not 0. Anything that stands on the ground
 -- (stages, pads, circles) is built on this, or it sinks into the ground.
 Config.GROUND_Y = 1.6
+-- ...but the terrain's real surface comes out at about Y 2.0 in the game
+-- (measured standing on it), and the server can't measure it right after
+-- building it (rays don't see new terrain until physics catches up). Things
+-- laid flat on top of the ground (the paths, the cartoon floor) never go
+-- below this.
+Config.TERRAIN_TOP = 2.0
 
 Config.AREAS = {
 	{

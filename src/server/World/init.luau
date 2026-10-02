@@ -98,7 +98,7 @@ function World.paintPath(parent, name, points, width, color, edge)
 	end
 	-- just above the highest ground under it (the terrain can come out a
 	-- little above Config.GROUND_Y), so the ground never covers it
-	local top = Config.GROUND_Y
+	local top = Config.TERRAIN_TOP
 	for _, p in ipairs(points) do
 		local y = World.groundAt(p.X, p.Z)
 		if y and y < Config.GROUND_Y + 1.5 then
@@ -134,7 +134,7 @@ function World.settlePaths()
 			up = up.Parent
 		end
 		if not inner then
-			local ground = Config.GROUND_Y
+			local ground = Config.TERRAIN_TOP
 			for _, p in ipairs(points) do
 				local y = World.groundAt(p.X, p.Z)
 				if y and y < Config.GROUND_Y + 3 then
@@ -941,8 +941,10 @@ end
 -- above it (the edges of hills, drifts and banks), so nothing can bury a
 -- living coin or push the player up when they spawn. New areas get this for free.
 terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF * 2), Enum.Material.Air)
--- (and now the ground is final: lift the paths onto it)
+-- (and now the ground is final: lift the paths onto it, and again a moment
+-- later, when rays see the new terrain)
 World.settlePaths()
+task.delay(2, World.settlePaths)
 
 -- Breakable spots were picked before the small props and some terrain; keep
 -- only the ones on flat ground and set them to its real height
