@@ -90,6 +90,7 @@ local card = Ui.new("Frame", {
 	}),
 })
 Hud.PlayerCard = card
+local cardScale = Ui.new("UIScale", { Name = "TouchScale", Parent = card })
 
 -- Your team -----------------------------------------------------------------------------------
 
@@ -478,19 +479,25 @@ Roll.buildControls(controls)
 -- to the top-left (under Roblox's own menu buttons) and ROLL / AUTO move up
 -- above the jump button; with a mouse and keyboard nothing changes.
 Hud.Touch = false
+Hud.TOUCH_CARD_TOP = 92 -- (under Roblox's top bar on a phone)
+Hud.TOUCH_CARD_SCALE = 0.75
 function Hud.layout(touch)
 	Hud.Touch = touch
 	if touch then
 		-- card top left under Roblox's buttons, the menu right under the card,
 		-- ROLL / AUTO up above the jump button
+		-- (a quarter smaller, and low enough to clear Roblox's logo and menu
+		-- buttons along the top of a phone)
 		card.AnchorPoint = Vector2.new(0, 0)
-		card.Position = UDim2.new(0, 12, 0, 60)
+		card.Position = UDim2.new(0, 12, 0, Hud.TOUCH_CARD_TOP)
+		cardScale.Scale = Hud.TOUCH_CARD_SCALE
 		nav.AnchorPoint = Vector2.new(0, 0)
-		nav.Position = UDim2.new(0, 12, 0, 60 + 112 + 12)
+		nav.Position = UDim2.new(0, 12, 0, Hud.TOUCH_CARD_TOP + math.ceil(112 * Hud.TOUCH_CARD_SCALE) + 10)
 		controls.Position = UDim2.new(1, -18, 1, -210)
 	else
 		card.AnchorPoint = Vector2.new(0, 1)
 		card.Position = UDim2.new(0, 16, 1, -16)
+		cardScale.Scale = 1
 		nav.AnchorPoint = Vector2.new(0, 0.5)
 		nav.Position = UDim2.new(0, 16, 0.5, 20)
 		controls.Position = UDim2.new(1, -18, 1, -16)
