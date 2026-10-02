@@ -89,11 +89,20 @@ local function update(player, now)
 
 	local hits = {}
 	local total = 0
+	-- on a boss the Boss Shop's upgrades count too: more damage, and a
+	-- chance for any hit to be a x3 crit
+	local boss = Config.AREAS[target.Area].Boss
+	local bossDamage = if boss then Config.bossUpgradeValue(data, "BossDamage") else 1
+	local critChance = if boss then Config.bossUpgradeValue(data, "BossCrit") else 0
 	for slot, name in ipairs(fight.Team) do
 		local pet = fight.Pets[slot]
 		if pet and now >= pet.NextHit then
-			local damage = Config.hitDamage(data, name)
-			table.insert(hits, { Pet = slot, Damage = damage })
+			local damage = Config.hitDamage(data, name) * bossDamage
+			local crit = critChance > 0 and random:NextNumber() < critChance
+			if crit then
+				damage *= Config.BOSS_CRIT_DAMAGE
+			end
+			table.insert(hits, { Pet = slot, Damage = damage, Crit = crit or nil })
 			total += damage
 			pet.NextHit = now + Config.PET_HIT_EVERY * random:NextNumber(0.9, 1.1)
 		end

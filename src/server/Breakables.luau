@@ -216,8 +216,11 @@ function Breakables.damage(target, amount, player)
 	local area = Config.AREAS[target.Area]
 	local data = PlayerData.get(player)
 	local dealt = math.clamp(amount, 0, math.max(target.Health, 0))
+	-- (bosses pay more with the Boss Shop's Boss Coins and Boss EXP)
+	local bossCoins = if area.Boss and data then Config.bossUpgradeValue(data, "BossCoins") else 1
+	local bossExp = if area.Boss and data then Config.bossUpgradeValue(data, "BossExp") else 1
 	if data then
-		target.Owed = (target.Owed or 0) + area.Breakable.Coins * Config.FIGHT_PAY * dealt / target.MaxHealth * Config.coinGain(data)
+		target.Owed = (target.Owed or 0) + area.Breakable.Coins * Config.FIGHT_PAY * dealt / target.MaxHealth * Config.coinGain(data) * bossCoins
 	end
 	target.Health -= amount
 	if target.Health > 0 then
@@ -239,10 +242,10 @@ function Breakables.damage(target, amount, player)
 	-- broken: the rest of the coins and the EXP, then a new one a little later
 	local coins = 0
 	if data then
-		coins = math.floor((target.Owed or 0) + area.Breakable.Coins * (1 - Config.FIGHT_PAY) * Config.coinGain(data))
+		coins = math.floor((target.Owed or 0) + area.Breakable.Coins * (1 - Config.FIGHT_PAY) * Config.coinGain(data) * bossCoins)
 		data.Coins += coins
 		-- and EXP: stronger enemies in later worlds give more
-		if Config.addExp(data, area.Breakable.Exp * Config.expGain(data)) > 0 then
+		if Config.addExp(data, area.Breakable.Exp * Config.expGain(data) * bossExp) > 0 then
 			levelEvent:FireClient(player, data.Level)
 		end
 		PlayerData.sync(player)

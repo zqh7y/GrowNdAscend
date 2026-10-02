@@ -481,12 +481,13 @@ function Frozen.build(ctx)
 	for _, part in ipairs(ctx.World.paintPath(lakeFolder, "Shine", shine, 2.4, Color3.fromRGB(205, 236, 255)):GetChildren()) do
 		part.CFrame += Vector3.new(0, 0.02, 0)
 	end
+	local lakeTop = lakeFolder:FindFirstChild("PathPiece").Position.Y + 0.05
 	for _ = 1, 6 do
 		local at = lake[rng:NextInteger(2, #lake - 1)]
 		local crackPart = Build.part(lakeFolder, {
 			Name = "Crack",
 			Size = Vector3.new(rng:NextNumber(2, 4), 0.1, 0.18),
-			CFrame = CFrame.new(at.X + rng:NextNumber(-2.5, 2.5), Config.GROUND_Y + 0.11, at.Z) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0),
+			CFrame = CFrame.new(at.X + rng:NextNumber(-2.5, 2.5), lakeTop + 0.04, at.Z) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0),
 			Color = Color3.new(1, 1, 1),
 			CanCollide = false,
 			CastShadow = false,

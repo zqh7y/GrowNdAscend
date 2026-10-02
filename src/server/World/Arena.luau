@@ -1,8 +1,8 @@
 -- Area 5: Lava Arena, the boss world. A round stone arena on warm volcanic
 -- rock: a sandy fighting floor, a ring of stone walls with stands, torches
 -- and orange banners, an entrance arch facing the gate, little lava pools
--- outside the ring, smoking volcanoes beyond the walls, and a shady AFK
--- spot with benches. One giant boss (the Magma Titan, shared/Coins.luau)
+-- outside the ring, smoking volcanoes beyond the walls, and the Boss Shop
+-- (upgrades for bosses only). One giant boss (the Magma Titan, shared/Coins.luau)
 -- stomps around the middle; pets hit it from anywhere in the area, so you
 -- can sit back and let them fight.
 local Build = require(game:GetService("ReplicatedStorage").Shared.Build)
@@ -65,16 +65,76 @@ local function volcano(parent, terrain, base, height)
 	emitter.Parent = smoke
 end
 
--- a bench to sit on while the pets work
-local function bench(parent, base, yaw)
-	local model = Build.model(parent, "Bench")
-	local cf = CFrame.new(base) * CFrame.Angles(0, yaw, 0)
-	Build.part(model, { Size = Vector3.new(5, 0.4, 1.6), CFrame = cf * CFrame.new(0, 1.4, 0), Color = Color3.fromRGB(170, 115, 75) })
-	Build.part(model, { Size = Vector3.new(5, 1.4, 0.3), CFrame = cf * CFrame.new(0, 2.3, 0.7), Color = Color3.fromRGB(170, 115, 75) })
-	for _, x in ipairs({ -2, 2 }) do
-		Build.part(model, { Size = Vector3.new(0.4, 1.2, 1.4), CFrame = cf * CFrame.new(x, 0.6, 0), Color = STONE_DARK })
+-- The Boss Shop (where the AFK spot was): a market stall with an orange
+-- roof and a striped awning, a wooden counter with what it sells on it (a
+-- sword for Boss Damage, a stack of coins for Boss Coins, a purple star for
+-- Boss EXP, a lightning bolt for Boss Crits), a "BOSS SHOP" sign, and a
+-- circle in front to step on (the client opens the shop: BossShop.luau).
+local WOOD = Color3.fromRGB(170, 115, 75)
+local WOOD_DARK = Color3.fromRGB(120, 80, 55)
+local function bossShop(parent, at)
+	local model = Build.model(parent, "BossShop")
+	Build.block(model, at - Vector3.new(0, 0.3, 0), Vector3.new(14, 0.5, 9), { Color = STONE })
+	-- posts, roof and a striped awning along the front
+	for _, dx in ipairs({ -6, 6 }) do
+		for _, dz in ipairs({ -4, 4 }) do
+			Build.cylinder(model, at + Vector3.new(dx, 0, dz), 7, 0.5, { Color = Color3.fromRGB(110, 80, 60) })
+		end
 	end
-	return model
+	Build.part(model, { Size = Vector3.new(14, 0.4, 10), CFrame = CFrame.new(at + Vector3.new(0, 7.2, 0)), Color = BANNER, CanCollide = false })
+	for k = 0, 6 do
+		Build.part(model, {
+			Size = Vector3.new(2, 1, 0.2),
+			CFrame = CFrame.new(at + Vector3.new(-6 + k * 2, 6.5, -5)),
+			Color = if k % 2 == 0 then Color3.fromRGB(255, 250, 240) else BANNER,
+			CanCollide = false,
+		})
+	end
+	-- the back wall and the counter
+	Build.block(model, at + Vector3.new(0, 0, 4), Vector3.new(12, 6.5, 0.4), { Color = WOOD_DARK })
+	Build.block(model, at + Vector3.new(0, 0, -1.5), Vector3.new(11, 2.8, 2), { Color = WOOD })
+	Build.block(model, at + Vector3.new(0, 2.8, -1.5), Vector3.new(11.6, 0.3, 2.4), { Color = WOOD_DARK })
+	local top = at + Vector3.new(0, 3.1, -1.5)
+	-- a sword standing in a little stand
+	Build.block(model, top + Vector3.new(-4, 0, 0), Vector3.new(1.2, 0.4, 1.2), { Color = STONE_DARK, CanCollide = false })
+	Build.block(model, top + Vector3.new(-4, 0.4, 0), Vector3.new(0.35, 2.4, 0.12), { Color = Color3.fromRGB(225, 235, 250), CanCollide = false })
+	Build.block(model, top + Vector3.new(-4, 2.0, 0), Vector3.new(1.2, 0.25, 0.25), { Color = GOLD, CanCollide = false })
+	Build.block(model, top + Vector3.new(-4, 2.25, 0), Vector3.new(0.25, 0.7, 0.25), { Color = Color3.fromRGB(140, 60, 50), CanCollide = false })
+	-- a stack of gold coins
+	for k = 0, 3 do
+		Build.cylinder(model, top + Vector3.new(-1.4 + (k % 2) * 0.1, k * 0.3, 0), 0.28, 1.4, { Color = GOLD, CanCollide = false })
+	end
+	-- a glowing purple star (a ball with points)
+	local star = Build.ball(model, top + Vector3.new(1.4, 0.9, 0), 1.1, { Color = Color3.fromRGB(170, 130, 255), Material = Enum.Material.Neon, CanCollide = false })
+	Build.spin(star, 40)
+	-- a lightning bolt
+	Build.part(model, { Size = Vector3.new(0.3, 1.2, 0.3), CFrame = CFrame.new(top + Vector3.new(4, 1.4, 0)) * CFrame.Angles(0, 0, math.rad(25)), Color = Color3.fromRGB(255, 200, 40), Material = Enum.Material.Neon, CanCollide = false })
+	Build.part(model, { Size = Vector3.new(0.3, 1.2, 0.3), CFrame = CFrame.new(top + Vector3.new(4.2, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(-25)), Color = Color3.fromRGB(255, 200, 40), Material = Enum.Material.Neon, CanCollide = false })
+	Build.sign(model, CFrame.new(at + Vector3.new(0, 9, -4.6)), Vector3.new(10, 2.2, 0.4), "BOSS SHOP", Color3.new(1, 1, 1), Color3.fromRGB(70, 60, 60))
+	-- the circle to step on, in front of the counter
+	local circleAt = at + Vector3.new(0, -0.4, -8.5)
+	Build.cylinder(model, circleAt, 1.2, 8, { Name = "CircleRim", Color = Color3.fromRGB(255, 250, 240) })
+	local circle = Build.cylinder(model, circleAt, 1.35, 7, { Name = "BossShopCircle", Color = BANNER })
+	Build.cylinder(model, circleAt + Vector3.new(0, 1.35, 0), 0.04, 5.6, { Color = Color3.fromRGB(255, 220, 120), Material = Enum.Material.Neon, CanCollide = false })
+	Build.cylinder(model, circleAt + Vector3.new(0, 1.37, 0), 0.04, 4.8, { Color = BANNER, CanCollide = false })
+	local hint = Instance.new("BillboardGui")
+	hint.Name = "StepHint"
+	hint.Size = UDim2.fromOffset(160, 34)
+	hint.StudsOffsetWorldSpace = Vector3.new(0, 3, 0)
+	hint.MaxDistance = 45
+	hint.Adornee = circle
+	hint.Parent = circle
+	local hintText = Instance.new("TextLabel")
+	hintText.BackgroundTransparency = 1
+	hintText.Size = UDim2.fromScale(1, 1)
+	hintText.Font = Enum.Font.FredokaOne
+	hintText.TextScaled = true
+	hintText.TextColor3 = Color3.new(1, 1, 1)
+	hintText.TextStrokeColor3 = Color3.fromRGB(150, 60, 30)
+	hintText.TextStrokeTransparency = 0
+	hintText.Text = "Step here to shop"
+	hintText.Parent = hint
+	return { Model = model, Circle = circle }
 end
 
 function Arena.build(ctx)
@@ -126,18 +186,11 @@ function Arena.build(ctx)
 		space:add(Vector3.new(x, 0, 0), 4)
 	end
 
-	-- the AFK spot by the entrance: benches in the shade and a sign
-	local afk = Vector3.new(x0 + 18, ground, half - 10)
-	Build.block(deco, afk - Vector3.new(0, 0.3, 0), Vector3.new(14, 0.5, 9), { Color = STONE })
-	for _, dz in ipairs({ -2.5, 2.5 }) do
-		bench(deco, afk + Vector3.new(0, 0, dz), math.rad(if dz > 0 then 180 else 0))
-	end
-	for _, dx in ipairs({ -6, 6 }) do
-		Build.cylinder(deco, afk + Vector3.new(dx, 0, -4), 7, 0.5, { Color = Color3.fromRGB(110, 80, 60) })
-	end
-	Build.part(deco, { Size = Vector3.new(14, 0.4, 10), CFrame = CFrame.new(afk + Vector3.new(0, 7.2, 0)), Color = BANNER, CanCollide = false })
-	Build.sign(deco, CFrame.new(afk + Vector3.new(0, 9, -4.6)), Vector3.new(10, 2.2, 0.4), "AFK SPOT", Color3.new(1, 1, 1), Color3.fromRGB(70, 60, 60))
-	space:add(afk, 8)
+	-- the Boss Shop by the entrance (where the AFK spot was)
+	local shopAt = Vector3.new(x0 + 18, ground, half - 10)
+	ctx.World.BossShop = bossShop(deco, shopAt)
+	space:add(shopAt, 8)
+	space:add(shopAt + Vector3.new(0, 0, -8.5), 5)
 
 	-- small lava pools and rocks outside the ring
 	for _ = 1, 5 do
