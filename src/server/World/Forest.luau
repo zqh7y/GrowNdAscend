@@ -516,26 +516,25 @@ end
 
 -- Building the area --------------------------------------------------------------------------------
 
--- A tall green hedge along one side of the area (so the scenery beyond the
--- strip stays hidden): leafy blocks with a row of round tops and little
--- flowers on the side facing the path.
-local function hedgeWall(parent, rng, x0, x1, z)
-	local model = Build.model(parent, "HedgeWall")
+-- A tall wooden plank fence along one side of the area (so the scenery
+-- beyond the strip stays hidden): planks of slightly different heights and
+-- shades, posts every few studs and two rails on the side facing the path.
+local function woodFence(parent, rng, x0, x1, z)
+	local model = Build.model(parent, "WoodFence")
 	local inward = -math.sign(z)
-	local HEDGE = Color3.fromRGB(90, 190, 70)
-	for x = x0, x1 - 0.1, 5 do
-		local w = math.min(5, x1 - x)
-		Build.block(model, Vector3.new(x + w / 2, 0, z), Vector3.new(w + 0.2, 12, 3), { Color = Build.vary(rng, HEDGE, 0.04) })
+	local PLANK = Color3.fromRGB(196, 140, 88)
+	local DARK = Color3.fromRGB(140, 92, 56)
+	local x = x0
+	while x < x1 - 0.05 do
+		local w = math.min(1.6, x1 - x)
+		Build.block(model, Vector3.new(x + w / 2, 0, z), Vector3.new(w - 0.12, rng:NextNumber(10, 10.8), 0.5), { Color = Build.vary(rng, PLANK, 0.05) })
+		x += w
 	end
-	for x = x0 + 1.25, x1, 2.5 do
-		Build.ball(model, Vector3.new(x, 12, z + rng:NextNumber(-0.3, 0.3)), rng:NextNumber(3.2, 3.8), { Color = Build.vary(rng, HEDGE:Lerp(Color3.new(1, 1, 1), 0.1), 0.05) })
+	for px = x0, x1, 4 do
+		Build.block(model, Vector3.new(math.min(px, x1 - 0.4), 0, z + inward * 0.5), Vector3.new(0.8, 11.2, 0.8), { Color = DARK })
 	end
-	local FLOWERS = { Color3.fromRGB(255, 120, 160), Color3.fromRGB(255, 220, 80), Color3.fromRGB(250, 250, 255), Color3.fromRGB(180, 130, 255) }
-	for _ = 1, math.floor((x1 - x0) / 3) do
-		Build.ball(model, Vector3.new(rng:NextNumber(x0 + 1, x1 - 1), rng:NextNumber(2, 11), z + inward * 1.55), 0.6, {
-			Color = FLOWERS[rng:NextInteger(1, #FLOWERS)],
-			CanCollide = false,
-		})
+	for _, y in ipairs({ 2.5, 7.5 }) do
+		Build.part(model, { Size = Vector3.new(x1 - x0, 0.6, 0.35), CFrame = CFrame.new((x0 + x1) / 2, y, z + inward * 0.45), Color = DARK })
 	end
 	return model
 end
@@ -565,23 +564,18 @@ function Forest.build(ctx)
 	end
 	ctx.World.paintPath(deco, "ForestPath", pathPoints, 6, Color3.fromRGB(232, 196, 130), Color3.fromRGB(200, 160, 100))
 
-	-- soft round hills along both sides and behind the start
-	for x = x0 - 10, x1 + 6, 14 do
-		for _, side in ipairs({ -1, 1 }) do
-			terrain:FillBall(Vector3.new(x + rng:NextNumber(-5, 5), rng:NextNumber(-9, -3), side * rng:NextNumber(half + 30, half + 52)), rng:NextNumber(16, 24), Enum.Material.Grass)
-		end
-	end
+	-- soft round hills behind the start (the sides just have the fence)
 	for z = -ctx.Side, ctx.Side, 16 do
 		terrain:FillBall(Vector3.new(x0 - rng:NextNumber(12, 20), rng:NextNumber(-6, 0), z), rng:NextNumber(16, 22), Enum.Material.Grass)
 	end
 
-	-- tall hedges on both sides
+	-- a tall wooden fence on both sides
 	for _, side in ipairs({ -1, 1 }) do
-		hedgeWall(deco, rng, x0, x1, side * (half + 3))
+		woodFence(deco, rng, x0, x1, side * (half + 3))
 	end
 
-	-- a cottage on the right, a windmill on the left beyond the hedge
-	-- the cottage stands inside the area, by the right-hand hedge, its door
+	-- a cottage on the right, a windmill on the left beyond the fence
+	-- the cottage stands inside the area, by the right-hand fence, its door
 	-- towards the path
 	local cottageAt = Vector3.new(x0 + 64, 0, half - 8)
 	cottage(deco, cottageAt, -1)
