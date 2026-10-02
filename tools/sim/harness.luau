@@ -2478,8 +2478,17 @@ if ok then
 				if math.abs(p.Position.Z) < Config.AREA_HALF_WIDTH + 40 or p.Position.Y < 40 or p.CanCollide then inside += 1 end
 			end
 			local clouds = workspace.Terrain:FindFirstChildOfClass("Clouds")
-			item(126, "cartoon world look (matte, clouds, puffs out of the way)", Lighting.EnvironmentSpecularScale == 0 and clouds ~= nil and n >= 100 and inside == 0,
-				string.format("specular %s, clouds %s, %d puff parts, %d in the way", tostring(Lighting.EnvironmentSpecularScale), tostring(clouds ~= nil), n, inside))
+			-- the cartoon floor: smooth tiles over the walkable strip, just above the ground
+			local tiles, off = 0, 0
+			for _, t in ipairs(workspace.Map.CartoonFloor:GetDescendants()) do
+				if t:IsA("BasePart") then
+					tiles += 1
+					local top = t.Position.Y + t.Size.Y / 2
+					if top < Config.GROUND_Y - 0.9 or top > Config.GROUND_Y + 0.9 or t.Material ~= Enum.Material.SmoothPlastic then off += 1 end
+				end
+			end
+			item(126, "cartoon world look (flat floor tiles, matte, clouds, puffs out of the way)", Lighting.EnvironmentSpecularScale == 0 and clouds ~= nil and n >= 100 and inside == 0 and tiles >= 1000 and off == 0,
+				string.format("%d smooth floor tiles (%d off the ground), specular %s, clouds %s, %d puff parts, %d in the way", tiles, off, tostring(Lighting.EnvironmentSpecularScale), tostring(clouds ~= nil), n, inside))
 		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true

@@ -949,6 +949,60 @@ end
 -- living coin or push the player up when they spawn. New areas get this for free.
 terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF * 2), Enum.Material.Air)
 
+-- Cartoon floor: the walkable strip of every world is covered with smooth,
+-- flat tiles in a soft two-tone checker (like the classic pet simulator
+-- floors) instead of the realistic terrain textures, with a lighter path
+-- down the middle. A tile only goes where the terrain under it is flat
+-- ground (never over a pond, the oasis, lava, a hill or a hole), a few hundredths
+-- above it, so everything standing on the ground still stands on it.
+World.FLOOR = {
+	-- tile colours (two tones) and the path colour, by world
+	{ Color3.fromRGB(118, 214, 88), Color3.fromRGB(104, 200, 78), Color3.fromRGB(240, 196, 120) }, -- Forest
+	{ Color3.fromRGB(255, 218, 138), Color3.fromRGB(248, 204, 118), Color3.fromRGB(255, 236, 180) }, -- Sahara
+	{ Color3.fromRGB(240, 248, 255), Color3.fromRGB(222, 236, 252), Color3.fromRGB(200, 228, 250) }, -- Frozen Peaks
+	{ Color3.fromRGB(132, 222, 104), Color3.fromRGB(118, 208, 94), Color3.fromRGB(255, 196, 220) }, -- Sakura Jungle
+	{ Color3.fromRGB(132, 106, 100), Color3.fromRGB(118, 94, 90), Color3.fromRGB(170, 120, 96) }, -- Lava Arena
+}
+do
+	local TILE = 5
+	local floor = Build.folder(map, "CartoonFloor")
+	World.FloorTiles = 0
+	for i = 1, #Config.AREAS do
+		local colors = World.FLOOR[i] or World.FLOOR[1]
+		local x0 = Config.areaStart(i)
+		local folder = Build.folder(floor, "Floor" .. i)
+		for ix = 0, LENGTH / TILE - 1 do
+			for iz = 0, (HALF * 2) / TILE - 1 do
+				local cx, cz = x0 + (ix + 0.5) * TILE, -HALF + (iz + 0.5) * TILE
+				-- flat ground under the whole tile?
+				local low, high = math.huge, -math.huge
+				for _, o in ipairs({ { 0, 0 }, { -2, -2 }, { 2, -2 }, { -2, 2 }, { 2, 2 } }) do
+					local hit = workspace:Raycast(Vector3.new(cx + o[1], 200, cz + o[2]), Vector3.new(0, -400, 0), groundRay)
+					-- (lava pools and water keep showing)
+					if hit and hit.Material ~= Enum.Material.CrackedLava and hit.Material ~= Enum.Material.Water then
+						low, high = math.min(low, hit.Position.Y), math.max(high, hit.Position.Y)
+					else
+						low = -math.huge
+					end
+				end
+				if low > -math.huge and high - low < 0.5 and math.abs(high - Config.GROUND_Y) < 0.8 then
+					local path = math.abs(cz) < 4
+					local checker = (ix + iz) % 2 == 0
+					Build.part(folder, {
+						Name = "Tile",
+						Size = Vector3.new(TILE, 1, TILE),
+						CFrame = CFrame.new(cx, high + 0.04 - 0.5, cz),
+						Color = if path then colors[3] else (if checker then colors[1] else colors[2]),
+						Material = Enum.Material.SmoothPlastic,
+						CastShadow = false,
+					})
+					World.FloorTiles += 1
+				end
+			end
+		end
+	end
+end
+
 -- Breakable spots were picked before the small props and some terrain; keep
 -- only the ones on flat ground and set them to its real height
 -- only the ones on flat ground and set them to its real height. If too few
