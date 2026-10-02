@@ -57,6 +57,54 @@ function World.flatGround(x, z, radius)
 	return true
 end
 
+-- Paths painted on the ground ----------------------------------------------------------
+-- A flat band through `points` (Vector3s, only X and Z are used) lying just
+-- on top of the ground (and on top of the cartoon floor), `width` wide, with
+-- round joints so bends are smooth and an optional darker edge. It doesn't
+-- collide, isn't hit by rays (so coins and spots still find the real ground)
+-- and casts no shadow. Returns the folder.
+World.Paths = {} -- name -> folder (for the simulator)
+function World.paintPath(parent, name, points, width, color, edge)
+	local folder = Build.folder(parent, name)
+	local function flat(props)
+		props.CanCollide = false
+		props.CastShadow = false
+		local part = Build.part(folder, props)
+		part.CanQuery = false
+		part.CanTouch = false
+		return part
+	end
+	local function band(w, top, c)
+		for k, p in ipairs(points) do
+			flat({
+				Name = "PathJoint",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.1, w, w),
+				CFrame = CFrame.new(p.X, top - 0.05, p.Z) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = c,
+			})
+			local q = points[k + 1]
+			if q then
+				local dx, dz = q.X - p.X, q.Z - p.Z
+				local length = math.sqrt(dx * dx + dz * dz)
+				flat({
+					Name = "PathPiece",
+					Size = Vector3.new(length, 0.1, w),
+					CFrame = CFrame.new((p.X + q.X) / 2, top - 0.05, (p.Z + q.Z) / 2) * CFrame.Angles(0, -math.atan2(dz, dx), 0),
+					Color = c,
+				})
+			end
+		end
+	end
+	local top = Config.GROUND_Y + 0.1
+	if edge then
+		band(width + 1, top - 0.02, edge)
+	end
+	band(width, top, color)
+	World.Paths[name] = folder
+	return folder
+end
+
 -- Lighting and terrain colours ------------------------------------------------------
 
 -- bright, sunny and a little extra colourful, like a toy world
@@ -207,9 +255,9 @@ end
 
 -- Gates between areas ----------------------------------------------------------------
 
--- One side of a gate's wall: a lock, the world's name and the price in big
--- chunky white letters with a dark outline (like the area gates in pet
--- simulator games). Drawn with a SurfaceGui so it is crisp up close.
+-- One side of a gate's wall: just the price, in big chunky gold numbers with
+-- a dark outline, and a gold coin beside it. Drawn with a SurfaceGui so it
+-- is crisp up close.
 local function gateFace(barrier, face, area, i)
 	local dark = area.Color:Lerp(Color3.new(0, 0, 0), 0.55)
 	local gui = Instance.new("SurfaceGui")
@@ -245,51 +293,13 @@ local function gateFace(barrier, face, area, i)
 		c.Parent = frame
 	end
 
-	-- the lock: a shackle over a body with a keyhole
-	local lock = Instance.new("Frame")
-	lock.Name = "Lock"
-	lock.BackgroundTransparency = 1
-	lock.AnchorPoint = Vector2.new(0.5, 0.5)
-	lock.Position = UDim2.fromScale(0.5, 0.2)
-	lock.Size = UDim2.fromOffset(70, 80)
-	lock.Parent = gui
-	local shackle = Instance.new("Frame")
-	shackle.BackgroundTransparency = 1
-	shackle.Position = UDim2.fromOffset(15, 0)
-	shackle.Size = UDim2.fromOffset(40, 50)
-	round(shackle, UDim.new(0.5, 0))
-	local ring = Instance.new("UIStroke")
-	ring.Color = Color3.new(1, 1, 1)
-	ring.Thickness = 9
-	ring.Parent = shackle
-	shackle.Parent = lock
-	local body = Instance.new("Frame")
-	body.BackgroundColor3 = Color3.fromRGB(255, 205, 60)
-	body.Position = UDim2.fromOffset(0, 32)
-	body.Size = UDim2.fromOffset(70, 48)
-	round(body, UDim.new(0, 10))
-	local edge = Instance.new("UIStroke")
-	edge.Color = dark
-	edge.Thickness = 5
-	edge.Parent = body
-	body.Parent = lock
-	local hole = Instance.new("Frame")
-	hole.BackgroundColor3 = dark
-	hole.AnchorPoint = Vector2.new(0.5, 0.5)
-	hole.Position = UDim2.fromScale(0.5, 0.5)
-	hole.Size = UDim2.fromOffset(12, 20)
-	round(hole, UDim.new(0.5, 0))
-	hole.Parent = body
-
-	label({ Name = "World", Text = area.Name:upper(), Position = UDim2.fromScale(0.5, 0.42), Size = UDim2.fromScale(0.7, 0.13) })
-
 	-- the price: a gold coin and the number, big
 	local row = Instance.new("Frame")
 	row.Name = "PriceRow"
 	row.BackgroundTransparency = 1
 	row.AnchorPoint = Vector2.new(0.5, 0.5)
-	row.Position = UDim2.fromScale(0.5, 0.66)
-	row.Size = UDim2.fromScale(0.9, 0.26)
+	row.Position = UDim2.fromScale(0.5, 0.5)
+	row.Size = UDim2.fromScale(0.95, 0.5)
 	row.Parent = gui
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
@@ -302,11 +312,11 @@ local function gateFace(barrier, face, area, i)
 	coin.Name = "Coin"
 	coin.LayoutOrder = 1
 	coin.BackgroundColor3 = Color3.fromRGB(255, 200, 40)
-	coin.Size = UDim2.fromOffset(74, 74)
+	coin.Size = UDim2.fromOffset(110, 110)
 	round(coin, UDim.new(0.5, 0))
 	local rim = Instance.new("UIStroke")
 	rim.Color = Color3.fromRGB(200, 120, 10)
-	rim.Thickness = 6
+	rim.Thickness = 8
 	rim.Parent = coin
 	local shine = Instance.new("Frame")
 	shine.BackgroundColor3 = Color3.fromRGB(255, 240, 160)
@@ -318,12 +328,10 @@ local function gateFace(barrier, face, area, i)
 	coin.Parent = row
 	local cost = Config.AREA_COST_FOR_TESTING or area.Cost
 	local price = label({ Name = "Price", Text = Config.formatNumber(cost), AnchorPoint = Vector2.new(0, 0.5), LayoutOrder = 2,
-		AutomaticSize = Enum.AutomaticSize.X, TextScaled = false, TextSize = 76, Size = UDim2.fromOffset(0, 80),
+		AutomaticSize = Enum.AutomaticSize.X, TextScaled = false, TextSize = 120, Size = UDim2.fromOffset(0, 124),
 		TextColor3 = Color3.fromRGB(255, 226, 90) })
 	price.Parent = row
 
-	label({ Name = "Hint", Text = if Config.AREA_COST_FOR_TESTING then "TEST PRICE  ·  UNLOCK AT THE BUTTON" else "UNLOCK AT THE BUTTON",
-		Position = UDim2.fromScale(0.5, 0.89), Size = UDim2.fromScale(0.6, 0.08) })
 	return gui
 end
 
@@ -402,7 +410,7 @@ local function buildEndWall()
 	corner.Parent = face
 	local rim = Instance.new("UIStroke")
 	rim.Color = dark
-	rim.Thickness = 6
+	rim.Thickness = 8
 	rim.Parent = face
 	for _, ex in ipairs({ 0.33, 0.67 }) do
 		local eye = Instance.new("Frame")
@@ -451,6 +459,9 @@ local function buildEndWall()
 	return model
 end
 
+-- the locked wall is see-through: 0.2 opacity
+World.GATE_TRANSPARENCY = 0.8
+
 local function buildGate(i)
 	local area = Config.AREAS[i]
 	local x = Config.areaStart(i)
@@ -464,8 +475,8 @@ local function buildGate(i)
 	end
 	Build.block(gate, Vector3.new(x, 17, 0), Vector3.new(4, 3, HALF * 2 - 4), { Color = white })
 
-	-- the wall itself: coloured glass you can see, with white rails and the
-	-- price written on both sides in big chunky letters
+	-- the wall itself: see-through coloured glass (0.2 opacity), with white
+	-- rails and the price and a coin on both sides
 	local barrier = Build.part(gate, {
 		Name = "Barrier",
 		Size = Vector3.new(1, 15, HALF * 2 - 10),
@@ -473,7 +484,7 @@ local function buildGate(i)
 		Color = area.Color,
 		Material = Enum.Material.Glass,
 		Reflectance = 0.15,
-		Transparency = 0.25,
+		Transparency = World.GATE_TRANSPARENCY,
 		CastShadow = false,
 	})
 	for _, y in ipairs({ Config.GROUND_Y, Config.GROUND_Y + 15 }) do
@@ -534,7 +545,7 @@ function World.setGateOpen(i, open)
 	local area = Config.AREAS[i]
 	gate.Barrier.CanCollide = not open
 	gate.Blocker.CanCollide = not open
-	gate.Barrier.Transparency = if open then 1 else 0.25
+	gate.Barrier.Transparency = if open then 1 else World.GATE_TRANSPARENCY
 	for _, rail in ipairs(gate.Barrier:GetChildren()) do
 		if rail.Name == "Rail" then
 			rail.Transparency = if open then 1 else 0

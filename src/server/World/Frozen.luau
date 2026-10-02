@@ -461,6 +461,40 @@ function Frozen.build(ctx)
 	space:add(machineAt, 6)
 	space:add(machineAt + Vector3.new(0, 0, -7), 4)
 
+	-- a frozen lake crossing the area from one side to the other: a wavy
+	-- band of smooth blue ice with a darker edge, a lighter shine down the
+	-- middle and a few white cracks
+	local lakeX = x0 + 46
+	local lake = {}
+	for z = half - 1, -(half - 1), -2 do
+		table.insert(lake, Vector3.new(lakeX + math.sin(z / 7) * 2.5, 0, z))
+		space:add(Vector3.new(lakeX, 0, z), 5)
+	end
+	local lakeFolder = ctx.World.paintPath(deco, "FrozenLake", lake, 9, Color3.fromRGB(150, 210, 250), Color3.fromRGB(105, 170, 225))
+	for _, part in ipairs(lakeFolder:GetChildren()) do
+		part.Reflectance = 0.2
+	end
+	local shine = {}
+	for k = 1, #lake, 2 do
+		table.insert(shine, lake[k] + Vector3.new(-1, 0, 0))
+	end
+	for _, part in ipairs(ctx.World.paintPath(lakeFolder, "Shine", shine, 2.4, Color3.fromRGB(205, 236, 255)):GetChildren()) do
+		part.CFrame += Vector3.new(0, 0.02, 0)
+	end
+	for _ = 1, 6 do
+		local at = lake[rng:NextInteger(2, #lake - 1)]
+		local crackPart = Build.part(lakeFolder, {
+			Name = "Crack",
+			Size = Vector3.new(rng:NextNumber(2, 4), 0.1, 0.18),
+			CFrame = CFrame.new(at.X + rng:NextNumber(-2.5, 2.5), Config.GROUND_Y + 0.11, at.Z) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0),
+			Color = Color3.new(1, 1, 1),
+			CanCollide = false,
+			CastShadow = false,
+		})
+		crackPart.CanQuery = false
+		crackPart.CanTouch = false
+	end
+
 	ctx.reserveSpots() -- breakables get their room before the small props
 
 	-- ice walls, crystal clusters, snowy rocks, pines and drifts

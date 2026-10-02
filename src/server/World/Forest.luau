@@ -533,6 +533,13 @@ function Forest.build(ctx)
 		terrain:ReplaceMaterial(Region3.new(Vector3.new(x, -4, z - 4), Vector3.new(x + 4, 0, z + 4)):ExpandToGrid(4), 4, Enum.Material.LeafyGrass, Enum.Material.Ground)
 		space:add(Vector3.new(x + 2, 0, z), 2.5)
 	end
+	-- and the path itself, painted on top so it shows on any floor: a sandy
+	-- dirt path winding down the middle from the spawn to the gate
+	local pathPoints = {}
+	for x = x0, x1, 2 do
+		table.insert(pathPoints, Vector3.new(x, 0, math.sin((x - x0) / 16) * 5))
+	end
+	ctx.World.paintPath(deco, "ForestPath", pathPoints, 6, Color3.fromRGB(232, 196, 130), Color3.fromRGB(200, 160, 100))
 
 	-- soft round hills along both sides and behind the start
 	for x = x0 - 10, x1 + 6, 14 do
