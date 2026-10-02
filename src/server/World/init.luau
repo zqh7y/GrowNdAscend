@@ -1041,6 +1041,7 @@ if World.CARTOON_FLOOR then
 	local TILE = 5
 	local floor = Build.folder(map, "CartoonFloor")
 	World.FloorTiles = 0
+	World.FloorTileList = {} -- { Tile, X, Z }
 	World.FloorDetails = 0
 	-- the floor sits right on the ground's height (Config.GROUND_Y, 1.6), no
 	-- measuring (a ray down onto the terrain was unreliable in the real game);
@@ -1061,7 +1062,7 @@ if World.CARTOON_FLOOR then
 		if not open(cx, cz, reach * 1.5 + 0.5) then
 			return nil
 		end
-		local top = Config.GROUND_Y
+		local top = Config.TERRAIN_TOP
 		for _, o in ipairs({ { 0, 0 }, { reach, reach }, { -reach, reach }, { reach, -reach }, { -reach, -reach } }) do
 			local y = World.groundAt(cx + o[1], cz + o[2])
 			if y and y < Config.GROUND_Y + 3 then
@@ -1097,6 +1098,19 @@ if World.CARTOON_FLOOR then
 			Material = material or Enum.Material.SmoothPlastic,
 		})
 	end
+	-- measured again a moment after the server starts (rays don't see new
+	-- terrain right away): any tile the ground still pokes over goes up
+	function World.settleFloor()
+		for _, t in ipairs(World.FloorTileList) do
+			local top = flatTop(t.X, t.Z, 2)
+			if top and top > t.Tile.Position.Y + 0.5 + 0.001 then
+				t.Tile.CFrame = CFrame.new(t.X, top - 0.5, t.Z)
+			end
+		end
+	end
+	task.delay(2, function()
+		World.settleFloor()
+	end)
 	for i = 1, #Config.AREAS do
 		local look = World.FLOOR[i] or World.FLOOR[1]
 		local x0 = Config.areaStart(i)
@@ -1107,7 +1121,7 @@ if World.CARTOON_FLOOR then
 				local cx, cz = x0 + (ix + 0.5) * TILE, -HALF + (iz + 0.5) * TILE
 				local top = flatTop(cx, cz, 2)
 				if top then
-					Build.part(folder, {
+					local tile = Build.part(folder, {
 						Name = "Tile",
 						Size = Vector3.new(TILE, 1, TILE),
 						CFrame = CFrame.new(cx, top - 0.5, cz),
@@ -1115,6 +1129,7 @@ if World.CARTOON_FLOOR then
 						Material = Enum.Material.SmoothPlastic,
 						CastShadow = false,
 					})
+					table.insert(World.FloorTileList, { Tile = tile, X = cx, Z = cz })
 					World.FloorTiles += 1
 				end
 			end
