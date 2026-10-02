@@ -94,15 +94,16 @@ function Screen.modal(width, height, theme)
 		ZIndex = 30,
 		Parent = shade,
 	})
+	-- a chunky cartoon shadow right under it
 	Ui.new("Frame", {
 		Name = "Shadow",
-		Position = UDim2.fromOffset(0, 8),
+		Position = UDim2.fromOffset(0, 10),
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(10, 14, 30),
-		BackgroundTransparency = 0.78,
+		BackgroundColor3 = Ui.OUTLINE,
+		BackgroundTransparency = 0.35,
 		ZIndex = 30,
 		Parent = holder,
-	}, { Ui.corner(22) })
+	}, { Ui.corner(28) })
 	local box = Ui.new("Frame", {
 		Name = "Panel",
 		Size = UDim2.fromScale(1, 1),
@@ -110,7 +111,37 @@ function Screen.modal(width, height, theme)
 		BackgroundTransparency = 0,
 		ZIndex = 31,
 		Parent = holder,
-	}, { Ui.corner(22), Ui.padding(24) })
+	}, {
+		Ui.corner(28),
+		Ui.padding(24),
+		-- a thick dark outline and a soft warm glow from the top
+		Ui.new("UIStroke", { Name = "Outline", Color = Ui.OUTLINE, Thickness = 4, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
+		Ui.new("UIGradient", { Name = "Warm", Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(255, 255, 250), Color3.fromRGB(255, 236, 214)) }),
+	})
+	-- little polka dots in the background (very soft)
+	local dots = Ui.new("Frame", {
+		Name = "Dots",
+		Position = UDim2.fromOffset(-24, -24),
+		Size = UDim2.new(1, 48, 1, 48),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		ZIndex = -1, -- (under everything on the panel)
+		Parent = box,
+	}, { Ui.corner(28) })
+	local step = 64
+	for row = 0, math.ceil((height + 48) / step) do
+		for col = 0, math.ceil((width + 48) / step) do
+			Ui.new("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromOffset(col * step + (row % 2) * step / 2, row * step),
+				Size = UDim2.fromOffset(8, 8),
+				BackgroundColor3 = Color3.fromRGB(255, 196, 160),
+				BackgroundTransparency = 0.55,
+				ZIndex = -1,
+				Parent = dots,
+			}, { Ui.corner(0.5) })
+		end
+	end
 	themes[box] = theme
 	-- a big red X sitting on the panel's top-right corner
 	local close = Ui.new("TextButton", {

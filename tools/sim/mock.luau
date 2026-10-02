@@ -263,6 +263,14 @@ V2.__index = function(v, k)
 	return V2[k]
 end
 ColorSequenceKeypoint = valueType("ColorSequenceKeypoint")
+do
+	local plain = ColorSequenceKeypoint.new
+	ColorSequenceKeypoint.new = function(time, value)
+		local k = plain(time, value)
+		k.Time, k.Value = time, value
+		return k
+	end
+end
 NumberSequence = valueType("NumberSequence")
 NumberSequenceKeypoint = valueType("NumberSequenceKeypoint")
 ColorSequence = valueType("ColorSequence")

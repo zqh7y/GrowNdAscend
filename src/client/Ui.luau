@@ -1,9 +1,9 @@
--- UI theme and helpers. The look is clean, calm and friendly, like a
--- premium casual game: white rounded panels with soft shadows, light grey
--- cards, clear dark text, a rounded display font for headings, solid
--- friendly colours on buttons, and simple icons drawn with frames (no image
--- assets needed). It should feel expensive because it's clean, not because
--- of effects.
+-- UI theme and helpers. The look is a friendly cartoon (the user wanted it
+-- "мультяшный", not official): a round bubbly font everywhere, warm cream
+-- panels with thick dark outlines and a chunky shadow, bright candy colours,
+-- buttons with a darker bottom edge (they look like you can press them in)
+-- and white letters with dark outlines on coloured buttons. Icons are drawn
+-- with frames (no image assets needed).
 local TweenService = game:GetService("TweenService")
 
 local State = require(script.Parent.State)
@@ -17,32 +17,33 @@ end
 
 -- Theme --------------------------------------------------------------------------
 
-Ui.FONT = Enum.Font.GothamBold -- buttons, numbers, names
-Ui.FONT_TITLE = Enum.Font.GothamBlack -- small labels and tags
-Ui.FONT_DISPLAY = Enum.Font.FredokaOne -- headings and big moments (friendly)
-Ui.FONT_MEDIUM = Enum.Font.GothamMedium -- small print
+Ui.FONT = Enum.Font.FredokaOne -- everything: round and bubbly
+Ui.FONT_TITLE = Enum.Font.FredokaOne
+Ui.FONT_DISPLAY = Enum.Font.FredokaOne
+Ui.FONT_MEDIUM = Enum.Font.FredokaOne
 
-Ui.GLASS = Color3.fromRGB(255, 255, 255) -- panels
-Ui.GLASS_LIGHT = Color3.fromRGB(243, 245, 250) -- cards on panels
-Ui.LINE = Color3.fromRGB(224, 228, 238) -- hairlines
-Ui.INK = Color3.fromRGB(34, 38, 56) -- dark text
-Ui.TEXT = Color3.fromRGB(34, 38, 56)
-Ui.MUTED = Color3.fromRGB(130, 136, 158)
+Ui.OUTLINE = Color3.fromRGB(40, 28, 56) -- the cartoon outline round panels, buttons, letters
+Ui.GLASS = Color3.fromRGB(255, 250, 238) -- panels: warm cream
+Ui.GLASS_LIGHT = Color3.fromRGB(255, 238, 208) -- cards on panels: soft peach
+Ui.LINE = Color3.fromRGB(222, 186, 140) -- card edges: warm tan
+Ui.INK = Color3.fromRGB(58, 40, 78) -- dark text (a soft purple-brown, never black)
+Ui.TEXT = Ui.INK
+Ui.MUTED = Color3.fromRGB(150, 118, 120)
 Ui.WHITE = Color3.new(1, 1, 1)
-Ui.BLUE = Color3.fromRGB(64, 132, 255)
-Ui.PURPLE = Color3.fromRGB(140, 102, 240)
-Ui.PINK = Color3.fromRGB(255, 104, 150)
+Ui.BLUE = Color3.fromRGB(60, 160, 255)
+Ui.PURPLE = Color3.fromRGB(160, 100, 255)
+Ui.PINK = Color3.fromRGB(255, 100, 170)
 -- (older names, kept so every screen picks up the new colours)
 Ui.CYAN = Ui.BLUE
 Ui.VIOLET = Ui.PURPLE
 Ui.MAGENTA = Ui.PINK
-Ui.PRIMARY_A = Color3.fromRGB(88, 156, 255)
-Ui.PRIMARY_B = Color3.fromRGB(56, 112, 245)
+Ui.PRIMARY_A = Color3.fromRGB(110, 190, 255)
+Ui.PRIMARY_B = Color3.fromRGB(50, 130, 250)
 Ui.ACCENT = Ui.BLUE
-Ui.SUCCESS = Color3.fromRGB(46, 196, 120)
-Ui.DANGER = Color3.fromRGB(240, 82, 96)
-Ui.GOLD = Color3.fromRGB(255, 186, 40)
-Ui.PANEL_TRANSPARENCY = 0.06
+Ui.SUCCESS = Color3.fromRGB(70, 210, 90)
+Ui.DANGER = Color3.fromRGB(255, 80, 90)
+Ui.GOLD = Color3.fromRGB(255, 196, 30)
+Ui.PANEL_TRANSPARENCY = 0
 
 -- Basics -------------------------------------------------------------------------
 
@@ -94,7 +95,7 @@ function Ui.padding(px)
 	})
 end
 
--- A white rounded panel with a hairline edge (HUD pills, small panels)
+-- A cream rounded panel with a thick dark outline (HUD pills, small panels)
 function Ui.glass(props, children)
 	local radius = props.Radius or 14
 	props.Radius = nil
@@ -102,7 +103,8 @@ function Ui.glass(props, children)
 	props.BackgroundTransparency = props.BackgroundTransparency or Ui.PANEL_TRANSPARENCY
 	local frame = Ui.new("Frame", props, children)
 	Ui.corner(radius).Parent = frame
-	local edge = Ui.stroke(Ui.LINE, 1, 0)
+	-- a thick cartoon outline
+	local edge = Ui.stroke(Ui.OUTLINE, 3, 0)
 	edge.Name = "Edge"
 	edge.Parent = frame
 	return frame
@@ -115,8 +117,8 @@ function Ui.accentLine(parent)
 end
 function Ui.brackets() end
 
--- A card on a panel: light grey, rounded, with a soft edge that takes the
--- `accent` colour gently (rarity, etc.)
+-- A card on a panel: soft peach, rounded, with a warm tan edge (or a thick
+-- edge in the `accent` colour: rarity, etc.)
 function Ui.card(props, accent, children)
 	local radius = props.Radius or 12
 	props.Radius = nil
@@ -124,7 +126,7 @@ function Ui.card(props, accent, children)
 	props.BackgroundTransparency = props.BackgroundTransparency or 0
 	local frame = Ui.new("Frame", props, children)
 	Ui.corner(radius).Parent = frame
-	local edge = Ui.stroke(if accent then accent:Lerp(Ui.LINE, 0.45) else Ui.LINE, if accent then 1.5 else 1, 0)
+	local edge = Ui.stroke(if accent then accent:Lerp(Ui.OUTLINE, 0.25) else Ui.LINE, if accent then 2.5 else 2, 0)
 	edge.Name = "Edge"
 	edge.Parent = frame
 	return frame
@@ -137,8 +139,8 @@ function Ui.shadow(frame, radius, offset)
 		AnchorPoint = frame.AnchorPoint,
 		Position = frame.Position + UDim2.fromOffset(0, offset or 4),
 		Size = frame.Size,
-		BackgroundColor3 = Color3.fromRGB(20, 24, 40),
-		BackgroundTransparency = 0.85,
+		BackgroundColor3 = Ui.OUTLINE,
+		BackgroundTransparency = 0.6,
 		ZIndex = math.max((frame.ZIndex or 1) - 1, 0),
 		Parent = frame.Parent,
 	}, { Ui.corner(radius or 14) })
@@ -424,19 +426,20 @@ end
 -- glass with a neon edge and a neon icon.
 -- A/B = a soft vertical gradient fill, else Fill; Edge = the outline;
 -- Text = text and icon colour. Coloured styles are solid and friendly.
+local O = Ui.OUTLINE
 local STYLES = {
-	primary = { A = Color3.fromRGB(92, 160, 255), B = Color3.fromRGB(56, 112, 245), Edge = Color3.fromRGB(56, 112, 245), EdgeT = 0.7, Text = Ui.WHITE },
-	glass = { Fill = Ui.GLASS, FillT = 0, Edge = Ui.LINE, EdgeT = 0 },
-	success = { A = Color3.fromRGB(70, 214, 140), B = Color3.fromRGB(38, 178, 108), Edge = Color3.fromRGB(38, 178, 108), EdgeT = 0.7, Text = Ui.WHITE },
-	danger = { A = Color3.fromRGB(250, 110, 120), B = Color3.fromRGB(226, 70, 86), Edge = Color3.fromRGB(226, 70, 86), EdgeT = 0.7, Text = Ui.WHITE },
-	disabled = { Fill = Color3.fromRGB(236, 238, 244), FillT = 0, Edge = Ui.LINE, EdgeT = 0, Text = Color3.fromRGB(160, 165, 184) },
-	blue = { A = Color3.fromRGB(92, 160, 255), B = Color3.fromRGB(56, 112, 245), Edge = Color3.fromRGB(56, 112, 245), EdgeT = 0.7, Text = Ui.WHITE },
-	green = { A = Color3.fromRGB(70, 214, 140), B = Color3.fromRGB(38, 178, 108), Edge = Color3.fromRGB(38, 178, 108), EdgeT = 0.7, Text = Ui.WHITE },
-	purple = { A = Color3.fromRGB(170, 134, 255), B = Color3.fromRGB(126, 88, 230), Edge = Color3.fromRGB(126, 88, 230), EdgeT = 0.7, Text = Ui.WHITE },
-	gold = { A = Color3.fromRGB(255, 206, 80), B = Color3.fromRGB(245, 168, 30), Edge = Color3.fromRGB(245, 168, 30), EdgeT = 0.7, Text = Ui.WHITE },
-	orange = { A = Color3.fromRGB(255, 170, 90), B = Color3.fromRGB(245, 128, 50), Edge = Color3.fromRGB(245, 128, 50), EdgeT = 0.7, Text = Ui.WHITE },
-	gray = { A = Color3.fromRGB(168, 176, 198), B = Color3.fromRGB(128, 136, 160), Edge = Color3.fromRGB(128, 136, 160), EdgeT = 0.7, Text = Ui.WHITE },
-	magenta = { A = Color3.fromRGB(255, 130, 175), B = Color3.fromRGB(236, 84, 136), Edge = Color3.fromRGB(236, 84, 136), EdgeT = 0.7, Text = Ui.WHITE },
+	primary = { A = Color3.fromRGB(110, 190, 255), B = Color3.fromRGB(50, 130, 250), Edge = O, EdgeT = 0, Text = Ui.WHITE },
+	glass = { Fill = Ui.GLASS, FillT = 0, Edge = O, EdgeT = 0 },
+	success = { A = Color3.fromRGB(130, 236, 110), B = Color3.fromRGB(50, 190, 80), Edge = O, EdgeT = 0, Text = Ui.WHITE },
+	danger = { A = Color3.fromRGB(255, 130, 130), B = Color3.fromRGB(240, 60, 76), Edge = O, EdgeT = 0, Text = Ui.WHITE },
+	disabled = { Fill = Color3.fromRGB(226, 218, 210), FillT = 0, Edge = Color3.fromRGB(150, 130, 130), EdgeT = 0, Text = Color3.fromRGB(150, 135, 135) },
+	blue = { A = Color3.fromRGB(110, 190, 255), B = Color3.fromRGB(50, 130, 250), Edge = O, EdgeT = 0, Text = Ui.WHITE },
+	green = { A = Color3.fromRGB(130, 236, 110), B = Color3.fromRGB(50, 190, 80), Edge = O, EdgeT = 0, Text = Ui.WHITE },
+	purple = { A = Color3.fromRGB(190, 150, 255), B = Color3.fromRGB(130, 80, 240), Edge = O, EdgeT = 0, Text = Ui.WHITE },
+	gold = { A = Color3.fromRGB(255, 226, 90), B = Color3.fromRGB(255, 170, 20), Edge = O, EdgeT = 0, Text = Ui.WHITE },
+	orange = { A = Color3.fromRGB(255, 190, 90), B = Color3.fromRGB(255, 120, 40), Edge = O, EdgeT = 0, Text = Ui.WHITE },
+	gray = { A = Color3.fromRGB(200, 196, 214), B = Color3.fromRGB(140, 134, 164), Edge = O, EdgeT = 0, Text = Ui.WHITE },
+	magenta = { A = Color3.fromRGB(255, 150, 200), B = Color3.fromRGB(240, 70, 150), Edge = O, EdgeT = 0, Text = Ui.WHITE },
 }
 Ui.STYLES = STYLES
 
@@ -453,7 +456,15 @@ function Ui.setStyle(button, styleName)
 		button.BackgroundColor3 = Color3.new(1, 1, 1)
 		button.BackgroundTransparency = 0
 		fill.Enabled = true
-		fill.Color = ColorSequence.new(style.A, style.B)
+		-- light on top, its colour lower down, and a darker band along the
+		-- bottom: the cartoon "you can press me" edge
+		local base = style.B:Lerp(Color3.new(0, 0, 0), 0.22)
+		fill.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, style.A),
+			ColorSequenceKeypoint.new(0.78, style.B),
+			ColorSequenceKeypoint.new(0.8, base),
+			ColorSequenceKeypoint.new(1, base),
+		})
 		fill.Rotation = 90
 	else
 		button.BackgroundColor3 = style.Fill
@@ -461,8 +472,13 @@ function Ui.setStyle(button, styleName)
 		fill.Enabled = false
 	end
 	button.Edge.Transparency = style.EdgeT
-	button.Edge.Color = style.Edge or Ui.LINE
+	button.Edge.Color = style.Edge or Ui.OUTLINE
 	button.Content.Label.TextStrokeTransparency = 1
+	-- white letters on a coloured button get a dark outline
+	local outline = button.Content.Label:FindFirstChild("Outline")
+	if outline then
+		outline.Enabled = style.A ~= nil
+	end
 	local color = style.Text or Ui.TEXT
 	local iconColor = style.Icon or color
 	local content = button.Content
@@ -512,7 +528,7 @@ function Ui.button(props, onClick, styleName)
 	button.AutoButtonColor = false
 	button:SetAttribute("IconSize", iconSize)
 	Ui.new("UIGradient", { Name = "Fill", Parent = button })
-	local edge = Ui.stroke(Ui.LINE, 1, 0)
+	local edge = Ui.stroke(Ui.OUTLINE, 2.5, 0)
 	edge.Name = "Edge"
 	edge.Parent = button
 
@@ -541,7 +557,7 @@ function Ui.button(props, onClick, styleName)
 		TextStrokeColor3 = Ui.INK,
 		Visible = text ~= "",
 		Parent = content,
-	})
+	}, { Ui.new("UIStroke", { Name = "Outline", Color = Ui.OUTLINE, Thickness = math.max(1.5, textSize / 10), LineJoinMode = Enum.LineJoinMode.Round, Enabled = false }) })
 	if iconName then
 		button:SetAttribute("IconName", iconName)
 		Ui.icon(iconName, iconSize, Ui.TEXT, { LayoutOrder = 0, Parent = content })
@@ -555,12 +571,12 @@ function Ui.button(props, onClick, styleName)
 		TweenService:Create(edge, TweenInfo.new(0.2), { Transparency = style.EdgeT }):Play()
 	end
 	button.MouseEnter:Connect(function()
-		TweenService:Create(scaler, TweenInfo.new(0.15, Enum.EasingStyle.Quint), { Scale = if Ui.reduced() then 1 else 1.04 }):Play()
-		TweenService:Create(edge, TweenInfo.new(0.15), { Transparency = 0.25 }):Play()
+		TweenService:Create(scaler, TweenInfo.new(0.18, Enum.EasingStyle.Back), { Scale = if Ui.reduced() then 1 else 1.07 }):Play()
+
 	end)
 	button.MouseLeave:Connect(settle)
 	button.MouseButton1Down:Connect(function()
-		TweenService:Create(scaler, TweenInfo.new(0.06), { Scale = if Ui.reduced() then 1 else 0.94 }):Play()
+		TweenService:Create(scaler, TweenInfo.new(0.06), { Scale = if Ui.reduced() then 1 else 0.9 }):Play()
 	end)
 	button.MouseButton1Up:Connect(settle)
 	button.Activated:Connect(onClick)
@@ -715,7 +731,6 @@ end
 -- Big friendly outlined text (white with a dark outline, or a two-colour
 -- gradient). props: the usual TextLabel props plus Colors = { top, bottom }
 -- and Outline (thickness, default 2.5).
-Ui.OUTLINE = Color3.fromRGB(28, 22, 40)
 function Ui.chunky(props)
 	local colors = props.Colors
 	local outline = props.Outline or 2.5

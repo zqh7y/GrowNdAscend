@@ -61,7 +61,7 @@ local function build(name)
 		Name = "PetName",
 		Position = UDim2.fromOffset(0, 32),
 		Size = UDim2.new(1, 0, 0, 18),
-		Font = Enum.Font.GothamBold,
+		Font = Enum.Font.FredokaOne,
 		TextSize = 15,
 		RichText = true,
 		Text = (function()
