@@ -64,7 +64,7 @@ Lighting.ClockTime = 13
 Lighting.Brightness = 3
 Lighting.Ambient = Color3.fromRGB(120, 120, 140)
 Lighting.OutdoorAmbient = Color3.fromRGB(170, 170, 190)
-Lighting.EnvironmentDiffuseScale = 0.55 -- (flatter, cleaner shading: cartoon)
+Lighting.EnvironmentDiffuseScale = 0.8
 Lighting.EnvironmentSpecularScale = 0 -- (matte toy surfaces, no shine)
 Lighting.ShadowSoftness = 0.6
 local atmosphere = Instance.new("Atmosphere")
@@ -75,9 +75,9 @@ atmosphere.Color = Color3.fromRGB(215, 235, 255)
 atmosphere.Decay = Color3.fromRGB(170, 210, 255)
 atmosphere.Parent = Lighting
 local colour = Instance.new("ColorCorrectionEffect")
-colour.Saturation = 0.22
+colour.Saturation = 0.18
 colour.Brightness = 0.03
-colour.Contrast = 0.1
+colour.Contrast = 0.05
 colour.Parent = Lighting
 local bloom = Instance.new("BloomEffect")
 bloom.Intensity = 0.4
@@ -966,8 +966,8 @@ World.FLOOR_DETAILS = false
 World.FLOOR = {
 	-- base, path, patches (light, dark), detail kind
 	{ Base = Color3.fromRGB(112, 210, 84), Path = Color3.fromRGB(240, 200, 128), Light = Color3.fromRGB(140, 228, 104), Dark = Color3.fromRGB(92, 188, 70), Detail = "meadow" },
-	{ Base = Color3.fromRGB(255, 214, 132), Path = Color3.fromRGB(255, 232, 176), Light = Color3.fromRGB(255, 228, 160), Dark = Color3.fromRGB(240, 192, 108), Detail = "dunes" },
-	{ Base = Color3.fromRGB(236, 246, 255), Path = Color3.fromRGB(206, 230, 252), Light = Color3.fromRGB(250, 253, 255), Dark = Color3.fromRGB(196, 226, 250), Detail = "snow" },
+	{ Base = Color3.fromRGB(240, 198, 120), Path = Color3.fromRGB(255, 232, 176), Light = Color3.fromRGB(255, 228, 160), Dark = Color3.fromRGB(240, 192, 108), Detail = "dunes" },
+	{ Base = Color3.fromRGB(176, 208, 236), Path = Color3.fromRGB(206, 230, 252), Light = Color3.fromRGB(250, 253, 255), Dark = Color3.fromRGB(196, 226, 250), Detail = "snow" },
 	{ Base = Color3.fromRGB(126, 218, 100), Path = Color3.fromRGB(255, 206, 226), Light = Color3.fromRGB(150, 232, 118), Dark = Color3.fromRGB(106, 198, 86), Detail = "petals" },
 	{ Base = Color3.fromRGB(126, 100, 96), Path = Color3.fromRGB(160, 120, 100), Light = Color3.fromRGB(146, 118, 110), Dark = Color3.fromRGB(104, 84, 82), Detail = "cracks" },
 }
