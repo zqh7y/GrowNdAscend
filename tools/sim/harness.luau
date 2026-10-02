@@ -2660,7 +2660,7 @@ if ok then
 			local function lies(folder)
 				if not folder or #folder:GetChildren() == 0 then return false end
 				for _, d in ipairs(folder:GetDescendants()) do
-					if d:IsA("BasePart") and (d.Name == "PathPiece" or d.Name == "PathJoint") and (d.CanCollide or d.CanQuery or d.Position.Y < Config.GROUND_Y or d.Position.Y > Config.GROUND_Y + 1.8) then return false end
+					if d:IsA("BasePart") and (d.Name == "PathPiece" or d.Name == "PathJoint") and (d.CanCollide or d.CanQuery or d.Position.Y < Config.TERRAIN_TOP or d.Position.Y > Config.GROUND_Y + 1.8) then return false end
 				end
 				return true
 			end
