@@ -28,15 +28,45 @@ local controlsGui = Ui.new("ScreenGui", {
 })
 Screen.Controls = controlsGui
 
+-- keep everything clear of a phone's notch and rounded corners
+for _, g in ipairs({ gui, controlsGui }) do
+	pcall(function()
+		g.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+	end)
+end
+
+-- Phones and tablets (a touch screen and no keyboard) get bigger UI than the
+-- plain screen-size fit would give them, so text stays readable on a small
+-- screen; big panels then shrink to fit (Screen.fitScale)
+local UserInputService = game:GetService("UserInputService")
+Screen.Touch = UserInputService.TouchEnabled == true and UserInputService.KeyboardEnabled ~= true
+
 local uiScale = Ui.new("UIScale", { Parent = gui })
 local controlsScale = Ui.new("UIScale", { Parent = controlsGui })
+Screen.Scale = 1
+-- the UI scale for a screen size (touch: phones and tablets)
+function Screen.scaleFor(size, touch)
+	if touch then
+		return math.clamp(math.min(size.X / 1000, size.Y / 540), 0.62, 1.1)
+	end
+	return math.clamp(math.min(size.X / 1280, size.Y / 760), 0.55, 1.15)
+end
 local function fitScreen()
 	local size = Workspace.CurrentCamera.ViewportSize
-	uiScale.Scale = math.clamp(math.min(size.X / 1280, size.Y / 760), 0.55, 1.15)
+	uiScale.Scale = Screen.scaleFor(size, Screen.Touch)
 	controlsScale.Scale = uiScale.Scale
+	Screen.Scale = uiScale.Scale
 end
 fitScreen()
 Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitScreen)
+
+-- How much a panel of width x height has to shrink to fit on this screen
+-- (1 = it fits; a phone in landscape is only ~540 UI units tall)
+function Screen.fitScale(width, height, size, scale)
+	size = size or Workspace.CurrentCamera.ViewportSize
+	scale = scale or Screen.Scale
+	return math.min(1, size.X / scale * 0.94 / width, size.Y / scale * 0.9 / height)
+end
 
 -- Panels (modals) ---------------------------------------------------------------------
 
@@ -194,6 +224,11 @@ function Screen.open(shade)
 	end
 	openModal = shade
 	shade:SetAttribute("Closing", false)
+	-- (on a small screen the panel shrinks to fit)
+	local box = holderOf(shade)
+	if box then
+		box:SetAttribute("Fit", Screen.fitScale(box.Size.X.Offset, box.Size.Y.Offset))
+	end
 	Ui.popIn(shade)
 	local tweens = game:GetService("TweenService")
 	-- the dim fades in; the panel rises into place

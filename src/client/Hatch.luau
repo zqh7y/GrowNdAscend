@@ -1334,7 +1334,10 @@ local function bushCutscene(result, name)
 	return true
 end
 
+-- (the reveal stage shrinks to fit a small screen, like the panels)
+local stageScale = Ui.new("UIScale", { Name = "Fit", Parent = stage })
 local function openShade(transparency)
+	stageScale.Scale = Screen.fitScale(900, 600)
 	shade.Visible = true
 	shade.BackgroundTransparency = transparency or 0.55
 end

@@ -644,9 +644,10 @@ end
 function Ui.popIn(frame)
 	local target = frame:FindFirstChild("Box") or frame
 	local scaler = target:FindFirstChildOfClass("UIScale") or Ui.new("UIScale", { Parent = target })
-	scaler.Scale = if Ui.reduced() then 1 else 0.9
+	local fit = target:GetAttribute("Fit") or 1 -- (smaller on a small screen: Screen.fitScale)
+	scaler.Scale = if Ui.reduced() then fit else fit * 0.9
 	frame.Visible = true
-	TweenService:Create(scaler, TweenInfo.new(0.24, Enum.EasingStyle.Quint), { Scale = 1 }):Play()
+	TweenService:Create(scaler, TweenInfo.new(0.24, Enum.EasingStyle.Quint), { Scale = fit }):Play()
 end
 
 -- Hexagons and chunky text (the collection look) ------------------------------------
