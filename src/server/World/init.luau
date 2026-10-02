@@ -950,53 +950,204 @@ end
 terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF * 2), Enum.Material.Air)
 
 -- Cartoon floor: the walkable strip of every world is covered with smooth,
--- flat tiles in a soft two-tone checker (like the classic pet simulator
--- floors) instead of the realistic terrain textures, with a lighter path
--- down the middle. A tile only goes where the terrain under it is flat
--- ground (never over a pond, the oasis, lava, a hill or a hole), a few hundredths
--- above it, so everything standing on the ground still stands on it.
+-- flat tiles in one base colour (no realistic terrain texture), with a
+-- lighter path down the middle, and cartoon details painted on top: soft
+-- patches in lighter and darker shades and the world's own bits (grass tufts
+-- and little flowers in the Forest, dune lines and pebbles in the Sahara,
+-- ice patches and sparkles in the Frozen Peaks, pink petals in the Sakura
+-- Jungle, glowing cracks in the Lava Arena). Tiles only go where the terrain
+-- under them is flat ground (never over the oasis, lava, a hill or a hole),
+-- a few hundredths above it, so everything still stands on the ground. The
+-- details don't collide or block anything.
 World.FLOOR = {
-	-- tile colours (two tones) and the path colour, by world
-	{ Color3.fromRGB(118, 214, 88), Color3.fromRGB(104, 200, 78), Color3.fromRGB(240, 196, 120) }, -- Forest
-	{ Color3.fromRGB(255, 218, 138), Color3.fromRGB(248, 204, 118), Color3.fromRGB(255, 236, 180) }, -- Sahara
-	{ Color3.fromRGB(240, 248, 255), Color3.fromRGB(222, 236, 252), Color3.fromRGB(200, 228, 250) }, -- Frozen Peaks
-	{ Color3.fromRGB(132, 222, 104), Color3.fromRGB(118, 208, 94), Color3.fromRGB(255, 196, 220) }, -- Sakura Jungle
-	{ Color3.fromRGB(132, 106, 100), Color3.fromRGB(118, 94, 90), Color3.fromRGB(170, 120, 96) }, -- Lava Arena
+	-- base, path, patches (light, dark), detail kind
+	{ Base = Color3.fromRGB(112, 210, 84), Path = Color3.fromRGB(240, 200, 128), Light = Color3.fromRGB(140, 228, 104), Dark = Color3.fromRGB(92, 188, 70), Detail = "meadow" },
+	{ Base = Color3.fromRGB(255, 214, 132), Path = Color3.fromRGB(255, 232, 176), Light = Color3.fromRGB(255, 228, 160), Dark = Color3.fromRGB(240, 192, 108), Detail = "dunes" },
+	{ Base = Color3.fromRGB(236, 246, 255), Path = Color3.fromRGB(206, 230, 252), Light = Color3.fromRGB(250, 253, 255), Dark = Color3.fromRGB(196, 226, 250), Detail = "snow" },
+	{ Base = Color3.fromRGB(126, 218, 100), Path = Color3.fromRGB(255, 206, 226), Light = Color3.fromRGB(150, 232, 118), Dark = Color3.fromRGB(106, 198, 86), Detail = "petals" },
+	{ Base = Color3.fromRGB(126, 100, 96), Path = Color3.fromRGB(160, 120, 100), Light = Color3.fromRGB(146, 118, 110), Dark = Color3.fromRGB(104, 84, 82), Detail = "cracks" },
 }
 do
 	local TILE = 5
 	local floor = Build.folder(map, "CartoonFloor")
 	World.FloorTiles = 0
+	World.FloorDetails = 0
+	-- the ground height under a tile, or nil if it isn't flat walkable ground
+	local function flatTop(cx, cz, reach)
+		local low, high = math.huge, -math.huge
+		for _, o in ipairs({ { 0, 0 }, { -reach, -reach }, { reach, -reach }, { -reach, reach }, { reach, reach } }) do
+			local hit = workspace:Raycast(Vector3.new(cx + o[1], 200, cz + o[2]), Vector3.new(0, -400, 0), groundRay)
+			-- (lava pools and water keep showing)
+			if not hit or hit.Material == Enum.Material.CrackedLava or hit.Material == Enum.Material.Water then
+				return nil
+			end
+			low, high = math.min(low, hit.Position.Y), math.max(high, hit.Position.Y)
+		end
+		if high - low < 0.5 and math.abs(high - Config.GROUND_Y) < 0.8 then
+			return high + 0.04
+		end
+		return nil
+	end
+	local function decor(folder, props)
+		props.CanCollide = false
+		props.CastShadow = false
+		local part = Build.part(folder, props)
+		part.CanQuery = false
+		part.CanTouch = false
+		World.FloorDetails += 1
+		return part
+	end
+	-- a flat round patch lying on the floor
+	local function patch(folder, x, z, top, w, l, color, yaw, material)
+		return decor(folder, {
+			Name = "Patch",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.06, w, w),
+			CFrame = CFrame.new(x, top + 0.03, z) * CFrame.Angles(0, math.rad(yaw or 0), math.rad(90)),
+			Color = color,
+			Material = material or Enum.Material.SmoothPlastic,
+		})
+	end
 	for i = 1, #Config.AREAS do
-		local colors = World.FLOOR[i] or World.FLOOR[1]
+		local look = World.FLOOR[i] or World.FLOOR[1]
 		local x0 = Config.areaStart(i)
 		local folder = Build.folder(floor, "Floor" .. i)
+		local rng = Random.new(100 + i)
 		for ix = 0, LENGTH / TILE - 1 do
 			for iz = 0, (HALF * 2) / TILE - 1 do
 				local cx, cz = x0 + (ix + 0.5) * TILE, -HALF + (iz + 0.5) * TILE
-				-- flat ground under the whole tile?
-				local low, high = math.huge, -math.huge
-				for _, o in ipairs({ { 0, 0 }, { -2, -2 }, { 2, -2 }, { -2, 2 }, { 2, 2 } }) do
-					local hit = workspace:Raycast(Vector3.new(cx + o[1], 200, cz + o[2]), Vector3.new(0, -400, 0), groundRay)
-					-- (lava pools and water keep showing)
-					if hit and hit.Material ~= Enum.Material.CrackedLava and hit.Material ~= Enum.Material.Water then
-						low, high = math.min(low, hit.Position.Y), math.max(high, hit.Position.Y)
-					else
-						low = -math.huge
-					end
-				end
-				if low > -math.huge and high - low < 0.5 and math.abs(high - Config.GROUND_Y) < 0.8 then
-					local path = math.abs(cz) < 4
-					local checker = (ix + iz) % 2 == 0
+				local top = flatTop(cx, cz, 2)
+				if top then
 					Build.part(folder, {
 						Name = "Tile",
 						Size = Vector3.new(TILE, 1, TILE),
-						CFrame = CFrame.new(cx, high + 0.04 - 0.5, cz),
-						Color = if path then colors[3] else (if checker then colors[1] else colors[2]),
+						CFrame = CFrame.new(cx, top - 0.5, cz),
+						Color = if math.abs(cz) < 4 then look.Path else look.Base,
 						Material = Enum.Material.SmoothPlastic,
 						CastShadow = false,
 					})
 					World.FloorTiles += 1
+				end
+			end
+		end
+		-- the painted details (only on floor, off the path's middle)
+		local details = Build.folder(folder, "Details")
+		local function spot(minZ)
+			for _ = 1, 8 do
+				local x, z = rng:NextNumber(x0 + 2, x0 + LENGTH - 2), rng:NextNumber(-HALF + 2, HALF - 2)
+				if math.abs(z) >= (minZ or 5) then
+					local top = flatTop(x, z, 1)
+					if top then
+						return x, z, top
+					end
+				end
+			end
+			return nil
+		end
+		-- soft patches in lighter and darker shades
+		for k = 1, 46 do
+			local x, z, top = spot(5)
+			if x then
+				local w = rng:NextNumber(3, 8)
+				patch(details, x, z, top, w, w, if k % 2 == 0 then look.Light else look.Dark)
+				-- a smaller blob next to it makes it look hand-drawn
+				patch(details, x + rng:NextNumber(-w / 2, w / 2), z + rng:NextNumber(-w / 3, w / 3), top, w * rng:NextNumber(0.4, 0.6), 0, if k % 2 == 0 then look.Light else look.Dark)
+			end
+		end
+		if look.Detail == "meadow" or look.Detail == "petals" then
+			-- grass tufts: three little green blades
+			for _ = 1, 70 do
+				local x, z, top = spot(5)
+				if x then
+					for b = -1, 1 do
+						decor(details, {
+							Name = "Tuft",
+							Size = Vector3.new(0.25, rng:NextNumber(0.6, 1), 0.25),
+							CFrame = CFrame.new(x + b * 0.25, top + 0.4, z) * CFrame.Angles(0, 0, math.rad(b * 22)),
+							Color = look.Dark:Lerp(Color3.new(0, 0, 0), 0.08),
+						})
+					end
+				end
+			end
+			-- tiny flowers (Forest) or pink petals (Sakura)
+			for _ = 1, (if look.Detail == "meadow" then 40 else 90) do
+				local x, z, top = spot(4)
+				if x then
+					if look.Detail == "meadow" then
+						local colors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 220, 70), Color3.fromRGB(255, 140, 190), Color3.fromRGB(170, 150, 255) }
+						for p = 0, 3 do
+							local a = p * math.pi / 2
+							patch(details, x + math.cos(a) * 0.3, z + math.sin(a) * 0.3, top + 0.02, 0.45, 0, colors[rng:NextInteger(1, #colors)])
+						end
+						patch(details, x, z, top + 0.04, 0.3, 0, Color3.fromRGB(255, 200, 40))
+					else
+						local petal = decor(details, {
+							Name = "Petal",
+							Size = Vector3.new(0.5, 0.05, 0.3),
+							CFrame = CFrame.new(x, top + 0.05, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0),
+							Color = if rng:NextNumber() < 0.5 then Color3.fromRGB(255, 180, 210) else Color3.fromRGB(255, 220, 235),
+						})
+						petal.Shape = Enum.PartType.Block
+					end
+				end
+			end
+		elseif look.Detail == "dunes" then
+			-- wavy dune lines and pebbles
+			for _ = 1, 40 do
+				local x, z, top = spot(5)
+				if x then
+					local yaw = rng:NextNumber(-15, 15)
+					for seg = -2, 2 do
+						decor(details, {
+							Name = "Dune",
+							Size = Vector3.new(1.4, 0.06, 0.22),
+							CFrame = CFrame.new(x, top + 0.04, z) * CFrame.Angles(0, math.rad(yaw), 0) * CFrame.new(seg * 1.2, 0, math.sin(seg) * 0.35) * CFrame.Angles(0, math.rad(seg * 12), 0),
+							Color = look.Dark,
+						})
+					end
+				end
+			end
+			for _ = 1, 50 do
+				local x, z, top = spot(4)
+				if x then
+					decor(details, { Name = "Pebble", Shape = Enum.PartType.Ball, Size = Vector3.new(0.6, 0.35, 0.5), CFrame = CFrame.new(x, top + 0.1, z), Color = Color3.fromRGB(214, 170, 112) })
+				end
+			end
+		elseif look.Detail == "snow" then
+			-- icy patches, snow mounds and sparkles
+			for _ = 1, 30 do
+				local x, z, top = spot(5)
+				if x then
+					local w = rng:NextNumber(2.5, 6)
+					patch(details, x, z, top + 0.01, w, 0, Color3.fromRGB(180, 222, 255), 0, Enum.Material.Glass).Transparency = 0.2
+				end
+			end
+			for _ = 1, 40 do
+				local x, z, top = spot(5)
+				if x then
+					decor(details, { Name = "Mound", Shape = Enum.PartType.Ball, Size = Vector3.new(1.6, 0.6, 1.4), CFrame = CFrame.new(x, top + 0.15, z), Color = Color3.fromRGB(255, 255, 255) })
+				end
+			end
+			for _ = 1, 70 do
+				local x, z, top = spot(3)
+				if x then
+					decor(details, { Name = "Sparkle", Size = Vector3.new(0.18, 0.06, 0.18), CFrame = CFrame.new(x, top + 0.05, z) * CFrame.Angles(0, math.rad(45), 0), Color = Color3.fromRGB(150, 210, 255), Material = Enum.Material.Neon })
+				end
+			end
+		elseif look.Detail == "cracks" then
+			-- glowing orange cracks: zig-zags of thin neon bits
+			for _ = 1, 26 do
+				local x, z, top = spot(5)
+				if x then
+					local at = Vector3.new(x, top + 0.04, z)
+					local dir = rng:NextNumber(0, 360)
+					for _ = 1, 4 do
+						local len = rng:NextNumber(0.8, 1.6)
+						dir += rng:NextNumber(-40, 40)
+						local step = CFrame.Angles(0, math.rad(dir), 0).LookVector * len
+						decor(details, { Name = "Crack", Size = Vector3.new(0.2, 0.06, len), CFrame = CFrame.lookAt(at + step / 2, at + step), Color = Color3.fromRGB(255, 130, 40), Material = Enum.Material.Neon })
+						at += step
+					end
 				end
 			end
 		end
