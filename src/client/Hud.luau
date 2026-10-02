@@ -481,7 +481,7 @@ Roll.buildControls(controls)
 -- under Roblox's own buttons, and ROLL / AUTO up above the jump button;
 -- with a mouse and keyboard nothing changes.
 Hud.Touch = false
-Hud.TOUCH_CARD_TOP = 92 -- (under Roblox's top bar on a phone)
+Hud.TOUCH_CARD_TOP = 10 -- (the very top right: Roblox keeps its buttons on the left)
 Hud.TOUCH_CARD_SCALE = 0.75
 Hud.TOUCH_NAV_TOP = 92 -- (the menu, top left, under Roblox's buttons)
 function Hud.layout(touch)
