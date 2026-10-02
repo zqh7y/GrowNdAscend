@@ -2558,7 +2558,7 @@ if ok then
 				if math.abs(p.Position.Z) < Config.AREA_HALF_WIDTH + 40 or p.Position.Y < 40 or p.CanCollide then inside += 1 end
 			end
 			local clouds = workspace.Terrain:FindFirstChildOfClass("Clouds")
-			-- the cartoon floor: smooth tiles over the walkable strip, just above the ground
+			-- the cartoon floor: smooth tiles over the walkable strip, just above the ground (as measured)
 			local tiles, off = 0, 0
 			for _, t in ipairs(workspace.Map.CartoonFloor:GetDescendants()) do
 				if t:IsA("BasePart") and t.Name == "Tile" then

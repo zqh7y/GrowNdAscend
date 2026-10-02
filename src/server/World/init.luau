@@ -993,7 +993,9 @@ World.FLOOR = {
 	{ Base = Color3.fromRGB(126, 218, 100), Path = Color3.fromRGB(255, 206, 226), Light = Color3.fromRGB(150, 232, 118), Dark = Color3.fromRGB(106, 198, 86), Detail = "petals" },
 	{ Base = Color3.fromRGB(126, 100, 96), Path = Color3.fromRGB(160, 120, 100), Light = Color3.fromRGB(146, 118, 110), Dark = Color3.fromRGB(104, 84, 82), Detail = "cracks" },
 }
-do
+-- (set to false to go back to the plain terrain ground)
+World.CARTOON_FLOOR = true
+if World.CARTOON_FLOOR then
 	local TILE = 5
 	local floor = Build.folder(map, "CartoonFloor")
 	World.FloorTiles = 0
@@ -1009,12 +1011,30 @@ do
 		end
 		return true
 	end
+	-- each tile sits just above the highest ground under it: the terrain
+	-- comes out at about Y 2.0 in the real game, not Config.GROUND_Y (1.6),
+	-- and would cover tiles laid at 1.65 (measured now that the ground is final;
+	-- if a ray finds nothing, Config.GROUND_Y)
 	local function flatTop(cx, cz, reach)
-		if open(cx, cz, reach * 1.5 + 0.5) then
-			return Config.GROUND_Y + 0.05
+		if not open(cx, cz, reach * 1.5 + 0.5) then
+			return nil
 		end
-		return nil
+		local top = Config.GROUND_Y
+		for _, o in ipairs({ { 0, 0 }, { reach, reach }, { -reach, reach }, { reach, -reach }, { -reach, -reach } }) do
+			local y = World.groundAt(cx + o[1], cz + o[2])
+			if y and y < Config.GROUND_Y + 3 then
+				top = math.max(top, y)
+			end
+		end
+		return top + 0.05
 	end
+	-- Roblox's tall grass blades grow on Grass terrain and would poke through
+	-- the tiles (a script can't turn Terrain.Decoration off), so the grass
+	-- under the walkable strip becomes LeafyGrass, which has none
+	pcall(function()
+		local strip = Region3.new(Vector3.new(-8, -20, -HALF - 4), Vector3.new(TOTAL + 8, 20, HALF + 4)):ExpandToGrid(4)
+		terrain:ReplaceMaterial(strip, 4, Enum.Material.Grass, Enum.Material.LeafyGrass)
+	end)
 	local function decor(folder, props)
 		props.CanCollide = false
 		props.CastShadow = false
