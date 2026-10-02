@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 68 (roads never below the real ground, Y 2.0)"
+Config.BUILD = "build 69 (snake trail and frozen lake run gate to gate)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45

@@ -734,19 +734,19 @@ function Sahara.build(ctx)
 	hintText.Parent = hint
 	space:add(circleAt, 5)
 
-	-- a snake's trail: the wavy groove a snake left crossing the sand from
-	-- one wall to the other, and the snake itself resting at the end of it
-	local trailX = x0 + 48
+	-- a snake's trail: the wavy groove a snake left winding down the middle of
+	-- the sand from the gate in towards the gate out, and the snake itself
+	-- resting at the end of it
 	local trail = {}
-	for z = half - 1, -(half - 6), -1.5 do
-		table.insert(trail, Vector3.new(trailX + math.sin(z / 3.5) * 2.6, 0, z))
-		space:add(Vector3.new(trailX, 0, z), 3)
+	for x = x0 + 1, x1 - 10, 1.5 do
+		table.insert(trail, Vector3.new(x, 0, math.sin((x - x0) / 3.5) * 2.6))
+		space:add(Vector3.new(x, 0, 0), 3)
 	end
 	local trailFolder = ctx.World.paintPath(deco, "SnakeTrail", trail, 1.8, Color3.fromRGB(214, 158, 88), Color3.fromRGB(236, 186, 112))
 	local tail = trail[#trail]
 	-- (in the trail's folder, so it moves with the trail onto the real ground)
-	snake(trailFolder, Vector3.new(tail.X, trailFolder:GetAttribute("Top") - ctx.World.PATH_LIFT, tail.Z - 1.5))
-	space:add(Vector3.new(tail.X, 0, tail.Z - 2), 3.5)
+	snake(trailFolder, Vector3.new(tail.X + 2.5, trailFolder:GetAttribute("Top") - ctx.World.PATH_LIFT, tail.Z))
+	space:add(Vector3.new(tail.X + 3, 0, tail.Z), 4)
 
 	ctx.reserveSpots() -- breakables get their room before the small props
 
