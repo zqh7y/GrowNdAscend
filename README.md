@@ -179,7 +179,7 @@ chase Huge and Titanic pets.**
 - **Upgrade Board**: every upgrade lives on a real board standing in the
   Forest, right of the path near the spawn (across from the leaderboards),
   like the upgrade walls in incremental games (it replaced the upgrade tree
-  screen). A green carpet and wide stairs lead up to a raised stage; walk up and the camera turns to face the board (the red EXIT button at the top, or walking away, gives the camera back). Sections down its left side:
+  screen). A green carpet and wide stairs lead up to a raised stage; walk up and the camera turns to face the board (the red EXIT button at the bottom middle of the screen (clear of the coins and luck), or walking away, gives the camera back). Sections down its left side:
   **Damage** (Damage, Pet Slots), **Coins** (Coins), **Luck** (Luck, Size
   Luck and the six Luck Board rows) and **Rolls** (Roll Speed, Rolls at
   once, Auto Hatch). The top shows the section's total in big numbers; each
@@ -330,6 +330,8 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 **Coins out of enemies:** while your pets fight, a coin or two pops out of the enemy now and then, and when it breaks a shower of gold coins bursts out (24 for the boss). They fly out in arcs, land on the ground around it, spin and bob. Walk near them and they fly to you; whatever is still lying there after 10 seconds flies to you on its own, and there are never more than 80 on the ground (the oldest come to you first), so it never lags. (The money is paid by the server as before; `client/CoinDrops.luau` is the show.)
 
 **Luck boosts:** the boost waiting for your next roll shows as a small clover badge right next to the luck chip at the top ("×4"), in its own colour: x2 gold, x4 green, x8 cyan, x16 purple, x32 pink, x64 and up orange-red (`Config.boostColor`). When a x2 boost lands on top of one you already have, the roll shows the total (×4, green), not another ×2.
+
+**Player card (bottom left):** your level and team live together in the bottom-left corner, out of the middle of the screen: a chunky gold LEVEL badge with a white star and outlined white letters next to a thick green EXP bar with a dark cartoon outline, and YOUR TEAM (each equipped pet with its DPS and share) under them. The top of the screen only has the coins and luck.
 
 **Staying in the game:** the Roblox menu's Reset Character button is turned off, and you're never kicked for being AFK: when Roblox notices you've gone idle, the game presses a virtual mouse button for you (`client/Session.luau`), so auto roll and your pets can keep going for as long as you like.
 

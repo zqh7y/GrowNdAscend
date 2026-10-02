@@ -1,5 +1,7 @@
 -- The always-on screen, laid out around the fights in the middle:
---   top centre   coins, and under them YOUR TEAM (equipped pets + damage)
+--   top centre   coins and luck
+--   bottom left  the player card: your LEVEL with its EXP bar, and under it
+--                YOUR TEAM (equipped pets + damage), out of the way
 --   left side    navigation: Inventory, Index, Upgrades, Rebirth, Settings
 --                (the leaderboards are in the world, in the Forest)
 --   right side   gameplay: the big Roll button and Auto
@@ -67,15 +69,35 @@ Effects.CoinLanded.Event:Connect(function()
 	TweenService:Create(coinScale, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 end)
 
--- Your team (under the coins) -----------------------------------------------------------------
+-- The player card (bottom left): level + EXP on top, your team under it ----------------------------
+
+local card = Ui.new("Frame", {
+	Name = "PlayerCard",
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UDim2.new(0, 16, 1, -16),
+	Size = UDim2.fromOffset(0, 0),
+	AutomaticSize = Enum.AutomaticSize.XY,
+	BackgroundTransparency = 1,
+	Parent = gui,
+}, {
+	Ui.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Vertical,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		Padding = UDim.new(0, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+Hud.PlayerCard = card
+
+-- Your team -----------------------------------------------------------------------------------
 
 local team = Ui.glass({
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 70),
+	Name = "Team",
+	LayoutOrder = 2,
 	Size = UDim2.fromOffset(0, 64),
 	AutomaticSize = Enum.AutomaticSize.X,
 	Radius = 20,
-	Parent = gui,
+	Parent = card,
 }, {
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
@@ -190,51 +212,94 @@ local function refreshTeam(data)
 	Hud.TeamShares = shown
 end
 
--- Level and EXP (under the team) ---------------------------------------------------------------
+-- Level and EXP (the top of the player card) -------------------------------------------------------
+-- A chunky gold badge with a star and "LEVEL 12" in white outlined letters,
+-- and next to it a thick green EXP bar with a dark cartoon outline.
 
+local OUTLINE = Color3.fromRGB(40, 28, 56)
 local levelBar = Ui.new("Frame", {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 138),
-	Size = UDim2.fromOffset(330, 34),
+	Name = "Level",
+	LayoutOrder = 1,
+	Size = UDim2.fromOffset(320, 40),
 	BackgroundTransparency = 1,
-	Parent = gui,
+	Parent = card,
 })
-local levelBadge = Ui.new("TextLabel", {
+-- (a frame for the gold and its outline; the letters are a label on it with
+-- their own outline: one UIStroke per object)
+local badgeFrame = Ui.new("Frame", {
+	Name = "Badge",
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.fromScale(0, 0.5),
-	Size = UDim2.fromOffset(104, 34),
-	BackgroundTransparency = 0,
-	BackgroundColor3 = Ui.VIOLET:Lerp(Ui.GLASS, 0.75),
-	Font = Ui.FONT_TITLE,
-	TextScaled = false,
-	TextSize = 14,
-	Text = "LEVEL 1",
-	ZIndex = 3,
+	Size = UDim2.fromOffset(118, 40),
+	BackgroundColor3 = Color3.new(1, 1, 1),
+	ZIndex = 4,
 	Parent = levelBar,
-}, { Ui.corner(4), Ui.stroke(Ui.VIOLET, 1.2, 0) })
-local levelScale = Ui.new("UIScale", { Parent = levelBadge })
+}, {
+	Ui.corner(14),
+	Ui.new("UIStroke", { Color = OUTLINE, Thickness = 3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
+	Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 232, 100)),
+		ColorSequenceKeypoint.new(0.75, Color3.fromRGB(255, 176, 30)),
+		ColorSequenceKeypoint.new(0.77, Color3.fromRGB(214, 130, 10)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(214, 130, 10)),
+	}) }),
+})
+local levelBadge = Ui.new("TextLabel", {
+	Position = UDim2.fromOffset(30, 0),
+	Size = UDim2.new(1, -38, 1, 0),
+	Font = Enum.Font.FredokaOne,
+	TextScaled = false,
+	TextSize = 19,
+	TextColor3 = Ui.WHITE,
+	Text = "LEVEL 1",
+	ZIndex = 5,
+	Parent = badgeFrame,
+}, { Ui.new("UIStroke", { Color = OUTLINE, Thickness = 2.5, LineJoinMode = Enum.LineJoinMode.Round }) })
+-- a white star on the badge's left
+local levelStar = Ui.new("Frame", {
+	AnchorPoint = Vector2.new(0, 0.5),
+	Position = UDim2.new(0, 6, 0.5, 0),
+	Size = UDim2.fromOffset(24, 24),
+	BackgroundTransparency = 1,
+	ZIndex = 5,
+	Parent = badgeFrame,
+})
+Ui.icons.star(levelStar, Ui.WHITE)
+for _, d in ipairs(levelStar:GetDescendants()) do
+	if d:IsA("GuiObject") then
+		d.ZIndex = 5
+	end
+end
+local levelScale = Ui.new("UIScale", { Parent = badgeFrame })
 local expTrack = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
-	Position = UDim2.new(0, 96, 0.5, 0),
-	Size = UDim2.new(1, -96, 0, 22),
-	BackgroundColor3 = Ui.GLASS,
-	BackgroundTransparency = 0.2,
+	Position = UDim2.new(0, 110, 0.5, 0),
+	Size = UDim2.new(1, -110, 0, 26),
+	BackgroundColor3 = Color3.fromRGB(255, 248, 232),
+	ZIndex = 2,
 	Parent = levelBar,
-}, { Ui.corner(3), Ui.stroke(Ui.LINE, 1, 0.3) })
+}, { Ui.corner(13), Ui.new("UIStroke", { Color = OUTLINE, Thickness = 3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }) })
 local expFill = Ui.new("Frame", {
 	Size = UDim2.fromScale(0, 1),
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	ZIndex = 2,
 	Parent = expTrack,
-}, { Ui.corner(3), Ui.new("UIGradient", { Color = ColorSequence.new(Ui.CYAN, Ui.VIOLET) }) })
+}, { Ui.corner(13), Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 240, 110)),
+	ColorSequenceKeypoint.new(0.7, Color3.fromRGB(60, 196, 80)),
+	ColorSequenceKeypoint.new(0.72, Color3.fromRGB(40, 160, 66)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 160, 66)),
+}) }) })
 local expText = Ui.new("TextLabel", {
 	Size = UDim2.fromScale(1, 1),
+	Font = Enum.Font.FredokaOne,
 	TextScaled = false,
-	TextSize = 13,
+	TextSize = 14,
+	TextColor3 = Ui.WHITE,
 	Text = "",
 	ZIndex = 3,
 	Parent = expTrack,
-})
+}, { Ui.new("UIStroke", { Color = OUTLINE, Thickness = 2, LineJoinMode = Enum.LineJoinMode.Round }) })
 
 local function refreshLevel(data)
 	local level, exp = data.Level or 1, data.Exp or 0
@@ -418,7 +483,7 @@ Roll.BoostBadge.Parent = coinPill
 local banner = Ui.new("Frame", {
 	Name = "WorldBanner",
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 180),
+	Position = UDim2.new(0.5, 0, 0, 78),
 	Size = UDim2.fromOffset(0, 34),
 	AutomaticSize = Enum.AutomaticSize.X,
 	BackgroundColor3 = Ui.WHITE,
@@ -450,12 +515,12 @@ local function showBanner(area)
 	bannerText.TextColor3 = area.Color:Lerp(Ui.INK, 0.35)
 	bannerEdge.Color = area.Color
 	banner.Visible = true
-	banner.Position = UDim2.new(0.5, 0, 0, if Ui.reduced() then 180 else 150)
+	banner.Position = UDim2.new(0.5, 0, 0, if Ui.reduced() then 78 else 48)
 	banner.BackgroundTransparency = 0
-	TweenService:Create(banner, TweenInfo.new(0.35, Enum.EasingStyle.Quint), { Position = UDim2.new(0.5, 0, 0, 180) }):Play()
+	TweenService:Create(banner, TweenInfo.new(0.35, Enum.EasingStyle.Quint), { Position = UDim2.new(0.5, 0, 0, 78) }):Play()
 	task.delay(2.2, function()
 		if token == bannerToken then
-			TweenService:Create(banner, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { Position = UDim2.new(0.5, 0, 0, 150), BackgroundTransparency = 1 }):Play()
+			TweenService:Create(banner, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { Position = UDim2.new(0.5, 0, 0, 48), BackgroundTransparency = 1 }):Play()
 			task.delay(0.26, function()
 				if token == bannerToken then
 					banner.Visible = false

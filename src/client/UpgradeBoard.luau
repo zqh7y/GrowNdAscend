@@ -531,8 +531,9 @@ local exitButton = Ui.button({
 	Text = "EXIT",
 	Icon = "close",
 	TextSize = 24,
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 18),
+	-- (at the bottom middle: at the top it covered the coins and luck)
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -24),
 	Size = UDim2.fromOffset(150, 52),
 	Radius = 14,
 	Parent = focusGui,
