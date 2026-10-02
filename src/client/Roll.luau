@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local Sticker = require(script.Parent.Sticker)
 local Ui = require(script.Parent.Ui)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
@@ -355,7 +356,7 @@ local function refreshAuto(animate)
 		return
 	end
 	-- AUTO: white "AUTO OFF", or green "AUTO ON" with its status dot lit
-	Ui.setStyle(autoRow, if autoRoll then "green" else "glass")
+	Sticker.setAuto(autoRow, autoRoll)
 	if Roll.AutoCaption then
 		Roll.AutoCaption.Text = if autoRoll then "AUTO ON" else "AUTO OFF"
 	end
@@ -412,118 +413,10 @@ end
 -- The R key (or a gamepad's X) rolls too. The compact/full hatch choice
 -- lives in Settings ("Big hatch reveals").
 
-local ROLL_SIZE, AUTO_SIZE, GAP = 80, 58, 12
-Roll.DOCK_SIZE = Vector2.new(ROLL_SIZE + GAP + AUTO_SIZE, ROLL_SIZE + 18)
+local ROLL_SIZE, AUTO_SIZE, GAP = 84, 58, 14
+Roll.DOCK_SIZE = Vector2.new(ROLL_SIZE + GAP + AUTO_SIZE, ROLL_SIZE + 14)
 
 -- the shared finish: shadow under the button, shine on top, neat caption
-local function finish(holder, button, size)
-	local radius = math.floor(size * 0.32)
-	button.ZIndex = 2
-	Ui.shadow(button, radius, 4)
-	Ui.new("Frame", {
-		Name = "Shine",
-		Position = UDim2.fromOffset(4, 3),
-		Size = UDim2.new(1, -8, 0.42, 0),
-		BackgroundColor3 = Ui.WHITE,
-		BackgroundTransparency = 0.88,
-		ZIndex = 3,
-		Parent = button,
-	}, { Ui.corner(radius - 3) })
-	local caption = holder.Caption
-	caption.Font = Ui.FONT_TITLE
-	caption.TextSize = 12
-	caption.TextStrokeTransparency = 0.7
-	return caption
-end
-
--- The ROLL tile's look: orange with a pattern of raised studs, a white die
--- drawn in 3D (a grey side under a white face, five black pips), and a
--- chunky white caption with a dark outline over its bottom edge.
-local ORANGE_A, ORANGE_B = Color3.fromRGB(255, 184, 48), Color3.fromRGB(240, 128, 18)
-local ORANGE_EDGE = Color3.fromRGB(176, 84, 8)
-local function dressRollTile(holder, button, size)
-	button.Fill.Color = ColorSequence.new(ORANGE_A, ORANGE_B)
-	button.Edge.Color = ORANGE_EDGE
-	button.Edge.Thickness = 2.5
-	button.Edge.Transparency = 0
-	button:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 12)
-	-- the studs
-	local studs = Ui.new("Frame", {
-		Name = "Studs",
-		Position = UDim2.fromOffset(5, 5),
-		Size = UDim2.new(1, -10, 1, -10),
-		BackgroundTransparency = 1,
-		ClipsDescendants = true,
-		ZIndex = 3,
-		Parent = button,
-	})
-	local step = math.floor(size / 4)
-	for row = 0, 3 do
-		for col = 0, 3 do
-			Ui.new("Frame", {
-				Position = UDim2.fromOffset(col * step + 2, row * step + 2),
-				Size = UDim2.fromOffset(step - 5, step - 5),
-				BackgroundColor3 = Color3.fromRGB(226, 120, 10),
-				BackgroundTransparency = 0.55,
-				ZIndex = 3,
-				Parent = studs,
-			}, { Ui.corner(4) })
-		end
-	end
-	-- the die
-	local d = math.floor(size * 0.56)
-	local die = Ui.new("Frame", {
-		Name = "Die",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, -2, 0.44, 0),
-		Size = UDim2.fromOffset(d, d),
-		Rotation = -12,
-		BackgroundTransparency = 1,
-		ZIndex = 6,
-		Parent = button,
-	})
-	local ink = Color3.fromRGB(34, 32, 44)
-	Ui.new("Frame", { -- its side (the depth)
-		Name = "Side",
-		Position = UDim2.fromOffset(4, 5),
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(176, 182, 200),
-		ZIndex = 6,
-		Parent = die,
-	}, { Ui.corner(0.24), Ui.stroke(ink, 2) })
-	local face = Ui.new("Frame", {
-		Name = "Face",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Ui.WHITE,
-		ZIndex = 7,
-		Parent = die,
-	}, {
-		Ui.corner(0.24),
-		Ui.stroke(ink, 2),
-		Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Ui.WHITE, Color3.fromRGB(226, 230, 240)) }),
-	})
-	for _, pip in ipairs({ { 0.27, 0.27 }, { 0.73, 0.27 }, { 0.5, 0.5 }, { 0.27, 0.73 }, { 0.73, 0.73 } }) do
-		Ui.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(pip[1], pip[2]),
-			Size = UDim2.fromScale(0.19, 0.19),
-			BackgroundColor3 = ink,
-			ZIndex = 8,
-			Parent = face,
-		}, { Ui.corner(0.5) })
-	end
-	-- the caption over the bottom edge
-	local caption = holder.Caption
-	caption.Font = Enum.Font.FredokaOne
-	caption.TextSize = 20
-	caption.Position = UDim2.new(0, -12, 0, size - 12)
-	caption.Size = UDim2.new(1, 24, 0, 24)
-	caption.TextStrokeTransparency = 1
-	caption.ZIndex = 9
-	Ui.new("UIStroke", { Color = Color3.fromRGB(28, 22, 30), Thickness = 2.5, LineJoinMode = Enum.LineJoinMode.Round, Parent = caption })
-	return caption
-end
-
 function Roll.buildControls(parent)
 	-- an invisible row that just lines the two buttons up
 	local row = Ui.new("Frame", {
@@ -542,12 +435,13 @@ function Roll.buildControls(parent)
 		}),
 	})
 
-	-- ROLL
-	local rollHolder, roll = Ui.dockButton({
+	-- ROLL: the icy dice sticker (Sticker.luau) with a chunky caption
+	local rollHolder, roll = Sticker.button({
 		Name = "Roll",
 		Label = "ROLL",
+		Art = "dice",
 		Size = ROLL_SIZE,
-		Style = "orange",
+		CaptionSize = 22,
 		LayoutOrder = 2,
 		Parent = row,
 	}, function()
@@ -555,34 +449,31 @@ function Roll.buildControls(parent)
 		task.spawn(Roll.roll)
 	end)
 	roll.Name = "RollButton"
-	finish(rollHolder, roll, ROLL_SIZE)
-	rollLabel = dressRollTile(rollHolder, roll, ROLL_SIZE)
-	-- the slim ready bar near the bottom of the button (above the caption)
+	rollLabel = rollHolder.Caption
+	-- the slim ready bar along the die's top edge
 	local bar = Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -14),
-		Size = UDim2.new(1, -30, 0, 3),
-		BackgroundColor3 = ORANGE_EDGE,
-		BackgroundTransparency = 0.3,
-		ZIndex = 4,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, -6),
+		Size = UDim2.new(0.6, 0, 0, 6),
+		BackgroundColor3 = Color3.fromRGB(28, 22, 40),
+		ZIndex = 8,
 		Parent = roll,
-	}, { Ui.corner(2) })
+	}, { Ui.corner(0.5) })
 	cooldownFill = Ui.new("Frame", {
 		Name = "Ready",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Ui.WHITE,
-		ZIndex = 5,
+		BackgroundColor3 = Color3.fromRGB(120, 230, 255),
+		ZIndex = 9,
 		Parent = bar,
-	}, { Ui.corner(2) })
+	}, { Ui.corner(0.5) })
 
-	-- AUTO
-	local autoHolder, auto = Ui.dockButton({
+	-- AUTO: a round badge sticker, grey off / green on
+	local autoHolder, auto = Sticker.button({
 		Name = "Auto",
 		Label = "AUTO OFF",
-		Icon = "auto",
-		IconSize = 26,
+		Art = "auto",
 		Size = AUTO_SIZE,
-		Style = "glass",
+		CaptionSize = 15,
 		LayoutOrder = 1,
 		Parent = row,
 	}, function()
@@ -590,18 +481,18 @@ function Roll.buildControls(parent)
 		Roll.toggleAuto()
 	end)
 	auto.Name = "AutoButton"
-	Roll.AutoCaption = finish(autoHolder, auto, AUTO_SIZE)
+	Roll.AutoCaption = autoHolder.Caption
 	-- a small status dot, lit while auto is on
 	Roll.AutoDot = Ui.new("Frame", {
 		Name = "Dot",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -9, 0, 9),
-		Size = UDim2.fromOffset(8, 8),
-		BackgroundColor3 = Ui.WHITE,
+		Position = UDim2.new(1, -6, 0, 6),
+		Size = UDim2.fromOffset(12, 12),
+		BackgroundColor3 = Color3.fromRGB(110, 236, 140),
 		Visible = false,
-		ZIndex = 5,
+		ZIndex = 8,
 		Parent = auto,
-	}, { Ui.corner(0.5) })
+	}, { Ui.corner(0.5), Ui.stroke(Color3.fromRGB(28, 22, 40), 2) })
 
 	rollButton, autoButton, autoRow = roll, auto, auto
 	refreshAuto(false)

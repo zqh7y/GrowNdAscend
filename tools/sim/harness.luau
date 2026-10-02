@@ -2387,6 +2387,30 @@ if ok then
 				and msg ~= nil and msg.Face == Enum.NormalId.Left and string.find(text, "NEXT UPDATE") ~= nil,
 				"wall at x=" .. tostring(wall and wall.Position.X) .. ": " .. text)
 		end
+		do
+			-- sticker buttons: big outlined cartoon icons, no tile behind, chunky captions
+			local stickers, plain, captions = 0, 0, 0
+			local arts = {}
+			for _, d in ipairs(player.PlayerGui:GetDescendants()) do
+				if d.Name == "Art" and d.Parent and d.Parent:IsA("TextButton") then
+					stickers += 1
+					if d.Parent.BackgroundTransparency == 1 and d.Parent.Parent.BackgroundTransparency == 1 then plain += 1 end
+					local cap = d.Parent.Parent:FindFirstChild("Caption")
+					if cap and cap:FindFirstChildOfClass("UIStroke") and cap.Font == Enum.Font.FredokaOne then captions += 1 end
+					for _, c in ipairs(d:GetChildren()) do arts[c.Name] = true end
+				end
+			end
+			local Roll = __cache["Client/Roll"]
+			local rollB, autoB = Roll.controls()
+			local dice = rollB:FindFirstChild("Art") and rollB.Art:FindFirstChild("Die") ~= nil
+			local before = autoB:GetAttribute("On")
+			autoB.Activated:Fire()
+			local turnedOn = autoB:GetAttribute("On") == true
+			autoB.Activated:Fire()
+			item(123, "sticker-style buttons (menu, ROLL, AUTO)", stickers >= 8 and plain == stickers and captions == stickers and dice and turnedOn and autoB:GetAttribute("On") == false
+				and arts.Body and arts.Book and arts.Head and arts.Ring and arts.Band and arts.Wheel,
+				string.format("%d sticker buttons, %d with nothing behind, %d chunky outlined captions; ROLL is a dice %s; AUTO goes green %s (was %s)", stickers, plain, captions, tostring(dice), tostring(turnedOn), tostring(before)))
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,

@@ -267,10 +267,9 @@ Adding things later is one row each: a pet in `Config.PETS`, a size in
 Coins at the top with YOUR TEAM (equipped pets and damage per second)
 under them, colourful navigation down the left (Inventory, Index, Upgrades,
 Rebirth, Settings; the leaderboards live in the Forest), and two buttons at
-the bottom right made like the navigation buttons (rounded square, icon,
-caption under it): ROLL a bit bigger and blue, and AUTO to its left (white
-"AUTO OFF" / green "AUTO ON" with a status dot), each with a soft shadow
-and a faint shine; nothing drawn behind them. The compact/full hatch
+the bottom right in the same sticker style (see "Buttons" below): ROLL a
+big icy dice, and AUTO to its left ("AUTO OFF" / green "AUTO ON" with a
+status dot); nothing drawn behind them. The compact/full hatch
 choice lives in Settings, so the middle stays clear for the fights. The
 top-left corner is left for Roblox's own menu buttons.
 
@@ -344,7 +343,7 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 
 (`Config.PERKS`; the progression simulator counts them.)
 
-**Roll button:** an orange studded tile with a white 3D die and a chunky "ROLL" caption; AUTO sits to its left.
+**Buttons (sticker style, the user's reference):** no tile or panel behind any of them, just a big glossy cartoon icon with a dark outline and a white shine, and a chunky white name with a thick dark outline over the icon's bottom edge (`client/Sticker.luau`). Hover grows and tilts the icon, a press squashes it. Left menu: Inventory (an orange backpack), Index (a blue book with a gold star), Upgrades (a big green arrow), Teleport (a purple portal), Rebirth (a gold crown with a red gem), Settings (a grey gear). Right: **ROLL** is an icy white-blue dice with navy pips (a slim cyan bar on its top edge fills while it gets ready), and AUTO to its left is a round badge with ">>" that turns green when it's on.
 
 **Boost zones:** every 5 minutes a big see-through circle with a faint column of light appears in a world where a player is, for 2 minutes. Its sign says what it gives and the time left: "x5 LUCK" (green) or "x3 COINS" (gold), a random x2/x3/x5/x10 (x2 most often, x10 rarely). Stand in it and your luck or coins are multiplied; step out (or let it run out) and they're back to normal. Tuned in `Config.BOOST_ZONE` (`server/BoostZones.luau`).
 

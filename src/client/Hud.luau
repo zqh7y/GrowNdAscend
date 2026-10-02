@@ -8,6 +8,7 @@
 local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local Sticker = require(script.Parent.Sticker)
 local Ui = require(script.Parent.Ui)
 local Screen = require(script.Parent.Screen)
 local State = require(script.Parent.State)
@@ -326,7 +327,7 @@ end
 local nav = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 16, 0.5, 20),
-	Size = UDim2.fromOffset(64, 0),
+	Size = UDim2.fromOffset(72, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundTransparency = 1,
 	Parent = gui,
@@ -334,18 +335,19 @@ local nav = Ui.new("Frame", {
 	Ui.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 8),
+		Padding = UDim.new(0, 6),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
 
-local function button(parent, order, icon, label, onClick, size, style)
-	local holder, b = Ui.dockButton({
+-- sticker buttons (Sticker.luau): a big cartoon icon, its name under it
+local function button(parent, order, art, label, onClick)
+	local holder, b = Sticker.button({
 		LayoutOrder = order,
-		Icon = icon,
+		Art = art,
 		Label = label,
-		Size = size,
-		Style = style,
+		Size = 58,
+		CaptionSize = 15,
 		Parent = parent,
 	}, function()
 		Effects.play("Click", 1, 0.05)
@@ -354,14 +356,14 @@ local function button(parent, order, icon, label, onClick, size, style)
 	return holder, b
 end
 
-button(nav, 1, "paw", "Inventory", function()
+button(nav, 1, "backpack", "Inventory", function()
 	Inventory.open()
-end, nil, "blue")
-local _, indexButton = button(nav, 2, "book", "Index", Index.open, nil, "purple")
-button(nav, 3, "grow", "Upgrades", UpgradeBoard.openScreen, nil, "green")
-button(nav, 4, "teleport", "Teleport", Travel.open, nil, "orange")
-button(nav, 5, "star", "Rebirth", Panels.openRebirth, nil, "magenta")
-button(nav, 6, "gear", "Settings", Panels.openSettings, nil, "gray")
+end)
+local _, indexButton = button(nav, 2, "book", "Index", Index.open)
+button(nav, 3, "upgrade", "Upgrades", UpgradeBoard.openScreen)
+button(nav, 4, "portal", "Teleport", Travel.open)
+button(nav, 5, "crown", "Rebirth", Panels.openRebirth)
+button(nav, 6, "gear", "Settings", Panels.openSettings)
 
 -- a gold dot on Index when a collection reward is ready
 local indexDot = Ui.new("Frame", {

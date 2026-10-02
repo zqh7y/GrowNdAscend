@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 51 (a see-you-next-update wall at the end of World 5)"
+Config.BUILD = "build 52 (sticker-style buttons)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
