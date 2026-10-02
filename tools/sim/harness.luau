@@ -859,6 +859,20 @@ if ok then
 				local Travel = C("Travel")
 				Travel.refresh()
 				bo.TravelRows = #Travel.Rows == #Config.AREAS and string.find(Travel.Rows[4].Status.Text, "Locked") ~= nil
+				-- the screen: dimmed, a photo of every world from above with its name
+				Travel.open()
+				for _ = 1, 20 do STEP(0.05) end
+				local photos = 0
+				for _, r in ipairs(Travel.Rows) do
+					if r.Parts > 20 and r.Photo.CurrentCamera ~= nil then photos += 1 end
+				end
+				bo.Photos = photos
+				bo.TravelScreen = Travel.Modal.Enabled == true and Travel.DIM > 0.1 and Travel.DIM < 0.9 and Travel.Dim.Size.X.Scale == 1 and Travel.Dim.Size.Y.Scale == 1
+					and Travel.Rows[2].Here.Visible == true and Travel.Rows[4].Locked.Visible == true and Travel.Rows[1].Locked.Visible == false
+					and Travel.Rows[1].Name.Text == Config.AREAS[1].Name
+				Travel.Dim.Activated:Fire()
+				STEP(0.01)
+				bo.TravelClosed = Travel.Modal.Enabled == false
 				-- the Upgrades screen: the board moves into a panel and back
 				local Board = C("UpgradeBoard")
 				Board.openScreen()
@@ -2228,13 +2242,13 @@ if ok then
 		for _, shown in ipairs(c8.Chances or {}) do
 			labels += 1
 			local expected = if shown.Name == Config.BOOST.Name then "x" .. Config.BOOST.Multiplier
-				else Config.shortOdds(1 / Config.chanceOf(shown.Name, ctx.Luck or 0, ctx.SizeLuck or 0, ctx.World or 1))
+				else Config.shortOdds(Config.oddsOf(shown.Name)) -- (its real rarity, not the chance after luck)
 			if shown.Text ~= expected then
 				wrong += 1
 			end
 		end
 		local commonH = (STATS.Hatch or {}).common or {}
-		item(68, "every pet flashing by shows its exact chance", labels >= 4 and wrong == 0 and c8.ResultChance ~= nil and commonH.RevealChance == commonH.ResultChance,
+		item(68, "every pet flashing by shows its real odds", labels >= 4 and wrong == 0 and c8.ResultChance ~= nil and commonH.RevealChance == commonH.ResultChance,
 			string.format("%d labels, %d wrong; result %s; e.g. '%s'", labels, wrong, tostring(c8.ResultChance), tostring(c8.Chances and c8.Chances[1] and c8.Chances[1].Text)))
 	end
 
@@ -2588,9 +2602,10 @@ if ok then
 			"machine in the Frozen Peaks gives a boost when ready and you're on its circle; x2 Luck doubles luck; another adds 10 minutes")
 		item(117, "Inventory Boosts section", bo.Section == true and bo.UsedFromCard == true and bo.BackToPets == true,
 			"Pets / Boosts tabs; Mega Roll and boost cards with USE; using x2 Coins from its card works; back to the pets")
-		item(118, "teleport and Upgrades buttons", bo.TeleLocked == true and bo.Teleported == true and bo.TravelRows == true and bo.UpgradesOpen == true and bo.UpgradesBack == true,
-			string.format("teleport to unlocked worlds only (locked ones show a lock): %s %s %s; the upgrade board opens on screen and goes back on its stand: %s %s",
-				tostring(bo.TeleLocked), tostring(bo.Teleported), tostring(bo.TravelRows), tostring(bo.UpgradesOpen), tostring(bo.UpgradesBack)))
+		item(118, "teleport and Upgrades buttons", bo.TeleLocked == true and bo.Teleported == true and bo.TravelRows == true and bo.UpgradesOpen == true and bo.UpgradesBack == true
+			and bo.Photos == #Config.AREAS and bo.TravelScreen == true and bo.TravelClosed == true,
+			string.format("teleport screen: dimmed, %d world photos from above with names, 'YOU'RE HERE' pin, locked ones dark; to unlocked worlds only: %s %s %s; the upgrade board opens on screen and goes back on its stand: %s %s",
+				bo.Photos or 0, tostring(bo.TeleLocked), tostring(bo.Teleported), tostring(bo.TravelRows), tostring(bo.UpgradesOpen), tostring(bo.UpgradesBack)))
 		item(119, "rebirth perk pads", bo.Pads == #Config.PERKS and bo.PerkCoins == true and bo.Statuses == true,
 			string.format("%d pads; 1 rebirth -> %s; pad 1 says '%s', pad 2 says '%s'", bo.Pads or 0, Config.perkText(Config.PERKS[1]), tostring(bo.Status1), tostring(bo.Status2)))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]

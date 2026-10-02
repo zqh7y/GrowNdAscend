@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 43 (10 pets per odds band, huge luck, 1 in X odds in two colours)"
+Config.BUILD = "build 44 (teleport screen with world photos, rolls show real odds)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45

@@ -6,9 +6,8 @@
 --                on auto), over a faint panel (10% opacity) so the game
 --                stays visible. Pets AND luck boosts fall from the top to
 --                the bottom and ease to a stop on the result in the middle
---                slot. Every item shows its complete, exact chance for this
---                roll ("1 in 12.5K", Config.chanceOf with the server's luck,
---                size luck and world). A chip above it shows the luck boost
+--                slot. Every item shows how rare it really is ("1 in
+--                12.5K": its odds counting its size, not after your luck). A chip above it shows the luck boost
 --                ("THIS ROLL: x4 LUCK", then "NEXT ROLL: x8 LUCK" in gold).
 --   FULL MODE    a bigger reel with a silhouette moment, then the
 --                centred reveal: the pet rises large with its name, exact
@@ -132,9 +131,8 @@ end
 -- THE REEL (bottom of the screen) ---------------------------------------------------------------
 -- Every roll spins here, by hand and on auto: a vertical reel where pets
 -- and luck boosts fall from the top to the bottom and ease to a stop on the
--- result in the middle slot. Each item carries its complete, exact chance
--- for this roll ("1 in 12.5K"), worked out by Config.chanceOf from the very
--- luck, size luck and world the server rolled with. A chip above the reel
+-- result in the middle slot. Each item shows how rare it really is ("1 in
+-- 12.5K", its odds counting its size: the same as the Index). A chip above the reel
 -- shows the luck boost ("THIS ROLL: x4 LUCK", then "NEXT ROLL: x8 LUCK").
 
 local BOOST = Config.BOOST.Name
@@ -155,8 +153,15 @@ local function rollContext(result)
 end
 Hatch.rollContext = rollContext
 
-local function chanceText(name, ctx)
-	return Config.formatChance(Config.chanceOf(name, ctx.Luck, ctx.SizeLuck, ctx.World))
+-- What a pet in the reel says: how rare it really is ("1 in 6.9K", its odds
+-- counting its size, the same as the Index and the Inventory), not the
+-- chance after your luck: with x8K luck a 1 in 6.9K pet comes almost every
+-- roll, and "1 in 1.6" would make it look like a bad pet
+local function chanceText(name, _ctx)
+	if name == BOOST then
+		return "x" .. Config.BOOST.Multiplier
+	end
+	return Config.shortOdds(Config.oddsOf(name))
 end
 Hatch.chanceText = chanceText
 
@@ -1615,18 +1620,12 @@ local function setSlot(slot, name, oddsText, landed, step)
 	Ui.diagonal(slot.Odds, color, second)
 end
 
--- the odds shown for a result: the exact chance it was rolled at (the
--- server sends the luck it used), or its plain odds for results from elsewhere
+-- the odds shown for a result: how rare it really is
 local function oddsTextFor(result, name)
 	if name == BOOST then
 		return "x" .. Config.BOOST.Multiplier
 	end
-	if result.Luck then
-		local ctx = rollContext(result)
-		local chance = Config.chanceOf(name, ctx.Luck, ctx.SizeLuck, ctx.World)
-		return if chance > 0 then Config.shortOdds(1 / chance) else "-"
-	end
-	return Config.shortOdds(Config.oddsOf(name))
+	return Config.shortOdds(Config.oddsOf(name)) -- (its real rarity, see chanceText)
 end
 
 local function resultName(r)
@@ -1720,10 +1719,7 @@ local function cycle(results, best, fast)
 					slot.Step = slot.Step % #slot.Pool + 1
 					name = slot.Pool[slot.Step]
 				end
-				local oddsText = if name == BOOST then "x" .. Config.BOOST.Multiplier else (function()
-					local chance = Config.chanceOf(name, slot.Context.Luck, slot.Context.SizeLuck, slot.Context.World)
-					return if chance > 0 then Config.shortOdds(1 / chance) else "-"
-				end)()
+				local oddsText = chanceText(name, slot.Context)
 				setSlot(slot, name, oddsText, false, interval)
 				if slot.Result == best then
 					table.insert(shownForBest, { Name = name, Text = oddsText })

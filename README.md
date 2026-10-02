@@ -322,7 +322,7 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 
 **Inventory: Pets and Boosts.** Two tabs on the Inventory's top edge. Boosts shows what's running now and a card for each Mega Roll and boost item you have (how many, what it does, a USE button).
 
-**Teleport and Upgrades buttons** (left side): Teleport lists every world; tap an unlocked one to go to its start (locked ones show a lock and their price). Upgrades opens the Upgrade Board on screen from anywhere (the same board; it goes back on its stand when you close it).
+**Teleport and Upgrades buttons** (left side): Teleport dims the screen (the game still shows through) and lays every world on it as a tilted photo: a white frame with a real picture of that world from above (its trees, buildings and rocks on its ground), its number and its name. Hover a photo and it straightens and grows; tap an unlocked one to go to its start. Your world has a "YOU'RE HERE" pin; locked worlds are darker with a lock and their price. Tap the dark around them (or X) to close. Upgrades opens the Upgrade Board on screen from anywhere (the same board; it goes back on its stand when you close it).
 
 **Rebirth perks:** one pad in every world, like a floating gold card over a glowing pad. A perk is yours for good as soon as you have its number of rebirths (nothing is spent); the pad says "Owned" or "Need 3 rebirths (you have 1)":
 
