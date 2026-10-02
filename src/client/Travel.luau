@@ -57,7 +57,8 @@ function Travel.fitFor(size)
 	return math.min(1, size.X / 1300, size.Y / 760)
 end
 local function fit()
-	fitScale.Scale = Travel.fitFor(workspace.CurrentCamera.ViewportSize)
+	-- (on phones 85% of that, like every panel: Screen.panelScale)
+	fitScale.Scale = Travel.fitFor(workspace.CurrentCamera.ViewportSize) * Screen.panelScale()
 end
 fit()
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)

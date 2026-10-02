@@ -60,6 +60,16 @@ end
 fitScreen()
 Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitScreen)
 
+-- On phones every panel (Inventory, Index, Upgrades, ...) is a bit smaller
+-- still: 85% of the size that fits (the user's choice)
+Screen.PHONE_PANEL = 0.85
+function Screen.panelScale(touch)
+	if touch == nil then
+		touch = Screen.Touch
+	end
+	return if touch then Screen.PHONE_PANEL else 1
+end
+
 -- How much a panel of width x height has to shrink to fit on this screen
 -- (1 = it fits; a phone in landscape is only ~540 UI units tall)
 function Screen.fitScale(width, height, size, scale)
@@ -227,7 +237,7 @@ function Screen.open(shade)
 	-- (on a small screen the panel shrinks to fit)
 	local box = holderOf(shade)
 	if box then
-		box:SetAttribute("Fit", Screen.fitScale(box.Size.X.Offset, box.Size.Y.Offset))
+		box:SetAttribute("Fit", Screen.fitScale(box.Size.X.Offset, box.Size.Y.Offset) * Screen.panelScale())
 	end
 	Ui.popIn(shade)
 	local tweens = game:GetService("TweenService")
