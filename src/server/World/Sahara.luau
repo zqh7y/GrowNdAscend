@@ -638,6 +638,7 @@ function Sahara.build(ctx)
 
 	-- an oasis: a little pool with reeds and palms
 	local oasis = Vector3.new(x0 + 84, 0, half - 12)
+	table.insert(ctx.World.FloorHoles, { oasis.X, oasis.Z, 7.5 })
 	terrain:FillCylinder(CFrame.new(oasis + Vector3.new(0, -2, 0)), 4, 6.5, Enum.Material.Air)
 	terrain:FillCylinder(CFrame.new(oasis + Vector3.new(0, -2.5, 0)), 3, 6, Enum.Material.Water)
 	terrain:FillCylinder(CFrame.new(oasis + Vector3.new(0, -4.5, 0)), 1, 7, Enum.Material.Sand)

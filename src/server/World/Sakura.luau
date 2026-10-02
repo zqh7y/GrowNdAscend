@@ -610,6 +610,7 @@ function Sakura.build(ctx)
 	-- koi pond, scaled down to fit
 	local pondCenter = Vector3.new(x0 + 34, 0, -(half - 12))
 	Build.scale(koiPond(deco, rng, pondCenter), pondCenter, 0.7)
+	table.insert(ctx.World.FloorHoles, { pondCenter.X, pondCenter.Z, 7 })
 	space:add(pondCenter, 9)
 
 	-- the Fuse Machine by the gate in, on the right, its circle towards the path

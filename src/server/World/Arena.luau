@@ -143,7 +143,9 @@ function Arena.build(ctx)
 	for _ = 1, 5 do
 		local p = space:find(rng, x0 + 8, x1 - 8, -half + 6, half - 6, 4)
 		if p then
-			terrain:FillCylinder(CFrame.new(p.X, -1, p.Z), 2, rng:NextNumber(2.5, 3.5), Enum.Material.CrackedLava)
+			local r = rng:NextNumber(2.5, 3.5)
+			terrain:FillCylinder(CFrame.new(p.X, -1, p.Z), 2, r, Enum.Material.CrackedLava)
+			table.insert(ctx.World.FloorHoles, { p.X, p.Z, r })
 		end
 	end
 	for _ = 1, 6 do

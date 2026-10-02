@@ -25,6 +25,7 @@ World.Gates = {} -- [i] = { Barrier, Sign, Button } for the gate into area i (i 
 World.Boards = {} -- [board id] = screen part (set by the Forest)
 World.UpgradeBoard = nil -- the Upgrade Board's screen part (first area)
 World.Fusion = nil -- the fusion machine (set by the Sahara)
+World.FloorHoles = {} -- { X, Z, R }: ponds, the oasis, lava pools (the cartoon floor leaves them open)
 World.SPAWN = Vector3.new(10, 4, 0)
 World.Spawns = {} -- [i] = CFrame on the ground at the start of area i, facing +X
 
@@ -89,7 +90,7 @@ bloom.Parent = Lighting
 terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(105, 215, 70))
 terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(120, 222, 95))
 terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(255, 214, 120))
-terrain:SetMaterialColor(Enum.Material.Snow, Color3.fromRGB(245, 250, 255))
+terrain:SetMaterialColor(Enum.Material.Snow, Color3.fromRGB(214, 232, 248)) -- (soft blue: flat white snow glared)
 terrain:SetMaterialColor(Enum.Material.Glacier, Color3.fromRGB(150, 220, 255))
 terrain:SetMaterialColor(Enum.Material.Ice, Color3.fromRGB(185, 235, 255))
 terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(235, 180, 105)) -- dirt paths
@@ -955,9 +956,9 @@ terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF 
 -- patches in lighter and darker shades and the world's own bits (grass tufts
 -- and little flowers in the Forest, dune lines and pebbles in the Sahara,
 -- ice patches and sparkles in the Frozen Peaks, pink petals in the Sakura
--- Jungle, glowing cracks in the Lava Arena). Tiles only go where the terrain
--- under them is flat ground (never over the oasis, lava, a hill or a hole),
--- a few hundredths above it, so everything still stands on the ground. The
+-- Jungle, glowing cracks in the Lava Arena). Tiles sit right on the ground's
+-- height (Config.GROUND_Y), leaving the known holes open (World.FloorHoles:
+-- the oasis, the koi pond, lava pools), so everything still stands on them. The
 -- details don't collide or block anything.
 -- (the user picked a single colour floor: the path stripe and the painted
 -- details are switched off, but kept here to turn back on)
@@ -976,19 +977,20 @@ do
 	local floor = Build.folder(map, "CartoonFloor")
 	World.FloorTiles = 0
 	World.FloorDetails = 0
-	-- the ground height under a tile, or nil if it isn't flat walkable ground
-	local function flatTop(cx, cz, reach)
-		local low, high = math.huge, -math.huge
-		for _, o in ipairs({ { 0, 0 }, { -reach, -reach }, { reach, -reach }, { -reach, reach }, { reach, reach } }) do
-			local hit = workspace:Raycast(Vector3.new(cx + o[1], 200, cz + o[2]), Vector3.new(0, -400, 0), groundRay)
-			-- (lava pools and water keep showing)
-			if not hit or hit.Material == Enum.Material.CrackedLava or hit.Material == Enum.Material.Water then
-				return nil
+	-- the floor sits right on the ground's height (Config.GROUND_Y, 1.6), no
+	-- measuring (a ray down onto the terrain was unreliable in the real game);
+	-- it only leaves the known holes open: ponds, the oasis, lava pools
+	local function open(x, z, margin)
+		for _, hole in ipairs(World.FloorHoles) do
+			if (Vector2.new(x, z) - Vector2.new(hole[1], hole[2])).Magnitude < hole[3] + margin then
+				return false
 			end
-			low, high = math.min(low, hit.Position.Y), math.max(high, hit.Position.Y)
 		end
-		if high - low < 0.5 and math.abs(high - Config.GROUND_Y) < 0.8 then
-			return high + 0.04
+		return true
+	end
+	local function flatTop(cx, cz, reach)
+		if open(cx, cz, reach * 1.5 + 0.5) then
+			return Config.GROUND_Y + 0.05
 		end
 		return nil
 	end
