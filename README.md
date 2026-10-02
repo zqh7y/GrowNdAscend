@@ -329,6 +329,8 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 
 **Luck boosts:** the boost waiting for your next roll shows as a small clover badge right next to the luck chip at the top ("×4"), in its own colour: x2 gold, x4 green, x8 cyan, x16 purple, x32 pink, x64 and up orange-red (`Config.boostColor`). When a x2 boost lands on top of one you already have, the roll shows the total (×4, green), not another ×2.
 
+**Staying in the game:** the Roblox menu's Reset Character button is turned off, and you're never kicked for being AFK: when Roblox notices you've gone idle, the game presses a virtual mouse button for you (`client/Session.luau`), so auto roll and your pets can keep going for as long as you like.
+
 **Pet reveals never block you:** the dark layer behind a reveal lets clicks through, so you can close screens and press buttons while a pet is being shown.
 
 **Fuse Machine:** in the Sakura Jungle, by the gate in on the right: a little blossom shrine with a red-posted blue roof, a glass bubble where a pink core floats inside two spinning rings, a jar of tiny pets going in on the left and a gold pod coming out on the right. Its sign says "100 pets → HUGE · 20 Huge → TITANIC". Step on the pink circle in front and the screen opens: your pets that can go in (Normal and Huge, no aura) with "37 / 100" under each, ready ones first. Pick one and you see it, an arrow down to what it becomes, "You have 37 / 100" with a pink bar, and FUSE. **100 of a Normal pet become 1 Huge of that pet; 20 Huge become 1 Titanic.** The new pet bursts out of the light with its power. Equipped copies that went in come off your team. (`Config.FUSE`, `server/Fuse.luau`, `client/FuseMachine.luau`)

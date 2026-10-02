@@ -2468,6 +2468,14 @@ if ok then
 		item(125, "a pet reveal never blocks clicks (screens can still be closed)", not shade:IsA("GuiButton") and shade.Active == false,
 			"the dark layer behind a reveal is a " .. shade.ClassName .. " that lets clicks through")
 		end
+		do
+			-- no reset button, and idle never gets you kicked
+			local Session = __cache["Client/Session"]
+			local nudges = Session.IdleNudges
+			game:GetService("Players"):GetPlayers()[1].Idled:Fire(120)
+			item(127, "no reset button, no AFK kick", Session ~= nil and Session.IdleNudges == nudges + 1,
+				string.format("going idle presses a virtual button (%d nudge); reset button turned off: %s", Session.IdleNudges - nudges, tostring(Session.ResetDisabled)))
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,
