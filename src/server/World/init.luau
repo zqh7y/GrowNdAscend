@@ -111,8 +111,48 @@ function World.paintPath(parent, name, points, width, color, edge)
 		band(width + 1, top - 0.02, edge)
 	end
 	band(width, top, color)
+	folder:SetAttribute("Top", top)
 	World.Paths[name] = folder
+	World.PathPoints[folder] = points
 	return folder
+end
+
+-- Once the whole map is built (every hill, drift and the clearing of the
+-- walkable strip done), each path is measured again and moved, with
+-- everything inside its folder (edges, cracks, the snake), to lie
+-- PATH_LIFT above the highest ground under it. (Measured while its own
+-- world was being built, the ground could still change after.)
+World.PathPoints = {} -- folder -> its points
+function World.settlePaths()
+	for folder, points in pairs(World.PathPoints) do
+		local inner = false
+		local up = folder.Parent
+		while up do
+			if World.PathPoints[up] then
+				inner = true -- moves with the path it lies on
+				break
+			end
+			up = up.Parent
+		end
+		if not inner then
+			local ground = Config.GROUND_Y
+			for _, p in ipairs(points) do
+				local y = World.groundAt(p.X, p.Z)
+				if y and y < Config.GROUND_Y + 3 then
+					ground = math.max(ground, y)
+				end
+			end
+			local delta = ground + World.PATH_LIFT - (folder:GetAttribute("Top") or ground + World.PATH_LIFT)
+			if math.abs(delta) > 0.001 then
+				for _, d in ipairs(folder:GetDescendants()) do
+					if d:IsA("BasePart") then
+						d.CFrame += Vector3.new(0, delta, 0)
+					end
+				end
+				folder:SetAttribute("Top", ground + World.PATH_LIFT)
+			end
+		end
+	end
 end
 
 -- Lighting and terrain colours ------------------------------------------------------
@@ -970,6 +1010,8 @@ end
 -- above it (the edges of hills, drifts and banks), so nothing can bury a
 -- living coin or push the player up when they spawn. New areas get this for free.
 terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF * 2), Enum.Material.Air)
+-- (and now the ground is final: lift the paths onto it)
+World.settlePaths()
 
 -- Cartoon floor: the walkable strip of every world is covered with smooth,
 -- flat tiles in one base colour (no realistic terrain texture), with a

@@ -2660,7 +2660,7 @@ if ok then
 			local function lies(folder)
 				if not folder or #folder:GetChildren() == 0 then return false end
 				for _, d in ipairs(folder:GetDescendants()) do
-					if d:IsA("BasePart") and (d.CanCollide or d.CanQuery or d.Position.Y < Config.GROUND_Y or d.Position.Y > Config.GROUND_Y + 1.8) then return false end
+					if d:IsA("BasePart") and (d.Name == "PathPiece" or d.Name == "PathJoint") and (d.CanCollide or d.CanQuery or d.Position.Y < Config.GROUND_Y or d.Position.Y > Config.GROUND_Y + 1.8) then return false end
 				end
 				return true
 			end
@@ -2670,7 +2670,7 @@ if ok then
 				end
 				return true
 			end
-			local snake = P.SnakeTrail and P.SnakeTrail.Parent:FindFirstChild("Snake")
+			local snake = P.SnakeTrail and P.SnakeTrail:FindFirstChild("Snake")
 			local ok = lies(P.ForestPath) and lies(P.SnakeTrail) and lies(P.FrozenLake) and lies(P.Path) and snake ~= nil
 				and within(P.SnakeTrail, 2) and within(P.FrozenLake, 3)
 			item(130, "paths: Forest, snake trail (Sahara), frozen lake (Frozen), straight path (Sakura)", ok,

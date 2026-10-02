@@ -608,7 +608,7 @@ end
 -- balls getting thinner to the tail, a round head with big eyes and a smile.
 local function snake(parent, at)
 	local model = Build.model(parent, "Snake")
-	local y = Config.GROUND_Y
+	local y = at.Y -- (the ground under it)
 	local BODY = Color3.fromRGB(150, 210, 80)
 	local SPOT = Color3.fromRGB(250, 200, 60)
 	local count = 14
@@ -743,9 +743,10 @@ function Sahara.build(ctx)
 		table.insert(trail, Vector3.new(trailX + math.sin(z / 3.5) * 2.6, 0, z))
 		space:add(Vector3.new(trailX, 0, z), 3)
 	end
-	ctx.World.paintPath(deco, "SnakeTrail", trail, 1.8, Color3.fromRGB(214, 158, 88), Color3.fromRGB(236, 186, 112))
+	local trailFolder = ctx.World.paintPath(deco, "SnakeTrail", trail, 1.8, Color3.fromRGB(214, 158, 88), Color3.fromRGB(236, 186, 112))
 	local tail = trail[#trail]
-	snake(deco, Vector3.new(tail.X, 0, tail.Z - 1.5))
+	-- (in the trail's folder, so it moves with the trail onto the real ground)
+	snake(trailFolder, Vector3.new(tail.X, trailFolder:GetAttribute("Top") - ctx.World.PATH_LIFT, tail.Z - 1.5))
 	space:add(Vector3.new(tail.X, 0, tail.Z - 2), 3.5)
 
 	ctx.reserveSpots() -- breakables get their room before the small props
