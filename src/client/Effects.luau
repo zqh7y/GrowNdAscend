@@ -100,6 +100,18 @@ local function worldLabel(position, text, color, size, rise, duration)
 	end)
 end
 
+-- Coins paid by a hit while fighting: a small gold "+123" rising off the
+-- enemy (at most a few a second, so it never gets busy)
+local lastFightCoins = 0
+function Effects.fightCoins(position, amount)
+	if os.clock() - lastFightCoins < 0.25 then
+		return
+	end
+	lastFightCoins = os.clock()
+	local jitter = Vector3.new(math.random(-12, 12) / 10, 0, math.random(-12, 12) / 10)
+	worldLabel(position + jitter + Vector3.new(0, 1.5, 0), "+" .. Config.formatNumber(amount), Ui.GOLD, 18, 2.5, 0.8)
+end
+
 -- A damage number over something a pet hit; colour shows the pet's size
 function Effects.damage(position, amount, sizeIndex)
 	if not State.Settings.DamageNumbers then

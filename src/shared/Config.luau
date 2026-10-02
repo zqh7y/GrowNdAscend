@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 40 (mega roll on the other side, aura circle on the ground)"
+Config.BUILD = "build 41 (lava arena boss world, coins while fighting, props on the real ground)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -100,6 +100,12 @@ local function roundTo3(n)
 	local digits = math.floor(math.log10(n)) - 2
 	local unit = 10 ^ math.max(digits, 0)
 	return math.floor(n / unit + 0.5) * unit
+end
+
+-- The worlds that have animals of their own (the Index has a tab for each)
+Config.PET_WORLDS = 0
+for _, pet in ipairs(Config.PETS) do
+	Config.PET_WORLDS = math.max(Config.PET_WORLDS, pet.World)
 end
 
 Config.PETS_BY_NAME = {}
@@ -922,6 +928,10 @@ end
 Config.PET_HIT_EVERY = 0.6 -- seconds between a pet's hits
 Config.PET_SPEED = 45 -- studs per second a pet runs to its target
 Config.FIGHT_RADIUS = 40 -- pets go after coins this close to the player
+-- Coins come while you fight, not only on the kill: every hit pays its share
+-- of FIGHT_PAY of the enemy's coins (by damage dealt), the kill pays the
+-- rest. An enemy pays the same in total either way.
+Config.FIGHT_PAY = 0.5
 
 -- One hit of a pet: its power x the Damage upgrade x its own Damage stat
 function Config.hitDamage(data, name)
@@ -1042,6 +1052,10 @@ Config.WANDER = 8
 -- players can walk anywhere with |Z| < AREA_HALF_WIDTH.
 Config.AREA_LENGTH = 100
 Config.AREA_HALF_WIDTH = 35
+-- Where the ground really is: Roblox's terrain surface over the flat ground
+-- comes out at about Y = 1.6, not 0. Anything that stands on the ground
+-- (stages, pads, circles) is built on this, or it sinks into the ground.
+Config.GROUND_Y = 1.6
 
 Config.AREAS = {
 	{
@@ -1071,6 +1085,16 @@ Config.AREAS = {
 		Cost = 1.3e11,
 		Color = Color3.fromRGB(255, 150, 200),
 		Breakable = { Name = "Sushi", Health = 1.2e13, Coins = 3e6, Exp = 50 },
+	},
+	{
+		-- the boss world: one giant boss in an arena; pets hit it from
+		-- anywhere in the area, so it's a good place to stay AFK
+		Name = "Lava Arena",
+		Luck = 2.1, -- rolling here multiplies luck
+		Cost = 4e13,
+		Color = Color3.fromRGB(255, 120, 60),
+		Boss = true,
+		Breakable = { Name = "Magma Titan", Health = 1e18, Coins = 1e9, Exp = 15000 },
 	},
 }
 

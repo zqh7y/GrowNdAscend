@@ -38,12 +38,15 @@ end
 -- look at other worlds' targets, however close they are.
 local function pickTarget(root, data, current)
 	local area = math.min(Config.areaAt(root.Position.X), data.Unlocked)
+	-- (in a boss world the pets go for the boss from anywhere in the area,
+	-- so you can stay AFK wherever you like there)
+	local radius = if Config.AREAS[area].Boss then Config.AREA_LENGTH * 2 else Config.FIGHT_RADIUS
 	-- stay on the current one while it's alive, in this area and not too far
-	if current and Breakables.alive(current) and current.Area == area and (current.Pos - root.Position).Magnitude <= Config.FIGHT_RADIUS * 1.3 then
+	if current and Breakables.alive(current) and current.Area == area and (current.Pos - root.Position).Magnitude <= radius * 1.3 then
 		return current
 	end
 	local best, bestDistance = nil, math.huge
-	for _, target in ipairs(Breakables.near(root.Position, Config.FIGHT_RADIUS, area)) do
+	for _, target in ipairs(Breakables.near(root.Position, radius, area)) do
 		local distance = (target.Pos - root.Position).Magnitude
 		if distance < bestDistance then
 			best, bestDistance = target, distance

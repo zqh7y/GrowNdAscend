@@ -4,6 +4,7 @@
 -- behind them, and the three leaderboards side by side. The green terrain is
 -- the grass (no separate grass pieces). Breakable: small trees.
 local Build = require(game:GetService("ReplicatedStorage").Shared.Build)
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 
 local Forest = {}
 
@@ -551,7 +552,7 @@ function Forest.build(ctx)
 	outside:add(Vector3.new(x0 + 82, 0, -(half + 14)), 8)
 
 	-- leaderboards: one group on the left side, near the spawn
-	local stageCenter = Vector3.new(x0 + 30, 0, -(half - 5))
+	local stageCenter = Vector3.new(x0 + 30, Config.GROUND_Y, -(half - 5)) -- (on the real ground)
 	local stageWidth = leaderboardStage(deco, ctx.World, stageCenter)
 	for dx = -stageWidth / 2, stageWidth / 2, 6 do
 		space:add(stageCenter + Vector3.new(dx, 0, 0), 5.5)

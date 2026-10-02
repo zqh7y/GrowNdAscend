@@ -44,7 +44,7 @@ for how it plays and where the code lives.
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
   hatch show step by step, the ROLL + AUTO buttons, the dense inventory with side details
-  and Equip Best). It must say "checklist: 112/112 passed". It takes
+  and Equip Best). It must say "checklist: 115/115 passed". It takes
   a few minutes; run it in the background. The harness runs as one big
   function: wrap new test blocks in `do ... end` or Luau runs out of local
   registers (limit 200).
@@ -71,7 +71,9 @@ for how it plays and where the code lives.
   the client only animates (Living.luau, Pets.luau) from the coin records
   and the PetHits / CoinPop events.
 - The map is built in code at server start (`src/server/World`). Every area
-  is 100 x 70 studs; keep new props inside that footprint.
+  is 100 x 70 studs; keep new props inside that footprint. The terrain
+  surface ends up at about Y = 1.6 (`Config.GROUND_Y`), not 0: build
+  anything that stands on the ground (stages, pads, circles) on it.
 - Art direction: the world is bright, toy-like and highly detailed
   (`Build.part` turns every material except Glass, Neon and ForceField into
   SmoothPlastic). The UI is clean, minimal and friendly: white rounded

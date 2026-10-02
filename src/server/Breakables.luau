@@ -19,14 +19,24 @@ local World = require(script.Parent.World)
 
 local Breakables = {}
 
-local PER_AREA = 5 -- living coins in each area at once
+local PER_AREA = 5 -- living coins in each area at once (a boss world: just the boss)
 local RESPAWN_SECONDS = 3
+local BOSS_RESPAWN_SECONDS = 6
+
+local function perArea(areaIndex)
+	return if Config.AREAS[areaIndex].Boss then 1 else PER_AREA
+end
+Breakables.perArea = perArea
 local SPACING = 7 -- a new coin never appears closer than this to another
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local levelEvent = Instance.new("RemoteEvent")
 levelEvent.Name = "LevelUp" -- server -> client: (new level) when a player levels up
 levelEvent.Parent = remotes
+
+local fightEvent = Instance.new("RemoteEvent")
+fightEvent.Name = "FightCoins" -- server -> client: (position, coins) paid by a hit
+fightEvent.Parent = remotes
 
 local coinEvent = Instance.new("RemoteEvent")
 coinEvent.Name = "CoinPop" -- server -> client: (position, coins, area) when one breaks
@@ -85,13 +95,18 @@ local function alive(areaIndex)
 end
 
 local function spawnOne(areaIndex)
-	local spot = freeSpot(areaIndex)
+	if alive(areaIndex) >= perArea(areaIndex) then
+		return
+	end
+	-- the boss always comes back in the middle of its arena
+	local boss = Config.AREAS[areaIndex].Boss and World.Areas[areaIndex].BossSpot
+	local spot = if boss then 1 else freeSpot(areaIndex)
 	if not spot then
 		-- everything is busy; the watchdog below tries again shortly
 		return
 	end
 	taken[areaIndex][spot] = true
-	local home = World.Areas[areaIndex].Spots[spot]
+	local home = boss or World.Areas[areaIndex].Spots[spot]
 	local area = Config.AREAS[areaIndex]
 	local style = Coins.STYLES[areaIndex]
 
@@ -188,23 +203,43 @@ function Breakables.alive(target)
 	return Breakables.Targets[target.Id] == target
 end
 
--- Deals damage for `player`; returns true if it broke
+local lastSync = {} -- [player] = os.clock() of the last sync for coins paid by hits
+
+-- Deals damage for `player`; returns true if it broke, and the coins this
+-- hit paid. Every hit pays its share of Config.FIGHT_PAY of the enemy's
+-- coins (by the damage dealt; fractions are kept until they add up to a
+-- coin), the kill pays the rest and the EXP.
 function Breakables.damage(target, amount, player)
 	if not Breakables.alive(target) then
-		return false
+		return false, 0
+	end
+	local area = Config.AREAS[target.Area]
+	local data = PlayerData.get(player)
+	local dealt = math.clamp(amount, 0, math.max(target.Health, 0))
+	if data then
+		target.Owed = (target.Owed or 0) + area.Breakable.Coins * Config.FIGHT_PAY * dealt / target.MaxHealth * Config.coinGain(data)
 	end
 	target.Health -= amount
 	if target.Health > 0 then
 		target.Data:SetAttribute("Health", target.Health)
-		return false
+		local paid = math.floor(target.Owed or 0)
+		if data and paid > 0 then
+			target.Owed -= paid
+			data.Coins += paid
+			fightEvent:FireClient(player, target.Pos + Vector3.new(0, 3, 0), paid)
+			-- (the counter catches up at most once a second)
+			if os.clock() - (lastSync[player] or 0) >= 1 then
+				lastSync[player] = os.clock()
+				PlayerData.sync(player)
+			end
+		end
+		return false, paid
 	end
 
-	-- broken: reward the player, then a new one a little later
-	local area = Config.AREAS[target.Area]
-	local data = PlayerData.get(player)
+	-- broken: the rest of the coins and the EXP, then a new one a little later
 	local coins = 0
 	if data then
-		coins = math.floor(area.Breakable.Coins * Config.coinGain(data))
+		coins = math.floor((target.Owed or 0) + area.Breakable.Coins * (1 - Config.FIGHT_PAY) * Config.coinGain(data))
 		data.Coins += coins
 		-- and EXP: stronger enemies in later worlds give more
 		if Config.addExp(data, area.Breakable.Exp * Config.expGain(data)) > 0 then
@@ -217,17 +252,17 @@ function Breakables.damage(target, amount, player)
 	target.Data:Destroy()
 	taken[target.Area][target.Spot] = nil
 	pending[target.Area] += 1
-	task.delay(RESPAWN_SECONDS, function()
+	task.delay(if area.Boss then BOSS_RESPAWN_SECONDS else RESPAWN_SECONDS, function()
 		pending[target.Area] -= 1
 		spawnOne(target.Area)
 	end)
-	return true
+	return true, coins
 end
 
 for i in ipairs(World.Areas) do
 	taken[i] = {}
 	pending[i] = 0
-	for _ = 1, PER_AREA do
+	for _ = 1, perArea(i) do
 		spawnOne(i)
 	end
 end
@@ -249,7 +284,7 @@ task.spawn(function()
 	while true do
 		task.wait(2)
 		for i in ipairs(World.Areas) do
-			for _ = 1, PER_AREA - alive(i) - pending[i] do
+			for _ = 1, perArea(i) - alive(i) - pending[i] do
 				spawnOne(i)
 			end
 		end

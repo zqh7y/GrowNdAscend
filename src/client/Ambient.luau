@@ -78,6 +78,12 @@ Ambient.WORLDS = {
 		Chirps = true,
 		Light = { Tint = Color3.fromRGB(255, 244, 248), Air = Color3.fromRGB(255, 225, 238), Density = 0.2, Haze = 0.8, Clock = 15.5 },
 	},
+	{ -- Lava Arena: warm evening light, embers drifting, no animals (the
+		-- boss has the stage)
+		Fireflies = true,
+		Falling = { Colors = { Color3.fromRGB(120, 110, 110), Color3.fromRGB(160, 150, 150) }, Size = Vector3.new(0.25, 0.25, 0.25), Cap = 6 },
+		Light = { Tint = Color3.fromRGB(255, 236, 222), Air = Color3.fromRGB(255, 205, 175), Density = 0.22, Haze = 0.9, Clock = 16.8 },
+	},
 }
 
 local MAX_ANIMALS = 12 -- birds + critters + people alive at once, in every world
@@ -95,7 +101,7 @@ Ambient.SOUNDS = {
 	Crack = "rbxasset://sounds/snap.mp3",
 	Wind = "", -- put a Creator Store wind sound id here (swoosh.wav isn't allowed in games)
 }
-Ambient.LOOPS = { "", "", "", "" }
+Ambient.LOOPS = { "", "", "", "", "" }
 
 -- State ----------------------------------------------------------------------------------------
 

@@ -6,6 +6,7 @@
 --   cactus: a bouncy hop, swaying side to side, with a little double bounce
 --   ice:    a low slide with a full spin
 --   sushi:  a hop with a somersault
+--   boss:   a slow, heavy stomp that lands hard (World 5's Magma Titan)
 -- All of them breathe while they rest, turn to face where they jump, and
 -- flash and shake when a pet hits them. None of this depends on being hit.
 --
@@ -302,6 +303,13 @@ function MOTIONS.flip(t, height)
 	return up, t, turn, 1
 end
 
+function MOTIONS.stomp(t, height)
+	-- slow and heavy: leans back, lifts a little, comes down hard
+	local up = math.sin(t * math.pi) ^ 2 * height
+	local lean = CFrame.Angles(math.sin(t * math.pi) * math.rad(-5), 0, 0)
+	return up, t, lean, 1
+end
+
 -- after landing: a quick squash that springs back (cactus bounces twice)
 local function landing(since, style)
 	if since < 0 then
@@ -310,6 +318,9 @@ local function landing(since, style)
 	local bounce = 0
 	if style.Motion == "sway" and since < 0.35 then
 		bounce = math.sin(since / 0.35 * math.pi) * style.Height * 0.25
+	end
+	if style.Motion == "stomp" then
+		return 0, 1 - math.exp(-since * 6) * math.sin(since * 14) * 0.06
 	end
 	return bounce, 1 - math.exp(-since * 9) * math.sin(since * 20) * 0.13
 end

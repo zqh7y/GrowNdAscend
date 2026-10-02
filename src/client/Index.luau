@@ -48,7 +48,7 @@ local tabRow = Ui.new("Frame", {
 	}),
 })
 local tabs = {}
-for tab = 1, #Config.AREAS + 1 do
+for tab = 1, Config.PET_WORLDS + 1 do -- (worlds with animals of their own)
 	local world = tab - 1 -- 0 is "All"
 	tabs[world] = Ui.button({
 		LayoutOrder = world,

@@ -16,6 +16,7 @@ require(script.Ambient) -- birds, critters, butterflies, weather, swaying plants
 require(script.Hud) -- also loads Roll, Inventory, Index, the Upgrade Board and Panels
 require(script.AuraMachine) -- the Pet Aura Machine screen (opened at the machine in the Sahara)
 require(script.MegaRoll) -- the Mega Roll pad's sign, and claiming it
+require(script.BossBar) -- the boss's health bar in the Lava Arena
 
 local player = Players.LocalPlayer
 
@@ -37,9 +38,19 @@ State.remote("PetHits").OnClientEvent:Connect(function(targetId, hits)
 	Effects.play("Hit", 0.9 + math.random() * 0.3, 0.08)
 end)
 
+-- coins paid while fighting: a small gold number by the enemy
+State.remote("FightCoins").OnClientEvent:Connect(function(position, coins)
+	Effects.fightCoins(position, coins)
+end)
+
 -- a break: coins pop out and fly into the counter
 State.remote("CoinPop").OnClientEvent:Connect(function(position, coins, area)
 	Effects.burst(position, Config.AREAS[area].Color)
+	if Config.AREAS[area].Boss then
+		-- the boss goes down: a bigger burst
+		Effects.burst(position + Vector3.new(0, 5, 0), Color3.fromRGB(255, 200, 80))
+		Effects.burst(position + Vector3.new(0, 9, 0), Color3.fromRGB(255, 255, 255))
+	end
 	Effects.coins(position, coins)
 end)
 

@@ -724,6 +724,73 @@ if ok then
 				root.CFrame = savedAt
 				STATS.BoostZones = bz
 			end
+			do
+				-- coins while fighting, the Lava Arena boss, and props on the real ground
+				local Breakables = __cache["Breakables"]
+				local W = __cache["World/init"]
+				local root = player.Character.HumanoidRootPart
+				local savedAt = root.CFrame
+				local savedUnlocked, savedEquipped, savedPets = data.Unlocked, data.Equipped, data.Pets
+				local bw = {}
+				-- a hit pays part of the coins, the kill pays the rest; same total as before
+				local t
+				for _, target in pairs(Breakables.Targets) do
+					if target.Area == 1 then t = target break end
+				end
+				local gain = Config.coinGain(data)
+				local full = Config.AREAS[1].Breakable.Coins * gain
+				local c0 = data.Coins
+				local broke1, paid1 = Breakables.damage(t, t.MaxHealth * 0.5, player)
+				bw.HalfPaid = not broke1 and math.abs(paid1 - full * Config.FIGHT_PAY * 0.5) <= 1 and data.Coins - c0 == paid1
+				local broke2 = Breakables.damage(t, t.MaxHealth, player)
+				bw.Total = broke2 and math.abs((data.Coins - c0) - full) <= 1
+				bw.Paid, bw.Full = data.Coins - c0, full
+				-- the boss world: one boss in the middle of the arena
+				local boss, bosses = nil, 0
+				for _, target in pairs(Breakables.Targets) do
+					if target.Area == 5 then boss = target bosses += 1 end
+				end
+				bw.Bosses = bosses
+				local spot = W.Areas[5].BossSpot
+				bw.Middle = boss ~= nil and spot ~= nil and (boss.Home - spot).Magnitude < 1 and boss.MaxHealth == Config.AREAS[5].Breakable.Health
+				-- pets go for it from anywhere in the area (here: the far end of the arena world)
+				data.Unlocked = 5
+				data.Pets = { Dog = 1 }
+				data.Equipped = { "Dog" }
+				root.CFrame = CFrame.new(Config.areaStart(5) + 6, 4, 25)
+				for _ = 1, 10 do STEP(0.1) end
+				bw.Targeted = boss ~= nil and player:GetAttribute("PetTarget") == boss.Id
+				-- the boss bar, a moment after arriving
+				local Bar = C("BossBar")
+				for _ = 1, 14 do
+					STEP(0.25)
+					Bar.refresh()
+				end
+				bw.Bar = Bar.Frame.Visible == true and Bar.Name.Text == string.upper(Config.AREAS[5].Breakable.Name)
+				-- defeated: back after a short while, in the middle again
+				if boss then
+					Breakables.damage(boss, boss.Health + 1, player)
+				end
+				for _ = 1, 4 do STEP(0.25) Bar.refresh() end
+				bw.Defeated = string.find(Bar.Name.Text, "DEFEATED") ~= nil
+				for _ = 1, 40 do STEP(0.25) end
+				local again
+				for _, target in pairs(Breakables.Targets) do
+					if target.Area == 5 then again = target end
+				end
+				bw.Back = again ~= nil and again ~= boss and (again.Home - spot).Magnitude < 1
+				-- the pad, the circle and the stages stand on the real ground (Y ~ 1.6)
+				local g = Config.GROUND_Y
+				local pad = workspace.Map.MegaRoll:FindFirstChild("Pad")
+				local circle = W.Fusion and W.Fusion.Circle
+				local function top(p) return p and p.Position.Y + p.Size.X / 2 end -- (cylinders: height along X)
+				bw.Pad, bw.Circle = top(pad) or -1, top(circle) or -1
+				bw.Ground = bw.Pad > g + 0.5 and bw.Circle > g + 0.5
+				data.Unlocked, data.Equipped, data.Pets = savedUnlocked, savedEquipped, savedPets
+				root.CFrame = savedAt
+				PlayerData.sync(player)
+				STATS.BossWorld = bw
+			end
 			STATS.Outfits = { Dressed = dressed, Distinct = distinct, Broken = table.concat(broken, ", "), Titanic = okT and titanic:GetAttribute("Outfit") ~= nil }
 			data.Pets.Cat = 2
 			C("Screen").close(AuraMachine.Modal)
@@ -2411,6 +2478,13 @@ if ok then
 			and bz.Left == true and math.abs((bz.Coins or 0) - 3) < 1e-6 and bz.Expired == true and (bz.Variety or 0) >= 4,
 			string.format("zone '%s' in the world; inside: luck x%.2f, coins x%.2f; outside: back to normal (%s); gone after %d s (%s); %d different zones in 30 random ones; one every %d min",
 				tostring(bz.Sign), bz.Luck or 0, bz.Coins or 0, tostring(bz.Left), Config.BOOST_ZONE.Lasts, tostring(bz.Expired), bz.Variety or 0, Config.BOOST_ZONE.Every // 60))
+		local bw = STATS.BossWorld or {}
+		item(113, "coins while fighting", bw.HalfPaid == true and bw.Total == true,
+			string.format("half its health in one hit paid its share right away; the kill paid the rest: %s of %s in total", Config.formatNumber(bw.Paid or 0), Config.formatNumber(bw.Full or 0)))
+		item(114, "Lava Arena boss", bw.Bosses == 1 and bw.Middle == true and bw.Targeted == true and bw.Bar == true and bw.Defeated == true and bw.Back == true,
+			string.format("%d boss in the middle of the arena; pets go for it from anywhere in the area; boss bar shows (then 'DEFEATED'); it comes back in the middle", bw.Bosses or 0))
+		item(115, "props on the real ground", bw.Ground == true,
+			string.format("Mega Roll pad top Y %.1f, Aura Machine circle top Y %.1f (ground ~%.1f)", bw.Pad or -1, bw.Circle or -1, Config.GROUND_Y))
 		local r1, r8 = Config.REBIRTHS[1], Config.REBIRTHS[8]
 		item(97, "faster rebirths", r1.Level <= 20 and r1.Cost <= 1e5 and r8.Level <= 100,
 			string.format("rebirth 1: %s coins + level %d (~10 min); rebirth 8: %s + level %d (~3 h, see simulate.py)", Config.formatNumber(r1.Cost), r1.Level, Config.formatNumber(r8.Cost), r8.Level))

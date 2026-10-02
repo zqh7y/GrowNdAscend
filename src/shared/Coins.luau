@@ -13,6 +13,7 @@ local Coins = {}
 --            "sway":     a bouncy hop, swaying side to side, double bounce (cactus)
 --            "skate":    a low slide with a full spin (ice cube)
 --            "flip":     a hop with a somersault (sushi)
+--            "stomp":    a slow, heavy step with a big landing (the boss)
 --   Height   how high it jumps (studs), Distance how far (min, max)
 --   Air      seconds in the air, Rest seconds waiting between jumps (min, max)
 Coins.STYLES = {
@@ -20,6 +21,8 @@ Coins.STYLES = {
 	{ Motion = "sway", Height = 2.4, Distance = { 3, 4.5 }, Air = 0.55, Rest = { 2.6, 4 } },
 	{ Motion = "skate", Height = 0.7, Distance = { 3.5, 5 }, Air = 0.7, Rest = { 2.4, 3.8 } },
 	{ Motion = "flip", Height = 3, Distance = { 3.5, 5 }, Air = 0.65, Rest = { 2.6, 4 } },
+	-- World 5's boss: slow, heavy stomps around the middle of the arena
+	{ Motion = "stomp", Height = 1.4, Distance = { 2, 3.5 }, Air = 1.5, Rest = { 4, 7 } },
 }
 
 local function pick(rng, list)
@@ -229,7 +232,70 @@ local function sushi(parent, rng)
 	return model, body
 end
 
-local BUILDERS = { tree, cactus, iceCube, sushi }
+-- World 5: the boss, the Magma Titan -------------------------------------------------------
+-- A big friendly giant of warm dark rock with glowing lava cracks, a crown
+-- of rocky horns, little lava drips and a smile. About 14 studs tall.
+
+local ROCK = Color3.fromRGB(110, 86, 80)
+local ROCK_LIGHT = Color3.fromRGB(140, 112, 100)
+local LAVA = Color3.fromRGB(255, 130, 40)
+
+local function magmaTitan(parent, rng)
+	local model = Build.model(parent, "Magma Titan")
+	local function block(size, at, rot, color)
+		return Build.part(model, { Size = size, CFrame = CFrame.new(at) * (rot or CFrame.new()), Color = color or Build.vary(rng, ROCK, 0.03) })
+	end
+	local function crack(at, size, rot)
+		return Build.part(model, { Size = size, CFrame = CFrame.new(at) * (rot or CFrame.new()), Color = LAVA, Material = Enum.Material.Neon, CanCollide = false })
+	end
+	-- legs and big feet
+	for _, side in ipairs({ -1, 1 }) do
+		block(Vector3.new(3.2, 1.6, 4), Vector3.new(side * 2.2, 0.8, -0.3))
+		block(Vector3.new(2.6, 3.4, 2.6), Vector3.new(side * 2.2, 3.2, 0), CFrame.Angles(0, math.rad(side * 6), 0))
+		crack(Vector3.new(side * 2.2, 3.4, -1.32), Vector3.new(0.3, 1.8, 0.1), CFrame.Angles(0, 0, math.rad(side * 20)))
+	end
+	-- a big round body
+	local body = block(Vector3.new(8, 6.4, 5.4), Vector3.new(0, 7.8, 0))
+	block(Vector3.new(8.4, 1.4, 5.8), Vector3.new(0, 5.2, 0), nil, ROCK_LIGHT) -- belt
+	-- glowing cracks on the chest and a lava heart
+	crack(Vector3.new(-1.8, 8.8, -2.72), Vector3.new(0.35, 2.4, 0.1), CFrame.Angles(0, 0, math.rad(25)))
+	crack(Vector3.new(2, 7.4, -2.72), Vector3.new(0.35, 2, 0.1), CFrame.Angles(0, 0, math.rad(-30)))
+	crack(Vector3.new(0.4, 6.6, -2.72), Vector3.new(1.4, 0.3, 0.1))
+	Build.ball(model, Vector3.new(0, 8, -2.6), 1.4, { Color = LAVA, Material = Enum.Material.Neon, CanCollide = false })
+	-- shoulders, long arms and fists
+	for _, side in ipairs({ -1, 1 }) do
+		block(Vector3.new(3, 2.6, 3), Vector3.new(side * 5.2, 10, 0), CFrame.Angles(0, 0, math.rad(side * -10)), ROCK_LIGHT)
+		block(Vector3.new(2.2, 4.6, 2.2), Vector3.new(side * 5.6, 6.8, -0.2), CFrame.Angles(math.rad(-8), 0, math.rad(side * 6)))
+		block(Vector3.new(3, 2.6, 3), Vector3.new(side * 5.8, 3.8, -0.6), nil, ROCK_LIGHT)
+		crack(Vector3.new(side * 5.8, 3.8, -2.12), Vector3.new(1.6, 0.25, 0.1))
+	end
+	-- the head with a smile, and a crown of rocky horns with lava tips
+	local head = block(Vector3.new(4.6, 3.6, 4), Vector3.new(0, 12.6, -0.4), nil, ROCK_LIGHT)
+	for k = -1, 1 do
+		local tip = Vector3.new(k * 1.5, 15.1 + (if k == 0 then 0.6 else 0), -0.4)
+		block(Vector3.new(0.9, 1.6, 0.9), tip - Vector3.new(0, 0.6, 0), CFrame.Angles(0, math.rad(45), math.rad(k * -15)))
+		Build.ball(model, tip + Vector3.new(0, 0.4, 0), 0.6, { Color = LAVA, Material = Enum.Material.Neon, CanCollide = false })
+	end
+	Build.face(model, CFrame.new(head.Position + Vector3.new(0, -0.2, -2.05)), 2.2)
+	-- a warm glow and little embers drifting up
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 150, 80)
+	light.Range = 18
+	light.Brightness = 1.2
+	light.Parent = body
+	local embers = Instance.new("ParticleEmitter")
+	embers.Color = ColorSequence.new(Color3.fromRGB(255, 190, 90), Color3.fromRGB(255, 100, 40))
+	embers.LightEmission = 1
+	embers.Size = NumberSequence.new(0.3, 0)
+	embers.Lifetime = NumberRange.new(1, 2)
+	embers.Speed = NumberRange.new(1.5, 3)
+	embers.SpreadAngle = Vector2.new(40, 40)
+	embers.Rate = 5
+	embers.Parent = body
+	return model, body
+end
+
+local BUILDERS = { tree, cactus, iceCube, sushi, magmaTitan }
 
 -- Builds world `area`'s living coin into `parent`, with its feet at the
 -- origin; the same seed always gives the same look

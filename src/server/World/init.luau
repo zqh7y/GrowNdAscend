@@ -15,7 +15,7 @@ local HALF = Config.AREA_HALF_WIDTH
 local TOTAL = LENGTH * #Config.AREAS
 local SIDE = 110 -- how far the scenery reaches to each side
 
-local AREA_MODULES = { script.Forest, script.Sahara, script.Frozen, script.Sakura }
+local AREA_MODULES = { script.Forest, script.Sahara, script.Frozen, script.Sakura, script.Arena }
 
 local map = Build.folder(workspace, "Map")
 local terrain = workspace.Terrain
@@ -95,6 +95,8 @@ terrain:SetMaterialColor(Enum.Material.Ice, Color3.fromRGB(185, 235, 255))
 terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(225, 180, 115)) -- dirt paths
 terrain:SetMaterialColor(Enum.Material.Sandstone, Color3.fromRGB(240, 185, 115))
 terrain:SetMaterialColor(Enum.Material.Pavement, Color3.fromRGB(220, 220, 230))
+terrain:SetMaterialColor(Enum.Material.Basalt, Color3.fromRGB(120, 98, 92)) -- the Lava Arena's warm volcanic rock
+terrain:SetMaterialColor(Enum.Material.CrackedLava, Color3.fromRGB(255, 120, 50))
 
 -- Invisible walls ----------------------------------------------------------------------
 
@@ -274,14 +276,14 @@ local function buildGate(i)
 	local barrier = Build.part(gate, {
 		Name = "Barrier",
 		Size = Vector3.new(1, 15, HALF * 2 - 10),
-		CFrame = CFrame.new(x, 7.5 + 0.6, 0),
+		CFrame = CFrame.new(x, Config.GROUND_Y + 7.5, 0),
 		Color = area.Color,
 		Material = Enum.Material.Glass,
 		Reflectance = 0.15,
 		Transparency = 0.25,
 		CastShadow = false,
 	})
-	for _, y in ipairs({ 0.6, 15.6 }) do
+	for _, y in ipairs({ Config.GROUND_Y, Config.GROUND_Y + 15 }) do
 		Build.part(barrier, {
 			Name = "Rail",
 			Size = Vector3.new(1.6, 1.2, HALF * 2 - 10),
@@ -409,7 +411,7 @@ function World.buildMegaRoll(center)
 	local model = Build.model(map, "MegaRoll")
 	local r = Config.MEGA_ROLL.Radius
 	-- stand on the real ground (the sand isn't exactly at Y = 0)
-	center = Vector3.new(center.X, math.max(World.groundAt(center.X, center.Z) or 0, 0) - 0.3, center.Z)
+	center = Vector3.new(center.X, math.max(World.groundAt(center.X, center.Z) or 0, Config.GROUND_Y) - 0.3, center.Z)
 	-- the pad: a white rim, the pale blue top and a glowing ring on it
 	Build.cylinder(model, center, 1, r * 2 + 1.2, { Name = "Rim", Color = Color3.fromRGB(250, 252, 255) })
 	local pad = Build.cylinder(model, center, 1.3, r * 2, { Name = "Pad", Color = Color3.fromRGB(184, 210, 255) })
@@ -540,7 +542,7 @@ for i, area in ipairs(Config.AREAS) do
 	-- the Upgrade Board stands in the first area, on the right of the path
 	-- near the spawn (the leaderboards are on the left), facing the middle
 	if i == 1 then
-		local center = Vector3.new(x0 + 22, 0, HALF - 9) -- (back from the edge)
+		local center = Vector3.new(x0 + 22, Config.GROUND_Y, HALF - 9) -- (back from the edge, on the real ground)
 		World.UpgradeBoard = World.buildUpgradeBoard(center)
 		for dx = -12, 12, 6 do
 			space:add(center + Vector3.new(dx, 0, 0), 5.5)
@@ -574,7 +576,7 @@ for i, area in ipairs(Config.AREAS) do
 	module.build(ctx)
 
 	reserveSpots() -- in case the area didn't
-	World.Areas[i] = { Folder = folder, Spots = spots, Module = module, Space = space }
+	World.Areas[i] = { Folder = folder, Spots = spots, Module = module, Space = space, BossSpot = ctx.BossSpot }
 
 	if i >= 2 then
 		buildGate(i)

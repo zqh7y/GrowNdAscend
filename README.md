@@ -292,7 +292,7 @@ digit strings. Sounds use built-in Roblox sounds; swap them in
 
 ## The map
 
-Four compact areas in a straight line along +X (100 x 70 studs each), with
+Five compact areas in a straight line along +X (100 x 70 studs each; the fifth is the boss world), with
 invisible walls on both sides (|Z| = 37), at both ends and on top. The whole
 map is built by `src/server/World` when the server starts, in a bright,
 toy-like style: smooth plastic in cheerful colours, with glass and neon
@@ -304,6 +304,7 @@ accents (realistic materials are swapped out automatically in `Build.part`).
 | 2 Sahara | Oasis with palms and reeds, pyramids with gold capstones and a sphinx, Cleopatra's temple (pylon gate with a winged sun disk, lotus columns, painted friezes, obelisks, fire braziers, guardian sphinxes, her statue), the Pet Aura Machine (spinning rings, glowing pipes, hopper, output pad, console with a screen), a camel, pottery, Western Wall-style walls with raised stone faces | Saguaro, barrel and prickly pear cactuses (120M HP, 600 coins) | 25K |
 | 3 Frozen Peaks | Snow with ice patches, a frozen sea (cracks, fishing holes, pressure ridges, floes, icebergs, penguins), a snow-brick igloo, a snowman and a sled, an ice arch with icicles, ice walls, crystal clusters, snow-laden pines, snowy rocks, snowfall | Ice cubes: clear, with a fish, with a gem, stacked (30B HP, 40K coins) | 12M |
 | 4 Sakura Jungle | Twisted and weeping cherry trees with falling petals, red maples, bamboo, ferns, hydrangeas and azaleas, stepping-stone path, torii gates, stone lanterns, koi pond with a red arched bridge and a bamboo spout, a five-tier pagoda, Japanese walls with tile roofs and round windows | Sushi with happy faces: salmon, tuna, egg, maki (12T HP, 3M coins) | 130B |
+| 5 Lava Arena (boss world) | A round stone arena on warm volcanic rock: sandy fighting floor, ring wall with three rows of stands, torches, orange banners, an entrance arch with a "BOSS ARENA" sign, a shady AFK spot with benches, little lava pools, smoking volcanoes beyond the walls, drifting embers | One giant boss, the **Magma Titan** (friendly rock giant with lava cracks; slow heavy stomps; 1Qn HP, 1B coins, 15K EXP); back in the middle 6 s after it's beaten. Pets go for it from anywhere in the area, so it's the AFK world. A boss bar under the level shows its health and your coins a second | 40T |
 
 The Pet Aura Machine turns its rings slowly with sparkles and an orb in
 the colour of the rarest aura; walk up and press the prompt to open it.
@@ -313,6 +314,8 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 **Roll button:** an orange studded tile with a white 3D die and a chunky "ROLL" caption; AUTO sits to its left.
 
 **Boost zones:** every 5 minutes a big see-through circle with a faint column of light appears in a world where a player is, for 2 minutes. Its sign says what it gives and the time left: "x5 LUCK" (green) or "x3 COINS" (gold), a random x2/x3/x5/x10 (x2 most often, x10 rarely). Stand in it and your luck or coins are multiplied; step out (or let it run out) and they're back to normal. Tuned in `Config.BOOST_ZONE` (`server/BoostZones.luau`).
+
+**Coins while fighting:** every hit pays its share of half the enemy's coins (by the damage it did; a small gold "+123" rises off the enemy), and the kill pays the other half and the EXP. An enemy pays the same in total as before (`Config.FIGHT_PAY`).
 
 **Gates:** each gate into the next area is a wall of coloured glass with white rails, and on both sides a gold lock, the area's name and its price (a coin and the number) in big chunky letters. The writing goes away when the gate opens. The camera can zoom out at most `Config.MAX_ZOOM` studs (45), and the place template's Baseplate is removed when the server starts.
 
@@ -345,6 +348,8 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/server/Rolling.luau` | Rolls (pet + size), equipping, Equip Best |
 | `src/server/Upgrades.luau` | Buying upgrade levels and Luck Board rows |
 | `src/server/Progress.luau` | Area gates and rebirths |
+| `src/server/World/Arena.luau` | World 5, the Lava Arena (boss world) |
+| `src/client/BossBar.luau` | The boss's health bar and coins a second in the boss world |
 | `src/server/BoostZones.luau` | Boost zones: random Luck / Coins circles every 5 minutes |
 | `src/server/Aura.luau` | The Pet Aura Machine (3 pets → 1 with a random aura) |
 | `src/server/Leaderboards.luau` | The 4 global leaderboards (OrderedDataStores) |
