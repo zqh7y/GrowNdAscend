@@ -46,6 +46,22 @@ local gui = Ui.new("ScreenGui", {
 	Enabled = false,
 	Parent = player:WaitForChild("PlayerGui"),
 })
+pcall(function()
+	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets -- (clear of a phone's notch)
+end)
+-- everything shrinks to fit the screen (the photos need ~1300 x 760 units;
+-- a phone in landscape is much smaller)
+local fitScale = Ui.new("UIScale", { Parent = gui })
+Travel.FitScale = fitScale
+function Travel.fitFor(size)
+	return math.min(1, size.X / 1300, size.Y / 760)
+end
+local function fit()
+	fitScale.Scale = Travel.fitFor(workspace.CurrentCamera.ViewportSize)
+end
+fit()
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
+
 -- the dim: dark, but the game still shows through; tapping it closes
 local dim = Ui.new("TextButton", {
 	Name = "Dim",

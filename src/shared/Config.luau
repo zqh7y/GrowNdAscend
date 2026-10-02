@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 58 (phone layout: card top left, ROLL above jump)"
+Config.BUILD = "build 59 (phone: smaller card under the top bar, teleport fits)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45

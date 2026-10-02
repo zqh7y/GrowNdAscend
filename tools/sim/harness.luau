@@ -2494,12 +2494,18 @@ if ok then
 			local scale = Screen.scaleFor(phone, true)
 			local fit = Screen.fitScale(900, 600, phone, scale)
 			local tall = phone.Y / scale -- the screen's height in UI units
-			local cardBottom = 60 + 112
-			local navTop, navBottom = cardBottom + 12, cardBottom + 12 + 3 * 76 + 2 * 4
+			local cardBottom = Hud.TOUCH_CARD_TOP + math.ceil(112 * Hud.TOUCH_CARD_SCALE)
+			local navTop, navBottom = cardBottom + 10, cardBottom + 10 + 3 * 76 + 2 * 4
+			-- (Roblox's top bar on a phone is ~58pt tall: the card starts below it)
+			local underTopBar = Hud.TOUCH_CARD_TOP * scale >= 60
+			-- the teleport screen fits too
+			local Travel = __cache["Client/Travel"]
+			local tf = Travel.fitFor(phone)
+			local travelOk = 1300 * tf <= phone.X + 0.5 and 760 * tf <= phone.Y + 0.5
 			local fitsOk = scale >= 0.7 and 900 * fit * scale <= phone.X and 600 * fit * scale <= phone.Y
 			local stackOk = navTop > cardBottom and navBottom < tall - 60
-			phoneOk = phoneOk and fitsOk and stackOk
-			print(string.format("  iPhone 844x390: UI scale %.2f (text 12 -> %.1fpt), panels x%.2f (%dx%d pt), card 60-%d, menu %d-%d of %d", scale, 12 * scale, fit, 900 * fit * scale, 600 * fit * scale, cardBottom, navTop, navBottom, tall))
+			phoneOk = phoneOk and fitsOk and stackOk and underTopBar and travelOk
+			print(string.format("  iPhone 844x390: UI scale %.2f (text 12 -> %.1fpt), panels x%.2f (%dx%d pt), card %d-%d (x%.2f), menu %d-%d of %d, teleport x%.2f", scale, 12 * scale, fit, 900 * fit * scale, 600 * fit * scale, Hud.TOUCH_CARD_TOP, cardBottom, Hud.TOUCH_CARD_SCALE, navTop, navBottom, tall, tf))
 			item(128, "player card bottom left; phone layout (iPhone)", pcOk and phoneOk and backOk
 				and level ~= nil and team ~= nil and level.LayoutOrder < team.LayoutOrder,
 				string.format("PC: bottom left, level on top of YOUR TEAM %s; iPhone: bigger readable UI, panels and reveals shrink to fit, card and menu top left, ROLL/AUTO above the jump button %s", tostring(pcOk), tostring(phoneOk)))
