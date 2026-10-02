@@ -1,6 +1,6 @@
 -- Client entry point: loads every screen and effect, and turns the server's
 -- fight messages into visuals (pets lunging, coins flashing, damage numbers,
--- coins flying into the counter).
+-- coins bursting out of enemies).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,6 +11,7 @@ local Screen = require(script.Screen)
 local Effects = require(script.Effects)
 local Living = require(script.Living)
 local Pets = require(script.Pets)
+local CoinDrops = require(script.CoinDrops)
 require(script.Motion)
 require(script.Ambient) -- birds, critters, butterflies, weather, swaying plants, visitors
 require(script.Hud) -- also loads Roll, Inventory, Index, the Upgrade Board and Panels
@@ -41,9 +42,16 @@ State.remote("PetHits").OnClientEvent:Connect(function(targetId, hits)
 	Effects.play("Hit", 0.9 + math.random() * 0.3, 0.08)
 end)
 
--- coins paid while fighting: a small gold number by the enemy
+-- coins paid while fighting: a small gold number by the enemy, and a
+-- couple of coins popping out of it (CoinDrops: they land around it and
+-- come to you when you walk near, or after 10 seconds)
+local lastHitDrop = 0
 State.remote("FightCoins").OnClientEvent:Connect(function(position, coins)
 	Effects.fightCoins(position, coins)
+	if os.clock() - lastHitDrop >= 0.3 then
+		lastHitDrop = os.clock()
+		CoinDrops.drop(position, math.random(1, 2))
+	end
 end)
 
 -- a break: coins pop out and fly into the counter
@@ -55,6 +63,8 @@ State.remote("CoinPop").OnClientEvent:Connect(function(position, coins, area)
 		Effects.burst(position + Vector3.new(0, 9, 0), Color3.fromRGB(255, 255, 255))
 	end
 	Effects.coins(position, coins)
+	-- and a shower of coins out of it
+	CoinDrops.drop(position, if Config.AREAS[area].Boss then 24 else 8)
 end)
 
 State.remote("Notify").OnClientEvent:Connect(Screen.toast)

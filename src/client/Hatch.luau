@@ -224,7 +224,9 @@ end
 local EASE_OUT = TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 -- the luck boost's tile: a green rounded square with a clover and "×2"
-local function boostTile(parent, size)
+local function boostTile(parent, size, multiplier)
+	multiplier = multiplier or Config.BOOST.Multiplier
+	local tint = Config.boostColor(multiplier)
 	local tile = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -234,8 +236,9 @@ local function boostTile(parent, size)
 		Parent = parent,
 	}, {
 		Ui.corner(math.floor(size * 0.28)),
-		Ui.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(120, 226, 150), Color3.fromRGB(36, 168, 100)) }),
+		Ui.new("UIGradient", { Name = "Tint", Rotation = 90, Color = ColorSequence.new(tint:Lerp(Ui.WHITE, 0.35), tint:Lerp(Color3.new(0, 0, 0), 0.15)) }),
 	})
+	tile:SetAttribute("Multiplier", multiplier)
 	Ui.icon("clover", math.floor(size * 0.42), Ui.WHITE, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, math.floor(size * 0.1)), ZIndex = 56, Parent = tile })
 	Ui.new("TextLabel", {
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -245,7 +248,7 @@ local function boostTile(parent, size)
 		TextScaled = false,
 		TextSize = math.floor(size * 0.3),
 		TextColor3 = Ui.WHITE,
-		Text = "×" .. Config.BOOST.Multiplier,
+		Text = "×" .. multiplier,
 		ZIndex = 56,
 		Parent = tile,
 	})
@@ -253,7 +256,7 @@ local function boostTile(parent, size)
 end
 
 -- One card on the reel
-local function reelItem(parent, name, look, silhouette, ctx)
+local function reelItem(parent, name, look, silhouette, ctx, boostTotal)
 	local boost = name == BOOST
 	local item = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -291,14 +294,14 @@ local function reelItem(parent, name, look, silhouette, ctx)
 	})
 	local view
 	if boost then
-		view = boostTile(icon, look.Art - 6)
+		view = boostTile(icon, look.Art - 6, boostTotal)
 	else
 		view = PetView.take(name, silhouette)
 		view.Size = UDim2.fromScale(1, 1)
 		view.ZIndex = 55
 		view.Parent = icon
 	end
-	local text = chanceText(name, ctx)
+	local text = if boost and boostTotal then "x" .. boostTotal else chanceText(name, ctx)
 	local chip = Ui.new("TextLabel", {
 		Name = "Chance",
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -309,7 +312,7 @@ local function reelItem(parent, name, look, silhouette, ctx)
 		TextScaled = false,
 		TextWrapped = false,
 		TextSize = look.Text,
-		TextColor3 = if boost then Color3.fromRGB(30, 140, 80) else Ui.INK,
+		TextColor3 = if boost then Config.boostColor(boostTotal or Config.BOOST.Multiplier):Lerp(Color3.new(0, 0, 0), 0.25) else Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = text,
 		ZIndex = 56,
@@ -476,7 +479,7 @@ local function spin(results, best, fast, full)
 	local items = {}
 	for i = 1, COUNT do
 		local silhouette = full and i == LANDING and not isBoost(best)
-		items[i] = reelItem(spinRow, if i == LANDING then resultName else names[i], look, silhouette, ctx)
+		items[i] = reelItem(spinRow, if i == LANDING then resultName else names[i], look, silhouette, ctx, if i == LANDING and isBoost(best) then best.NextMultiplier else nil)
 		items[i].Flex = flexAt[i]
 	end
 	-- (the size only changes when compact/full is switched, never mid-spin)
@@ -574,8 +577,9 @@ local function spin(results, best, fast, full)
 		notch.BackgroundColor3 = accent
 	end
 	local extra = #results - 1
-	spinName.Text = if full and not isBoost(best) then "" else resultName .. (if extra > 0 then "  +" .. extra else "")
-	spinName.TextColor3 = if isBoost(best) then Color3.fromRGB(150, 240, 170) elseif best.Size > 1 then Config.SIZES[best.Size].Color else Ui.WHITE
+	local boostTotal = if isBoost(best) then (best.NextMultiplier or Config.BOOST.Multiplier) else nil
+	spinName.Text = if full and not isBoost(best) then "" elseif boostTotal then "x" .. boostTotal .. " LUCK" .. (if extra > 0 then "  +" .. extra else "") else resultName .. (if extra > 0 then "  +" .. extra else "")
+	spinName.TextColor3 = if boostTotal then Config.boostColor(boostTotal):Lerp(Ui.WHITE, 0.3) elseif best.Size > 1 then Config.SIZES[best.Size].Color else Ui.WHITE
 	spinNameScale.Scale = 0.85
 	TweenService:Create(spinNameScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	-- the boost waiting for the next roll ("none" if this roll used it up)
@@ -662,18 +666,19 @@ end
 
 -- FULL ------------------------------------------------------------------------------------------
 
-local shade = Ui.new("TextButton", {
+-- (a plain Frame that doesn't take clicks: while a pet is revealed you can
+-- still close screens, press buttons and move; a roll still can't be skipped)
+local shade = Ui.new("Frame", {
+	Name = "Shade",
 	Size = UDim2.fromScale(1, 1),
 	BackgroundColor3 = Color3.fromRGB(14, 18, 34),
 	BackgroundTransparency = 1,
-	AutoButtonColor = false,
-	Text = "",
+	Active = false,
 	Visible = false,
 	ZIndex = 50,
 	Parent = gui,
 })
 Hatch.Shade = shade -- (for the simulator)
--- (clicking it does nothing: a roll can't be skipped)
 local stage = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.48),
@@ -1571,8 +1576,10 @@ Hatch.HOLD = 1.8 -- seconds the roll stays on the pet you got (landing + ~1s) be
 -- scroll top to bottom: the new one slides in from above while the old one
 -- drops out below. When it lands (`landed` true) the pet you got comes
 -- down past the middle, comes back up to the middle and zooms to 150%.
-local function setSlot(slot, name, oddsText, landed, step)
-	local color = if name == BOOST then Ui.SUCCESS else Config.rarity(Config.PETS_BY_NAME[(Config.petInfo(name)).Name].Odds).Color
+local function setSlot(slot, name, oddsText, landed, step, boostTotal)
+	-- (a boost that lands shows the total it makes: x2 on top of x2 is x4)
+	local boostShown = if landed and boostTotal and boostTotal > 1 then boostTotal else Config.BOOST.Multiplier
+	local color = if name == BOOST then Config.boostColor(boostShown) else Config.rarity(Config.PETS_BY_NAME[(Config.petInfo(name)).Name].Odds).Color
 	if slot.Shows ~= name or landed then
 		local reduced = Ui.reduced()
 		local time = math.min(step or 0.14, 0.16)
@@ -1594,7 +1601,7 @@ local function setSlot(slot, name, oddsText, landed, step)
 		-- the new one comes in from above
 		local view
 		if name == BOOST then
-			view = boostTile(slot.View, 100)
+			view = boostTile(slot.View, 100, boostShown)
 			view.ZIndex = 21
 		else
 			view = PetView.take(name)
@@ -1660,7 +1667,7 @@ end
 -- the odds shown for a result: how rare it really is
 local function oddsTextFor(result, name)
 	if name == BOOST then
-		return "x" .. Config.BOOST.Multiplier
+		return "x" .. ((result and result.NextMultiplier) or Config.BOOST.Multiplier)
 	end
 	return Config.shortOdds(Config.oddsOf(name)) -- (its real rarity, see chanceText)
 end
@@ -1775,7 +1782,7 @@ local function cycle(results, best, fast)
 	-- every slot lands on its real result
 	local landedText = nil
 	for _, slot in ipairs(slots) do
-		setSlot(slot, slot.Final, oddsTextFor(slot.Result, slot.Final), true)
+		setSlot(slot, slot.Final, oddsTextFor(slot.Result, slot.Final), true, nil, slot.Result and slot.Result.NextMultiplier)
 		if slot.Result == best then
 			landedText = slot.Odds.Text
 		end

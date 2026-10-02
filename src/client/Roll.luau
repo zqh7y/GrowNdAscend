@@ -207,10 +207,11 @@ local function refreshLuck()
 end
 
 -- Boost badge ---------------------------------------------------------------------------------
--- A small clover badge next to the Roll button: "×8". Green and filled when
--- the roll in progress is using the boost (active), white with a gold edge
--- when it's saved for your next roll (waiting), hidden when there's none.
--- It pops when the boost grows and shrinks away when it's used up.
+-- A small clover badge right next to the luck chip at the top: "×8", in the
+-- boost's own colour (Config.boostColor: x2 gold, x4 green, x8 cyan ...).
+-- Filled when the roll in progress is using the boost (active), white with
+-- a coloured edge when it's saved for your next roll (waiting), hidden when
+-- there's none. It pops when the boost grows and shrinks away when used up.
 
 local badge = Ui.new("Frame", {
 	Name = "BoostBadge",
@@ -271,10 +272,13 @@ local function setBadge(state, multiplier)
 	end
 	badgeText.Text = "×" .. multiplier
 	local active = state == "active"
-	badge.BackgroundColor3 = if active then Ui.SUCCESS else Ui.WHITE
-	badgeEdge.Color = if active then Color3.fromRGB(36, 168, 100) else Ui.GOLD
-	badgeText.TextColor3 = if active then Ui.WHITE else Color3.fromRGB(200, 140, 20)
-	paintIcon(if active then Ui.WHITE else Ui.GOLD)
+	local tint = Config.boostColor(multiplier)
+	local deep = tint:Lerp(Color3.new(0, 0, 0), 0.25)
+	badge.BackgroundColor3 = if active then tint else Ui.WHITE
+	badgeEdge.Color = deep
+	badgeText.TextColor3 = if active then Ui.WHITE else deep
+	paintIcon(if active then Ui.WHITE else tint)
+	badge:SetAttribute("Tint", tint)
 	if not badge.Visible then
 		badge.Visible = true
 		badgeScale.Scale = 0.6

@@ -460,6 +460,49 @@ if ok then
 		try("aura machine open", function()
 			remotes.AuraOpen:FireClient(player)
 		end)
+		try("coin drops", function()
+			-- coins burst out, land, come to you when near or after 10 s, never pile up
+			-- (only the coins this test throws are checked: pets may be fighting nearby)
+			local CD = C("CoinDrops")
+			local function frames(n) -- (the mock doesn't fire Heartbeat: step the coins too)
+				for _ = 1, n do
+					STEP(1 / 60)
+					CD.step()
+				end
+			end
+			local function count(list, state)
+				local n = 0
+				for _, coin in ipairs(list) do
+					if coin.State == state then n += 1 end
+				end
+				return n
+			end
+			local cd = {}
+			local hrp = player.Character.HumanoidRootPart
+			local far = hrp.Position + Vector3.new(60, 0, 0)
+			local mine = CD.drop(far, 6)
+			frames(45) -- ~0.75 s: landed
+			cd.Landed = count(mine, "rest") == 6
+			frames(60 * 5)
+			cd.StillThere = count(mine, "rest") == 6 -- 5 s later, far away: still on the ground
+			frames(60 * 6)
+			cd.AutoCollected = count(mine, "collected") == 6
+			local near = CD.drop(hrp.Position, 4)
+			frames(60)
+			cd.Magnet = count(near, "collected") == 4
+			CD.drop(far, 200)
+			frames(45)
+			local rest = 0
+			for _, coin in ipairs(CD.Live) do
+				if coin.State ~= "gather" then rest += 1 end
+			end
+			cd.Capped = rest <= CD.MAX
+			local before = table.clone(CD.Live)
+			CD.collectAll()
+			frames(30)
+			cd.Cleared = count(before, "collected") == #before
+			STATS.CoinDrops = cd
+		end)
 		try("fuse machine", function()
 			-- server: 100 Normal -> Huge, 20 Huge -> Titanic, nothing else
 			local Fuse = __cache["Fuse"]
@@ -1199,7 +1242,7 @@ if ok then
 		local co = task.spawn(Hatch.play, { { Pet = "Glitch", Size = 3 } }, false, 1)
 		for _ = 1, 2000 do
 			if coroutine.status(co) == "dead" then break end
-			Hatch.Shade.Activated:Fire()
+			C("Screen").close(C("Inventory").Detail.Parent.Parent.Parent)
 			task.spawn(C("Roll").roll)
 			frames(1)
 		end
@@ -1237,6 +1280,10 @@ if ok then
 			end
 			data.Equipped = savedServer
 			if st.Data then st.Data.Equipped = saved end
+			Hatch.LastCutscene = lionCutscene
+			-- a x2 boost landing on a saved x2 shows the total, x4, in the x4 colour
+			try("hatch stacked boost", Hatch.play, { { Kind = "Boost", Multiplier = 2, NextMultiplier = 4 } }, true, 1, "compact", false)
+			hatchReport.StackedBoost = (Hatch.LastFeed or {}).ResultChance
 			Hatch.LastCutscene = lionCutscene
 		end
 		hatchReport.SkipCutscene = Hatch.LastCutscene and table.clone(Hatch.LastCutscene)
@@ -1467,6 +1514,7 @@ if ok then
 		PlayerData.sync(player)
 		frames(2)
 		local waitingState = Roll.BadgeState
+		polish.TintOk = Roll.BoostBadge:GetAttribute("Tint") == Cfg.boostColor(8) and Cfg.boostColor(8) ~= Cfg.boostColor(2) and Cfg.boostColor(4) ~= Cfg.boostColor(2)
 		data.LuckChain = 1
 		PlayerData.sync(player)
 		frames(20)
@@ -1476,7 +1524,7 @@ if ok then
 				sentences += 1
 			end
 		end
-		polish.Badge = { Waiting = waitingState, After = Roll.BadgeState, InControls = Roll.BoostBadge.Parent == player.PlayerGui.ControlsGui, Sentences = sentences }
+		polish.Badge = { TintOk = polish.TintOk, Waiting = waitingState, After = Roll.BadgeState, InControls = Roll.BoostBadge.Parent == Roll.LuckPill.Parent and Roll.BoostBadge.LayoutOrder > Roll.LuckPill.LayoutOrder, Sentences = sentences }
 		-- the upgrade board: every upgrade (all of them) shows its price or state,
 		-- and the four states read right
 		local Board = C("UpgradeBoard")
@@ -2411,6 +2459,15 @@ if ok then
 				and arts.Body and arts.Book and arts.Head and arts.Ring and arts.Band and arts.Wheel,
 				string.format("%d sticker buttons, %d with nothing behind, %d chunky outlined captions; ROLL is a dice %s; AUTO goes green %s (was %s)", stickers, plain, captions, tostring(dice), tostring(turnedOn), tostring(before)))
 		end
+		do
+		local cdr = STATS.CoinDrops or {}
+		item(124, "coins burst out of enemies, collected when near or after 10 s", cdr.Landed == true and cdr.StillThere == true and cdr.AutoCollected == true and cdr.Magnet == true and cdr.Capped == true and cdr.Cleared == true,
+			string.format("landed %s, still there after 5 s %s, came to you after 10 s %s, magnet %s, at most %d on the ground %s",
+				tostring(cdr.Landed), tostring(cdr.StillThere), tostring(cdr.AutoCollected), tostring(cdr.Magnet), 80, tostring(cdr.Capped)))
+		local shade = __cache["Client/Hatch"].Shade
+		item(125, "a pet reveal never blocks clicks (screens can still be closed)", not shade:IsA("GuiButton") and shade.Active == false,
+			"the dark layer behind a reveal is a " .. shade.ClassName .. " that lets clicks through")
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,
@@ -2586,8 +2643,8 @@ if ok then
 		item(80, "luck pill: exact next-roll luck, by the coins", lp.Ok == true and lp.InCoinPill == true,
 			string.format("x%s -> x%s after equipping a Glitch (Config.luck says x%s), in the coin pill", tostring(lp.Before), tostring(lp.After), tostring(lp.Expected)))
 		local b = p.Badge or {}
-		item(81, "boost badge by the Roll button, no sentences", b.Waiting == "waiting" and b.After == "none" and b.InControls == true and b.Sentences == 0,
-			string.format("x8 saved -> '%s', used up -> '%s'; %d 'NEXT ROLL' texts on screen", tostring(b.Waiting), tostring(b.After), b.Sentences or -1))
+		item(81, "boost badge next to the luck chip, no sentences", b.TintOk == true and (STATS.Hatch or {}).StackedBoost == "x4" and b.Waiting == "waiting" and b.After == "none" and b.InControls == true and b.Sentences == 0,
+			string.format("x2 on a saved x2 shows %s; x8 saved -> '%s', used up -> '%s'; %d 'NEXT ROLL' texts on screen", tostring((STATS.Hatch or {}).StackedBoost), tostring(b.Waiting), tostring(b.After), b.Sentences or -1))
 		local t = p.Tree or {}
 		item(82, "upgrade board: every upgrade, prices and states", t.OnBoard == t.Count and t.WithPrice == t.Count and t.Maxed == "maxed" and t.Affordable == "affordable" and t.Available == "available" and t.Locked == "locked",
 			string.format("%d/%d upgrades on the board (all %d upgrades + %d Luck Board rows), each with a price/state; Coins %s, Luck %s then %s, Rolls %s", t.WithPrice or 0, t.Count or 0, #Config.UPGRADES, #Config.LUCK_BOARD, tostring(t.Maxed), tostring(t.Affordable), tostring(t.Available), tostring(t.Locked)))

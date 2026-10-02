@@ -266,6 +266,19 @@ ColorSequenceKeypoint = valueType("ColorSequenceKeypoint")
 NumberSequence = valueType("NumberSequence")
 NumberSequenceKeypoint = valueType("NumberSequenceKeypoint")
 ColorSequence = valueType("ColorSequence")
+do
+	-- (like Roblox: .Keypoints, from one colour, two colours or a list of keypoints)
+	local plain = ColorSequence.new
+	ColorSequence.new = function(a, b, ...)
+		local seq = plain(a, b, ...)
+		if type(a) == "table" and a[1] ~= nil then
+			seq.Keypoints = a
+		else
+			seq.Keypoints = { { Time = 0, Value = a }, { Time = 1, Value = b or a } }
+		end
+		return seq
+	end
+end
 NumberRange = valueType("NumberRange")
 TweenInfo = valueType("TweenInfo")
 RaycastParams = {}

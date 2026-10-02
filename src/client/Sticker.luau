@@ -1,5 +1,6 @@
 -- Sticker buttons (the user's reference style): no tile behind them, just a
--- big glossy cartoon icon with a dark outline and a white shine, and a
+-- big glossy 3D cartoon icon (a darker copy under it is its thick edge, a
+-- soft shadow on the ground) with a dark outline and a white shine, and a
 -- chunky white caption with a thick dark outline sitting over the icon's
 -- bottom edge. Hovering grows the icon a little and tilts it; pressing
 -- squashes it.
@@ -244,6 +245,31 @@ function Sticker.setAuto(button, on)
 	button:SetAttribute("On", on)
 end
 
+-- Turns a drawn icon into its own darker bottom edge: every colour (or the
+-- end colour of its gradient) gets much darker, shines go, outlines stay
+function Sticker.darken(root)
+	for _, d in ipairs(root:GetDescendants()) do
+		if d.Name == "Shine" then
+			d:Destroy()
+		end
+	end
+	for _, d in ipairs(root:GetDescendants()) do
+		if d:IsA("GuiObject") then
+			local color = d.BackgroundColor3
+			local gradient = d:FindFirstChildOfClass("UIGradient")
+			if gradient then
+				local keys = gradient.Color.Keypoints
+				color = keys[#keys].Value
+				gradient:Destroy()
+			end
+			if color then -- (frames that only hold other pieces have none worth darkening)
+				d.BackgroundColor3 = color:Lerp(INK, 0.45)
+			end
+			d.ZIndex = math.max(1, (d.ZIndex or 3) - 1)
+		end
+	end
+end
+
 -- The button --------------------------------------------------------------------------------------
 
 function Sticker.button(props, onClick)
@@ -258,6 +284,8 @@ function Sticker.button(props, onClick)
 	})
 	local button = Ui.new("TextButton", {
 		Name = "Button",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
 		Size = UDim2.fromOffset(size, size),
 		BackgroundTransparency = 1,
 		AutoButtonColor = false,
@@ -276,7 +304,44 @@ function Sticker.button(props, onClick)
 	})
 	local draw = Sticker.art[props.Art or "dice"]
 	if draw then
-		draw(art)
+		-- the 3D look: a soft shadow on the ground, then the same icon in
+		-- darker colours a little lower (its thick bottom edge), then the icon
+		Ui.new("Frame", {
+			Name = "Shadow",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.94),
+			Size = UDim2.fromScale(0.78, 0.16),
+			BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundTransparency = 0.72,
+			ZIndex = 2,
+			Parent = art,
+		}, { Ui.corner(0.5) })
+		local depth = Ui.new("Frame", {
+			Name = "Depth",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, math.max(3, math.floor(size * 0.07))),
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+			Parent = art,
+		})
+		draw(depth)
+		Sticker.darken(depth)
+		local face = Ui.new("Frame", {
+			Name = "Face",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			ZIndex = 3,
+			Parent = art,
+		})
+		draw(face)
+		-- (callers look for the icon's pieces right under Art)
+		for _, child in ipairs(face:GetChildren()) do
+			child.Parent = art
+		end
+		face:Destroy()
 	end
 	local caption = Ui.new("TextLabel", {
 		Name = "Caption",

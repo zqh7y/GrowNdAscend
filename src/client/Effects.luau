@@ -165,44 +165,16 @@ function Effects.flash(color, seconds)
 	end)
 end
 
--- Coins flying into the counter ---------------------------------------------------------
+-- Coins ---------------------------------------------------------------------------------------
 
 Effects.CoinTarget = nil -- the HUD's coin icon (set by the HUD)
-Effects.CoinLanded = Instance.new("BindableEvent") -- fires as each flying coin arrives
+Effects.CoinLanded = Instance.new("BindableEvent") -- fires as each dropped coin reaches you
 
+-- A broken enemy's "+123" (the coins themselves burst out of it and land
+-- on the ground: CoinDrops.luau)
 function Effects.coins(position, amount)
 	worldLabel(position, "+" .. Config.formatNumber(amount), Ui.GOLD, 28, 5, 1.1)
 	Effects.play("Coin", 1 + math.random() * 0.15, 0.05)
-
-	local camera = Workspace.CurrentCamera
-	local screenPos, onScreen = camera:WorldToViewportPoint(position)
-	local target = Effects.CoinTarget
-	if not onScreen or not target then
-		return
-	end
-	local scale = Screen.Gui:FindFirstChildOfClass("UIScale").Scale
-	local goal = target.AbsolutePosition + target.AbsoluteSize / 2
-	for k = 1, math.min(3 + math.floor(math.log10(amount + 1)), 7) do
-		local coin = Ui.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromOffset(screenPos.X / scale + math.random(-30, 30), screenPos.Y / scale + math.random(-30, 30)),
-			Size = UDim2.fromOffset(18, 18),
-			BackgroundColor3 = Ui.GOLD,
-			ZIndex = 50,
-			Parent = Screen.Gui,
-		}, { Ui.corner(0.5), Ui.stroke(Color3.fromRGB(255, 240, 180), 2) })
-		local fly = TweenService:Create(coin, TweenInfo.new(0.55 + k * 0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-			Position = UDim2.fromOffset(goal.X / scale, goal.Y / scale),
-			Size = UDim2.fromOffset(12, 12),
-		})
-		fly.Completed:Connect(function()
-			coin:Destroy()
-			Effects.CoinLanded:Fire()
-		end)
-		task.delay(k * 0.03, function()
-			fly:Play()
-		end)
-	end
 end
 
 -- Confetti for big moments ---------------------------------------------------------------

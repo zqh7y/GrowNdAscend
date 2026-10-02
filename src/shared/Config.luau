@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 52 (sticker-style buttons)"
+Config.BUILD = "build 53 (3D buttons in 2 columns, luck boost by the luck chip, coins burst out of enemies)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -431,6 +431,25 @@ Config.BIG_ROLL = 1000 -- rolls this rare (1 in 1000+), or any big size, get the
 -- in the spin and the luck chip all use the same value.
 Config.BOOST_CHANCE = 1 / 12
 Config.BOOST = { Name = "x2 LUCK", Multiplier = 2 }
+-- the colour of a luck boost by how big it is (x2 gold, x4 green, x8 cyan,
+-- x16 purple, x32 pink, x64 and up orange-red): the roll's boost tile and
+-- the badge by the luck chip use it, so a stacked x4 looks different from x2
+Config.BOOST_COLORS = {
+	{ 2, Color3.fromRGB(255, 196, 40) },
+	{ 4, Color3.fromRGB(60, 205, 105) },
+	{ 8, Color3.fromRGB(50, 190, 255) },
+	{ 16, Color3.fromRGB(165, 105, 255) },
+	{ 32, Color3.fromRGB(255, 95, 175) },
+	{ math.huge, Color3.fromRGB(255, 100, 50) },
+}
+function Config.boostColor(multiplier)
+	for _, entry in ipairs(Config.BOOST_COLORS) do
+		if (multiplier or 2) <= entry[1] then
+			return entry[2]
+		end
+	end
+	return Config.BOOST_COLORS[#Config.BOOST_COLORS][2]
+end
 Config.CHAIN_CHANCE = Config.BOOST_CHANCE
 Config.CHAIN_MAX = 1024
 -- Total luck never goes above this, so no pet is ever certain (the rarest

@@ -327,20 +327,23 @@ end
 local nav = Ui.new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 16, 0.5, 20),
-	Size = UDim2.fromOffset(72, 0),
+	Size = UDim2.fromOffset(2 * 70 + 6, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundTransparency = 1,
 	Parent = gui,
 }, {
-	Ui.new("UIListLayout", {
-		FillDirection = Enum.FillDirection.Vertical,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 6),
+	-- two columns: Inventory | Index, Upgrades | Teleport, Rebirth | Settings
+	Ui.new("UIGridLayout", {
+		CellSize = UDim2.fromOffset(70, 76),
+		CellPadding = UDim2.fromOffset(6, 4),
+		FillDirection = Enum.FillDirection.Horizontal,
+		FillDirectionMaxCells = 2,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
 
--- sticker buttons (Sticker.luau): a big cartoon icon, its name under it
+-- sticker buttons (Sticker.luau): a big 3D cartoon icon, its name under it
 local function button(parent, order, art, label, onClick)
 	local holder, b = Sticker.button({
 		LayoutOrder = order,
@@ -402,11 +405,11 @@ controls.Parent = Screen.Controls
 -- the ROLL and AUTO buttons, side by side (Roll.luau)
 Roll.buildControls(controls)
 
--- the luck boost badge sits on top of the control column (clear of the
--- reel at any screen size: the column is always right of it)
-Roll.BoostBadge.AnchorPoint = Vector2.new(0.5, 1)
-Roll.BoostBadge.Position = UDim2.new(1, -18 - Roll.DOCK_SIZE.X / 2, 1, -16 - Roll.DOCK_SIZE.Y - 12)
-Roll.BoostBadge.Parent = Screen.Controls
+-- the luck boost badge sits right next to the luck chip at the top (the
+-- coin pill lines them up)
+Roll.BoostBadge.AnchorPoint = Vector2.new(0, 0)
+Roll.BoostBadge.LayoutOrder = 4
+Roll.BoostBadge.Parent = coinPill
 
 -- World banner ----------------------------------------------------------------------------------
 -- Walking into another world slides a small banner down under the HUD
