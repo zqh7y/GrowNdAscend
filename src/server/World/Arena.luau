@@ -198,7 +198,13 @@ function Arena.build(ctx)
 		if p then
 			local r = rng:NextNumber(2.5, 3.5)
 			terrain:FillCylinder(CFrame.new(p.X, -1, p.Z), 2, r, Enum.Material.CrackedLava)
-			table.insert(ctx.World.FloorHoles, { p.X, p.Z, r })
+			-- a glowing lava puddle painted on top (the cartoon floor covers the terrain)
+			local pool = ctx.World.paintPath(deco, "LavaPool", { p }, r * 2, Color3.fromRGB(255, 120, 40), Color3.fromRGB(150, 50, 30))
+			for _, part in ipairs(pool:GetChildren()) do
+				if part.Color == Color3.fromRGB(255, 120, 40) then
+					part.Material = Enum.Material.Neon
+				end
+			end
 		end
 	end
 	for _ = 1, 6 do

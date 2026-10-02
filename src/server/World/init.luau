@@ -1060,10 +1060,7 @@ if World.CARTOON_FLOOR then
 	-- comes out at about Y 2.0 in the real game, not Config.GROUND_Y (1.6),
 	-- and would cover tiles laid at 1.65 (measured now that the ground is final;
 	-- if a ray finds nothing, Config.GROUND_Y)
-	local function flatTop(cx, cz, reach)
-		if not open(cx, cz, reach * 1.5 + 0.5) then
-			return nil
-		end
+	local function heightAt(cx, cz, reach)
 		local top = Config.TERRAIN_TOP
 		for _, o in ipairs({ { 0, 0 }, { reach, reach }, { -reach, reach }, { reach, -reach }, { -reach, -reach } }) do
 			local y = World.groundAt(cx + o[1], cz + o[2])
@@ -1072,6 +1069,12 @@ if World.CARTOON_FLOOR then
 			end
 		end
 		return top + 0.05
+	end
+	local function flatTop(cx, cz, reach)
+		if not open(cx, cz, reach * 1.5 + 0.5) then
+			return nil
+		end
+		return heightAt(cx, cz, reach)
 	end
 	-- Roblox's tall grass blades grow on Grass terrain and would poke through
 	-- the tiles (a script can't turn Terrain.Decoration off), so the grass
@@ -1104,8 +1107,8 @@ if World.CARTOON_FLOOR then
 	-- terrain right away): any tile the ground still pokes over goes up
 	function World.settleFloor()
 		for _, t in ipairs(World.FloorTileList) do
-			local top = flatTop(t.X, t.Z, 2)
-			if top and top > t.Tile.Position.Y + 0.5 + 0.001 then
+			local top = heightAt(t.X, t.Z, t.Reach)
+			if top > t.Tile.Position.Y + 0.5 + 0.001 then
 				t.Tile.CFrame = CFrame.new(t.X, top - 0.5, t.Z)
 			end
 		end
@@ -1121,18 +1124,32 @@ if World.CARTOON_FLOOR then
 		for ix = 0, LENGTH / TILE - 1 do
 			for iz = 0, (HALF * 2) / TILE - 1 do
 				local cx, cz = x0 + (ix + 0.5) * TILE, -HALF + (iz + 0.5) * TILE
-				local top = flatTop(cx, cz, 2)
-				if top then
+				local function lay(x, z, size, reach, top)
 					local tile = Build.part(folder, {
 						Name = "Tile",
-						Size = Vector3.new(TILE, 1, TILE),
-						CFrame = CFrame.new(cx, top - 0.5, cz),
-						Color = if World.FLOOR_PATH and math.abs(cz) < 4 then look.Path else look.Base,
+						Size = Vector3.new(size, 1, size),
+						CFrame = CFrame.new(x, top - 0.5, z),
+						Color = if World.FLOOR_PATH and math.abs(z) < 4 then look.Path else look.Base,
 						Material = Enum.Material.SmoothPlastic,
 						CastShadow = false,
 					})
-					table.insert(World.FloorTileList, { Tile = tile, X = cx, Z = cz })
+					table.insert(World.FloorTileList, { Tile = tile, X = x, Z = z, Reach = reach })
 					World.FloorTiles += 1
+				end
+				local top = flatTop(cx, cz, 2)
+				if top then
+					lay(cx, cz, TILE, 2, top)
+				else
+					-- next to a pond or the oasis: small 1 stud pieces, so only
+					-- the water itself is left open (not a big square around it)
+					for sx = 0, TILE - 1 do
+						for sz = 0, TILE - 1 do
+							local x, z = cx - TILE / 2 + sx + 0.5, cz - TILE / 2 + sz + 0.5
+							if open(x, z, 0.3) then
+								lay(x, z, 1, 0.5, heightAt(x, z, 0.5))
+							end
+						end
+					end
 				end
 			end
 		end
