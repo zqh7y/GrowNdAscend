@@ -2468,6 +2468,19 @@ if ok then
 		item(125, "a pet reveal never blocks clicks (screens can still be closed)", not shade:IsA("GuiButton") and shade.Active == false,
 			"the dark layer behind a reveal is a " .. shade.ClassName .. " that lets clicks through")
 		end
+		do
+			-- cartoon world: matte toy lighting, cartoon clouds, puffy clouds outside the play strip
+			local Lighting = game:GetService("Lighting")
+			local puffs = workspace.Map:FindFirstChild("SkyPuffs")
+			local n, inside = 0, 0
+			for _, p in ipairs(puffs and puffs:GetChildren() or {}) do
+				n += 1
+				if math.abs(p.Position.Z) < Config.AREA_HALF_WIDTH + 40 or p.Position.Y < 40 or p.CanCollide then inside += 1 end
+			end
+			local clouds = workspace.Terrain:FindFirstChildOfClass("Clouds")
+			item(126, "cartoon world look (matte, clouds, puffs out of the way)", Lighting.EnvironmentSpecularScale == 0 and clouds ~= nil and n >= 100 and inside == 0,
+				string.format("specular %s, clouds %s, %d puff parts, %d in the way", tostring(Lighting.EnvironmentSpecularScale), tostring(clouds ~= nil), n, inside))
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,

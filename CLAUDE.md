@@ -44,7 +44,7 @@ for how it plays and where the code lives.
   Inventory/Index and its categories, ambient life, hatching anywhere and
   world odds, every rebirth rule, 5 targets fought in every world, and the
   hatch show step by step, the ROLL + AUTO buttons, the dense inventory with side details
-  and Equip Best). It must say "checklist: 125/125 passed". It takes
+  and Equip Best). It must say "checklist: 126/126 passed". It takes
   a few minutes; run it in the background. The harness runs as one big
   function: wrap new test blocks in `do ... end` or Luau runs out of local
   registers (limit 200).

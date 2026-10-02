@@ -64,8 +64,8 @@ Lighting.ClockTime = 13
 Lighting.Brightness = 3
 Lighting.Ambient = Color3.fromRGB(120, 120, 140)
 Lighting.OutdoorAmbient = Color3.fromRGB(170, 170, 190)
-Lighting.EnvironmentDiffuseScale = 0.8
-Lighting.EnvironmentSpecularScale = 0.3
+Lighting.EnvironmentDiffuseScale = 0.55 -- (flatter, cleaner shading: cartoon)
+Lighting.EnvironmentSpecularScale = 0 -- (matte toy surfaces, no shine)
 Lighting.ShadowSoftness = 0.6
 local atmosphere = Instance.new("Atmosphere")
 atmosphere.Density = 0.18
@@ -75,9 +75,9 @@ atmosphere.Color = Color3.fromRGB(215, 235, 255)
 atmosphere.Decay = Color3.fromRGB(170, 210, 255)
 atmosphere.Parent = Lighting
 local colour = Instance.new("ColorCorrectionEffect")
-colour.Saturation = 0.18
+colour.Saturation = 0.22
 colour.Brightness = 0.03
-colour.Contrast = 0.05
+colour.Contrast = 0.1
 colour.Parent = Lighting
 local bloom = Instance.new("BloomEffect")
 bloom.Intensity = 0.4
@@ -86,17 +86,85 @@ bloom.Threshold = 1.4
 bloom.Parent = Lighting
 
 -- terrain in bright, cartoon colours
-terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(110, 210, 80))
-terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(125, 215, 105))
-terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(255, 220, 140))
+terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(105, 215, 70))
+terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(120, 222, 95))
+terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(255, 214, 120))
 terrain:SetMaterialColor(Enum.Material.Snow, Color3.fromRGB(245, 250, 255))
 terrain:SetMaterialColor(Enum.Material.Glacier, Color3.fromRGB(150, 220, 255))
 terrain:SetMaterialColor(Enum.Material.Ice, Color3.fromRGB(185, 235, 255))
-terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(225, 180, 115)) -- dirt paths
+terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(235, 180, 105)) -- dirt paths
 terrain:SetMaterialColor(Enum.Material.Sandstone, Color3.fromRGB(240, 185, 115))
 terrain:SetMaterialColor(Enum.Material.Pavement, Color3.fromRGB(220, 220, 230))
 terrain:SetMaterialColor(Enum.Material.Basalt, Color3.fromRGB(120, 98, 92)) -- the Lava Arena's warm volcanic rock
 terrain:SetMaterialColor(Enum.Material.CrackedLava, Color3.fromRGB(255, 120, 50))
+
+-- cartoon terrain: every terrain material the worlds use gets a flat,
+-- untextured look (a MaterialVariant with no texture maps, set as that
+-- material's override), so grass, sand, snow, ice, dirt and rock look like
+-- smooth painted plastic in their colours above instead of realistic
+-- textures; the little 3D grass blades go too. (Wrapped in pcall: if Roblox
+-- doesn't allow a step, the world just keeps its normal textures.)
+World.CartoonMaterials = {}
+do
+	local MaterialService = game:GetService("MaterialService")
+	for _, material in ipairs({
+		Enum.Material.Grass, Enum.Material.LeafyGrass, Enum.Material.Sand, Enum.Material.Snow,
+		Enum.Material.Glacier, Enum.Material.Ice, Enum.Material.Ground, Enum.Material.Sandstone,
+		Enum.Material.Basalt, Enum.Material.Rock, Enum.Material.Mud, Enum.Material.Pavement,
+	}) do
+		local ok = pcall(function()
+			local variant = Instance.new("MaterialVariant")
+			variant.Name = "Cartoon" .. material.Name
+			variant.BaseMaterial = material
+			variant.StudsPerTile = 16
+			variant.Parent = MaterialService
+			MaterialService:SetBaseMaterialOverride(material, variant.Name)
+		end)
+		if ok then
+			table.insert(World.CartoonMaterials, material.Name)
+		end
+	end
+	pcall(function()
+		terrain.Decoration = false
+	end)
+end
+
+-- cartoon water and sky: bright turquoise water, soft cartoon clouds, a big
+-- friendly sun, and puffy ball-clouds floating around the edges of the map
+terrain.WaterColor = Color3.fromRGB(60, 205, 235)
+terrain.WaterTransparency = 0.35
+terrain.WaterReflectance = 0.25
+terrain.WaterWaveSize = 0.08
+terrain.WaterWaveSpeed = 6
+local clouds = Instance.new("Clouds")
+clouds.Cover = 0.45
+clouds.Density = 0.6
+clouds.Color = Color3.fromRGB(255, 255, 255)
+clouds.Parent = terrain
+local sky = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
+sky.SunAngularSize = 16
+sky.MoonAngularSize = 14
+sky.Parent = Lighting
+do
+	local puffs = Build.folder(map, "SkyPuffs")
+	local rng = Random.new(7)
+	local white = Color3.fromRGB(255, 255, 255)
+	for k = 1, 26 do
+		-- around the map, high up and far out to the sides
+		local x = rng:NextNumber(-60, TOTAL + 60)
+		local z = (if k % 2 == 0 then 1 else -1) * rng:NextNumber(HALF + 90, HALF + 180)
+		local center = Vector3.new(x, rng:NextNumber(60, 95), z)
+		local size = rng:NextNumber(10, 18)
+		for j = 1, 5 do
+			local ball = Build.ball(puffs, center + Vector3.new((j - 3) * size * 0.45, (if j == 3 then size * 0.25 else 0) - size / 2, rng:NextNumber(-2, 2)), size * (if j == 3 then 1.25 else rng:NextNumber(0.75, 1)), {
+				Color = white,
+				CanCollide = false,
+				CastShadow = false,
+			})
+			ball.CanQuery = false
+		end
+	end
+end
 
 -- Invisible walls ----------------------------------------------------------------------
 
