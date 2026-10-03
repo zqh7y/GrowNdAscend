@@ -371,10 +371,8 @@ local function boostMachine(parent, base)
 	end
 	Build.block(model, at + Vector3.new(0, 0.7, -2), Vector3.new(2.4, 1.2, 0.8), { Color = white })
 	-- the circle to step on, in front
-	local circleAt = at + Vector3.new(0, -0.4, -6.5)
-	Build.cylinder(model, circleAt, 1.2, 6.5, { Name = "BoostRim", Color = white })
-	local circle = Build.cylinder(model, circleAt, 1.35, 5.6, { Name = "BoostCircle", Color = Color3.fromRGB(120, 200, 255) })
-	Build.cylinder(model, circleAt + Vector3.new(0, 1.35, 0), 0.04, 4.4, { Color = white, CanCollide = false })
+	local circleAt = at + Vector3.new(0, 0, -6.5)
+	local circle = Build.stepPad(model, Vector3.new(circleAt.X, Config.TERRAIN_TOP, circleAt.Z), 5.6, Color3.fromRGB(90, 180, 255), "BoostCircle")
 	local sign = Build.part(model, { Name = "Sign", Size = Vector3.one, CFrame = CFrame.new(at + Vector3.new(0, 12, 0)), Transparency = 1, CanCollide = false, CastShadow = false })
 	return { Model = model, Circle = circle, Sign = sign }
 end

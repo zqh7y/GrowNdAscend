@@ -112,11 +112,8 @@ local function bossShop(parent, at)
 	Build.part(model, { Size = Vector3.new(0.3, 1.2, 0.3), CFrame = CFrame.new(top + Vector3.new(4.2, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(-25)), Color = Color3.fromRGB(255, 200, 40), Material = Enum.Material.Neon, CanCollide = false })
 	Build.sign(model, CFrame.new(at + Vector3.new(0, 9, -4.6)), Vector3.new(10, 2.2, 0.4), "BOSS SHOP", Color3.new(1, 1, 1), Color3.fromRGB(70, 60, 60))
 	-- the circle to step on, in front of the counter
-	local circleAt = at + Vector3.new(0, -0.4, -8.5)
-	Build.cylinder(model, circleAt, 1.2, 8, { Name = "CircleRim", Color = Color3.fromRGB(255, 250, 240) })
-	local circle = Build.cylinder(model, circleAt, 1.35, 7, { Name = "BossShopCircle", Color = BANNER })
-	Build.cylinder(model, circleAt + Vector3.new(0, 1.35, 0), 0.04, 5.6, { Color = Color3.fromRGB(255, 220, 120), Material = Enum.Material.Neon, CanCollide = false })
-	Build.cylinder(model, circleAt + Vector3.new(0, 1.37, 0), 0.04, 4.8, { Color = BANNER, CanCollide = false })
+	local circleAt = at + Vector3.new(0, 0, -8.5)
+	local circle = Build.stepPad(model, Vector3.new(circleAt.X, Config.TERRAIN_TOP, circleAt.Z), 7, BANNER, "BossShopCircle")
 	local hint = Instance.new("BillboardGui")
 	hint.Name = "StepHint"
 	hint.Size = UDim2.fromOffset(160, 34)

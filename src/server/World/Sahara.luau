@@ -710,11 +710,8 @@ function Sahara.build(ctx)
 	-- (on the real ground, which sits a little above Y = 0 here, and tall
 	-- enough to always show above the sand)
 	local circleAt = machineCenter + Vector3.new(0, 0, -14)
-	circleAt = Vector3.new(circleAt.X, math.max(ctx.World.groundAt(circleAt.X, circleAt.Z) or 0, Config.GROUND_Y) - 0.4, circleAt.Z)
-	Build.cylinder(machine.Model, circleAt, 1.2, 8, { Name = "CircleRim", Color = Color3.fromRGB(250, 250, 255) })
-	machine.Circle = Build.cylinder(machine.Model, circleAt, 1.35, 7, { Name = "AuraCircle", Color = Color3.fromRGB(200, 185, 255) })
-	Build.cylinder(machine.Model, circleAt + Vector3.new(0, 1.35, 0), 0.04, 5.6, { Color = Color3.fromRGB(255, 120, 190), CanCollide = false })
-	Build.cylinder(machine.Model, circleAt + Vector3.new(0, 1.37, 0), 0.04, 4.8, { Color = Color3.fromRGB(200, 185, 255), CanCollide = false })
+	circleAt = Vector3.new(circleAt.X, math.max(ctx.World.groundAt(circleAt.X, circleAt.Z) or 0, Config.TERRAIN_TOP), circleAt.Z)
+	machine.Circle = Build.stepPad(machine.Model, circleAt, 7, Color3.fromRGB(160, 120, 255), "AuraCircle")
 	local hint = Instance.new("BillboardGui")
 	hint.Name = "StepHint"
 	hint.Size = UDim2.fromOffset(160, 34)
