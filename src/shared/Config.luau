@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 77 (big animated gatekeepers)"
+Config.BUILD = "build 78 (feed the gatekeepers; opening cutscene)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -1376,6 +1376,9 @@ Config.AREAS = {
 -- you just pay nothing. BEFORE THE FINAL VERSION set this to nil so the
 -- real costs (25K / 12M / 130B) apply (see CLAUDE.md).
 Config.AREA_COST_FOR_TESTING = 0
+-- Feeding a gatekeeper plays a short cutscene (the food, the munch, the wall
+-- sinking); the gate opens on the server when it ends
+Config.GATE_OPEN_DELAY = 3.6
 -- TESTING ONLY (temporary): every join starts with only World 1 unlocked,
 -- even if the save has more (older test builds opened every area), so the
 -- locked gates can be looked at. BEFORE THE FINAL VERSION set this to false.

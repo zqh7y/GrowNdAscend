@@ -18,6 +18,8 @@ end
 -- Ground and spawn checks (the fake terrain knows the real surface heights)
 local World = __cache["World/init"]
 local Config = __cache["Shared/Config"]
+-- (gates open right away here; item 135 times the feeding cutscene's delay)
+Config.GATE_OPEN_DELAY = 0
 local function check(ok2, message)
 	if not ok2 then
 		print("GROUND ERROR: " .. message)
@@ -2780,10 +2782,11 @@ if ok then
 			W.Gates[4].Prompt.Triggered:Fire(player)
 			STEP(0.05)
 			local accepted = GK.Last ~= nil and GK.Last.Gate == 4 and GK.Last.Mood == "yes" and data.Unlocked == 4 and string.find(GK.Last.Text, "Welcome") ~= nil
+				and GK.Last.Food == "Apple" and GK.Last.Cutscene == true and W.Gates[4].Prompt.ActionText == "Feed the Red Panda"
 			data.Unlocked = saved
 			for i = 2, #Config.AREAS do W.setGateOpen(i, i <= saved) end
 			PlayerData.sync(player)
-			item(135, "gatekeeper animals open the worlds", kinds == #Config.AREAS - 1 and prompts == #Config.AREAS - 1 and refused and accepted
+			item(135, "feed the gatekeeper animals to open the worlds (with a cutscene)", kinds == #Config.AREAS - 1 and prompts == #Config.AREAS - 1 and refused and accepted
 				and alive == #Config.AREAS - 1 and tall == #Config.AREAS - 1,
 				string.format("%d tall (8+ studs), %d moving (head, tail/wings/flippers/arms, blinking eyes); ", tall, alive) ..
 				string.format("%d different detailed animals (40+ parts each), %d asking prompts on their heads; too early -> '%s'; asked with the coins -> opened %s",

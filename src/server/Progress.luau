@@ -47,11 +47,13 @@ local function refreshGates(unlocked)
 	end
 end
 
--- Asking a gatekeeper to open its gate: it answers in a speech bubble over
--- its head (client/Gatekeeper.luau), happy when it opens, shaking its head
--- when you can't yet.
+-- Feeding a gatekeeper opens its gate: the world's price buys the animal's
+-- food (World.Gates[i].Keeper's "Food"). It answers in a speech bubble
+-- (client/Gatekeeper.luau): with the coins, "Yum!", a short cutscene (the
+-- food flies to it, it munches, the wall sinks into the ground) and the gate
+-- opens when it's over (Config.GATE_OPEN_DELAY); without, it's still hungry.
 local sayEvent = Instance.new("RemoteEvent")
-sayEvent.Name = "GatekeeperSay" -- server -> client: (gate index, text, "yes" | "no")
+sayEvent.Name = "GatekeeperSay" -- server -> client: (gate index, text, "yes" | "no", food)
 sayEvent.Parent = remotes
 
 for i, gate in pairs(World.Gates) do
@@ -61,21 +63,33 @@ for i, gate in pairs(World.Gates) do
 			return
 		end
 		local area = Config.AREAS[i]
+		local food = gate.Keeper and gate.Keeper:GetAttribute("Food") or "snack"
 		if data.Unlocked < i - 1 then
-			sayEvent:FireClient(player, i, "Open the " .. Config.AREAS[i - 1].Name .. " first!", "no")
+			sayEvent:FireClient(player, i, "Open the " .. Config.AREAS[i - 1].Name .. " first!", "no", food)
 			return
 		end
 		local cost = Config.areaCost(i)
 		if data.Coins < cost then
-			sayEvent:FireClient(player, i, "Sorry! You need " .. Config.formatNumber(cost - data.Coins) .. " more coins.", "no")
+			sayEvent:FireClient(player, i, string.format("I'm hungry! A %s costs %s coins, you need %s more.",
+				string.lower(food), Config.formatNumber(cost), Config.formatNumber(cost - data.Coins)), "no", food)
 			return
 		end
 		data.Coins -= cost
 		data.Unlocked = i
-		refreshGates(data.Unlocked)
 		PlayerData.sync(player)
-		sayEvent:FireClient(player, i, "Sure! Welcome to the " .. area.Name .. "!", "yes")
-		notifyEvent:FireClient(player, area.Name .. " unlocked!", "success")
+		sayEvent:FireClient(player, i, "Yum! Thank you! Welcome to the " .. area.Name .. "!", "yes", food)
+		local function open()
+			local now = PlayerData.get(player)
+			if now then
+				refreshGates(now.Unlocked)
+				notifyEvent:FireClient(player, area.Name .. " unlocked!", "success")
+			end
+		end
+		if (Config.GATE_OPEN_DELAY or 0) > 0 then
+			task.delay(Config.GATE_OPEN_DELAY, open)
+		else
+			open()
+		end
 	end)
 end
 
