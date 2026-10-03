@@ -2742,11 +2742,35 @@ if ok then
 					if parts >= 40 then
 						animals[keeper:GetAttribute("Animal") or "?"] = true
 					end
-					if g.Prompt.Parent and g.Prompt.Parent.Name == "Head" and g.Prompt.Parent.Parent and g.Prompt.Parent.Parent.Parent == keeper then prompts += 1 end
+					if g.Prompt.Parent and g.Prompt.Parent.Name == "Head" and (function() local up = g.Prompt.Parent while up and up ~= keeper do up = up.Parent end return up == keeper end)() then prompts += 1 end
 				end
 			end
 			local kinds = 0
 			for _ in pairs(animals) do kinds += 1 end
+			-- big (8+ studs), with moving parts and eyelids that the client animates
+			local rigs = GK.step(0.5)
+			local alive, tall = 0, 0
+			for i = 2, #Config.AREAS do
+				local rig = rigs[i]
+				local animal = W.Gates[i].Keeper:FindFirstChild("Animal")
+				local lo, hi = math.huge, -math.huge
+				for _, d in ipairs(animal:GetDescendants()) do
+					if d:IsA("BasePart") then
+						lo = math.min(lo, d.Position.Y - d.Size.Y / 2)
+						hi = math.max(hi, d.Position.Y + d.Size.Y / 2)
+					end
+				end
+				if hi - lo >= 8 then tall += 1 end
+				if rig then
+					local parts = 0
+					for _ in pairs(rig.Parts) do parts += 1 end
+					local neck = rig.Parts.Neck and rig.Parts.Neck.Model:GetPivot()
+					GK.step(0.7)
+					local moved = neck ~= nil and (rig.Parts.Neck.Model:GetPivot().Position - neck.Position).Magnitude > 0.001
+						or (neck ~= nil and rig.Parts.Neck.Model:GetPivot().LookVector:Dot(neck.LookVector) < 0.99999)
+					if parts >= 2 and #rig.Lids >= 2 and moved then alive += 1 end
+				end
+			end
 			local saved = data.Unlocked
 			data.Unlocked = 2
 			W.Gates[4].Prompt.Triggered:Fire(player)
@@ -2759,7 +2783,9 @@ if ok then
 			data.Unlocked = saved
 			for i = 2, #Config.AREAS do W.setGateOpen(i, i <= saved) end
 			PlayerData.sync(player)
-			item(135, "gatekeeper animals open the worlds", kinds == #Config.AREAS - 1 and prompts == #Config.AREAS - 1 and refused and accepted,
+			item(135, "gatekeeper animals open the worlds", kinds == #Config.AREAS - 1 and prompts == #Config.AREAS - 1 and refused and accepted
+				and alive == #Config.AREAS - 1 and tall == #Config.AREAS - 1,
+				string.format("%d tall (8+ studs), %d moving (head, tail/wings/flippers/arms, blinking eyes); ", tall, alive) ..
 				string.format("%d different detailed animals (40+ parts each), %d asking prompts on their heads; too early -> '%s'; asked with the coins -> opened %s",
 					kinds, prompts, tostring(refused), tostring(accepted)))
 		end

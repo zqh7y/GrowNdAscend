@@ -238,7 +238,7 @@ end
 -- Where the gatekeeper of the gate into area i stands (on the ground, a
 -- little before the gate and off the middle path)
 function World.keeperSpot(i)
-	return Vector3.new(Config.areaStart(i) - 6.5, 0, 11)
+	return Vector3.new(Config.areaStart(i) - 9, 0, 13)
 end
 
 -- Gates between areas ----------------------------------------------------------------
@@ -515,7 +515,7 @@ local function buildGate(i)
 	prompt.ActionText = "Ask to open"
 	prompt.ObjectText = keeper:GetAttribute("Animal") .. "  ·  " .. string.lower(Config.areaCostText(i))
 	prompt.HoldDuration = 0.3
-	prompt.MaxActivationDistance = 12
+	prompt.MaxActivationDistance = 16
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = head
 
@@ -867,7 +867,7 @@ for i, area in ipairs(Config.AREAS) do
 	space:add(Vector3.new(x0 + LENGTH, 0, 0), 9)
 	-- (and room for the next gate's gatekeeper animal)
 	if i < #Config.AREAS then
-		space:add(World.keeperSpot(i + 1), 5)
+		space:add(World.keeperSpot(i + 1), 9)
 	end
 	space:add(Vector3.new(x0 + 10, 0, 0), 9)
 
