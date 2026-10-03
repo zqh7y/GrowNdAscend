@@ -635,8 +635,9 @@ local function buildGate(i)
 	-- (server/Progress.luau decides; it answers in a speech bubble).
 	local keeper, head = Gatekeepers.build(gate, i, World.keeperSpot(i), Vector3.new(-1, 0, 0), area.Color)
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Ask to open"
-	prompt.ObjectText = keeper:GetAttribute("Animal") .. "  ·  " .. string.lower(Config.areaCostText(i))
+	-- (the world's price is paid as the animal's food)
+	prompt.ActionText = "Feed the " .. keeper:GetAttribute("Animal")
+	prompt.ObjectText = keeper:GetAttribute("Food") .. "  ·  " .. string.lower(Config.areaCostText(i))
 	prompt.HoldDuration = 0.3
 	prompt.MaxActivationDistance = 16
 	prompt.RequiresLineOfSight = false

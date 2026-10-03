@@ -190,19 +190,240 @@ local function update(i, rig)
 	end
 end
 
-function Gatekeeper.say(i, text, mood)
-	Gatekeeper.Last = { Gate = i, Text = text, Mood = mood }
+-- The feeding cutscene ------------------------------------------------------------------------
+-- The camera swings over to frame the animal and its wall; the food flies
+-- from you into its mouth; it munches with hearts popping out and hops;
+-- the wall glows, shakes and sinks into the ground in a burst of sparkles;
+-- the camera comes back (about 3.5 s, Config.GATE_OPEN_DELAY: the server
+-- opens the gate as it ends). Everything here is only on your screen.
+
+local FOOD_LOOKS = {
+	Watermelon = function(model)
+		local rind = Instance.new("Part")
+		rind.Shape = Enum.PartType.Cylinder
+		rind.Size = Vector3.new(0.5, 2.2, 2.2)
+		rind.Color = Color3.fromRGB(80, 180, 70)
+		rind.Parent = model
+		local flesh = rind:Clone()
+		flesh.Size = Vector3.new(0.55, 1.8, 1.8)
+		flesh.Color = Color3.fromRGB(255, 90, 100)
+		flesh.Parent = model
+		for k = -1, 1 do
+			local seed = Instance.new("Part")
+			seed.Shape = Enum.PartType.Ball
+			seed.Size = Vector3.new(0.15, 0.15, 0.15)
+			seed.Color = Color3.fromRGB(40, 30, 30)
+			seed.CFrame = CFrame.new(0.3, k * 0.4, 0.2)
+			seed.Parent = model
+		end
+		return rind
+	end,
+	Fish = function(model)
+		local body = Instance.new("Part")
+		body.Shape = Enum.PartType.Ball
+		body.Size = Vector3.new(1.8, 1, 1)
+		body.Color = Color3.fromRGB(120, 190, 255)
+		body.Parent = model
+		local belly = body:Clone()
+		belly.Size = Vector3.new(1.4, 0.7, 0.8)
+		belly.CFrame = CFrame.new(0, -0.15, 0)
+		belly.Color = Color3.fromRGB(230, 245, 255)
+		belly.Parent = model
+		local tail = Instance.new("Part")
+		tail.Shape = Enum.PartType.Ball
+		tail.Size = Vector3.new(0.4, 1, 0.15)
+		tail.CFrame = CFrame.new(1, 0, 0)
+		tail.Color = Color3.fromRGB(90, 160, 240)
+		tail.Parent = model
+		local eye = Instance.new("Part")
+		eye.Shape = Enum.PartType.Ball
+		eye.Size = Vector3.new(0.2, 0.2, 0.2)
+		eye.CFrame = CFrame.new(-0.6, 0.15, -0.35)
+		eye.Color = Color3.fromRGB(30, 30, 50)
+		eye.Parent = model
+		return body
+	end,
+	Apple = function(model)
+		local apple = Instance.new("Part")
+		apple.Shape = Enum.PartType.Ball
+		apple.Size = Vector3.new(1.4, 1.4, 1.4)
+		apple.Color = Color3.fromRGB(235, 50, 60)
+		apple.Parent = model
+		local stem = Instance.new("Part")
+		stem.Size = Vector3.new(0.1, 0.4, 0.1)
+		stem.CFrame = CFrame.new(0, 0.8, 0)
+		stem.Color = Color3.fromRGB(110, 70, 40)
+		stem.Parent = model
+		local leaf = Instance.new("Part")
+		leaf.Size = Vector3.new(0.5, 0.05, 0.25)
+		leaf.CFrame = CFrame.new(0.25, 0.85, 0) * CFrame.Angles(0, 0, math.rad(-20))
+		leaf.Color = Color3.fromRGB(90, 200, 80)
+		leaf.Parent = model
+		return apple
+	end,
+	["Chili Pepper"] = function(model)
+		local chili = Instance.new("Part")
+		chili.Shape = Enum.PartType.Cylinder
+		chili.Size = Vector3.new(1.8, 0.6, 0.6)
+		chili.Color = Color3.fromRGB(230, 40, 40)
+		chili.Parent = model
+		local tip = Instance.new("Part")
+		tip.Shape = Enum.PartType.Ball
+		tip.Size = Vector3.new(0.6, 0.6, 0.6)
+		tip.CFrame = CFrame.new(0.9, 0, 0)
+		tip.Color = Color3.fromRGB(230, 40, 40)
+		tip.Parent = model
+		local cap = Instance.new("Part")
+		cap.Shape = Enum.PartType.Cylinder
+		cap.Size = Vector3.new(0.3, 0.7, 0.7)
+		cap.CFrame = CFrame.new(-0.95, 0, 0)
+		cap.Color = Color3.fromRGB(80, 170, 60)
+		cap.Parent = model
+		return chili
+	end,
+}
+
+local function foodModel(name)
+	local model = Instance.new("Model")
+	model.Name = "Food"
+	local main = (FOOD_LOOKS[name] or FOOD_LOOKS.Apple)(model)
+	for _, p in ipairs(model:GetChildren()) do
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.Material = Enum.Material.SmoothPlastic
+	end
+	model.PrimaryPart = main
+	model.Parent = workspace
+	return model
+end
+
+-- small glowing bits that fly out and fade (hearts for the animal, sparkles
+-- for the wall)
+local function burst(at, color, count, speed)
+	for _ = 1, count do
+		local p = Instance.new("Part")
+		p.Shape = Enum.PartType.Ball
+		p.Size = Vector3.new(0.5, 0.5, 0.5)
+		p.Color = color
+		p.Material = Enum.Material.Neon
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CFrame = CFrame.new(at)
+		p.Parent = workspace
+		local dir = Vector3.new(math.random() - 0.5, math.random() * 0.8 + 0.4, math.random() - 0.5).Unit
+		task.spawn(function()
+			for k = 1, 24 do
+				local t = k / 24
+				p.CFrame = CFrame.new(at + dir * speed * t + Vector3.new(0, t * 2, 0))
+				p.Transparency = t
+				task.wait(1 / 30)
+			end
+			p:Destroy()
+		end)
+	end
+end
+
+Gatekeeper.CutsceneRunning = false
+function Gatekeeper.cutscene(i, food)
+	local keeper = keeperOf(i)
+	local gate = keeper and keeper.Parent
+	local barrier = gate and gate:FindFirstChild("Barrier")
+	local head = keeper and keeper:FindFirstChild("Head", true)
+	if not (barrier and head) or Gatekeeper.CutsceneRunning then
+		return
+	end
+	Gatekeeper.CutsceneRunning = true
+	local player = game:GetService("Players").LocalPlayer
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local camera = workspace.CurrentCamera
+	local savedType = camera.CameraType
+	-- the shot: from the player's side, framing the animal and the wall
+	local k, b = head.Position, barrier.Position
+	local focus = k:Lerp(b, 0.45)
+	local shot = CFrame.lookAt(Vector3.new(b.X - 30, focus.Y + 9, (k.Z + b.Z) / 2 + 4), focus)
+	camera.CameraType = Enum.CameraType.Scriptable
+	local from = camera.CFrame
+	for s = 1, 15 do
+		camera.CFrame = from:Lerp(shot, smooth(s / 15))
+		task.wait(1 / 30)
+	end
+	-- the food flies from you into the animal's mouth
+	local start = (root and root.Position or k + Vector3.new(-8, 0, 0)) + Vector3.new(0, 2.5, 0)
+	local snack = foodModel(food)
+	for s = 1, 18 do
+		local t = s / 18
+		snack:PivotTo(CFrame.new(start:Lerp(k, t) + Vector3.new(0, math.sin(t * math.pi) * 5, 0)) * CFrame.Angles(0, t * 8, t * 4))
+		task.wait(1 / 30)
+	end
+	snack:Destroy()
+	-- munch munch, hearts, then the happy hops
+	local rig = rigOf(i)
+	if rig then
+		rig.Act, rig.ActAt = "yes", clock
+	end
+	burst(k + Vector3.new(0, 1.5, 0), Color3.fromRGB(255, 120, 170), 8, 5)
+	Effects.play("Coin", 1.3, 0.05)
+	task.wait(1.1)
+	-- the wall glows, shakes and sinks into the ground in a burst of sparkles
+	local home = barrier.CFrame
+	local color = barrier.Color
+	for _, face in ipairs(barrier:GetChildren()) do
+		if face:IsA("SurfaceGui") then
+			face.Enabled = false
+		end
+	end
+	for s = 1, 12 do
+		barrier.Color = color:Lerp(Color3.new(1, 1, 1), s / 12)
+		barrier.CFrame = home * CFrame.new((math.random() - 0.5) * 0.4, 0, (math.random() - 0.5) * 0.4)
+		task.wait(1 / 30)
+	end
+	burst(Vector3.new(b.X, home.Position.Y - barrier.Size.Y / 2 + 1, b.Z), Color3.fromRGB(255, 230, 120), 18, 10)
+	for s = 1, 24 do
+		local t = smooth(s / 24)
+		barrier.CFrame = home * CFrame.new(0, -barrier.Size.Y * t, 0)
+		for _, rail in ipairs(barrier:GetChildren()) do
+			if rail:IsA("BasePart") then
+				rail.Transparency = t
+			end
+		end
+		task.wait(1 / 30)
+	end
+	task.wait(0.4)
+	-- the camera comes back
+	local back = root and CFrame.lookAt(root.Position + Vector3.new(-12, 8, 0), root.Position) or from
+	for s = 1, 12 do
+		camera.CFrame = shot:Lerp(back, smooth(s / 12))
+		task.wait(1 / 30)
+	end
+	camera.CameraType = if savedType == Enum.CameraType.Scriptable then Enum.CameraType.Custom else savedType
+	Gatekeeper.CutsceneRunning = false
+	-- once the server has opened the gate, put the (now invisible) wall back
+	-- where it belongs, for when it's shut again
+	task.delay(2, function()
+		barrier.CFrame = home
+		barrier.Color = color
+	end)
+end
+
+function Gatekeeper.say(i, text, mood, food)
+	Gatekeeper.Last = { Gate = i, Text = text, Mood = mood, Food = food }
 	local keeper = keeperOf(i)
 	if not keeper then
 		return
 	end
 	Gatekeeper.Last.Bubble = bubble(keeper, i, text, mood)
-	local rig = rigOf(i)
-	if rig then
-		rig.Act, rig.ActAt = mood, clock
-	end
 	if mood == "yes" then
-		Effects.play("Coin", 1.3, 0.05)
+		Gatekeeper.Last.Cutscene = true
+		task.spawn(Gatekeeper.cutscene, i, food)
+	else
+		local rig = rigOf(i)
+		if rig then
+			rig.Act, rig.ActAt = mood, clock
+		end
 	end
 end
 

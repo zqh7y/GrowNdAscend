@@ -349,6 +349,12 @@ end
 
 local KINDS = { camel, penguin, redPanda, dragon }
 Gatekeepers.NAMES = { "Camel", "Penguin", "Red Panda", "Dragon" }
+-- what each one eats: the world's price is paid as its food
+Gatekeepers.FOODS = { "Watermelon", "Fish", "Apple", "Chili Pepper" }
+
+function Gatekeepers.food(i)
+	return Gatekeepers.FOODS[math.clamp(i - 1, 1, #Gatekeepers.FOODS)]
+end
 
 -- The gatekeeper of the gate into area `i` (2..5) at `base` on the ground,
 -- facing `facing` (a direction), on a round base in `color`. Returns the
@@ -358,6 +364,7 @@ function Gatekeepers.build(parent, i, base, facing, color)
 	local n = math.clamp(i - 1, 1, #KINDS)
 	local model = Build.model(parent, "Gatekeeper")
 	model:SetAttribute("Animal", Gatekeepers.NAMES[n])
+	model:SetAttribute("Food", Gatekeepers.FOODS[n])
 	local frame = CFrame.lookAt(base, base + facing)
 	-- the round base and its GATEKEEPER plate
 	color = color or Color3.fromRGB(255, 255, 255)
