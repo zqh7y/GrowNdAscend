@@ -1210,7 +1210,7 @@ if World.CARTOON_FLOOR then
 	-- the tiles (a script can't turn Terrain.Decoration off), so the grass
 	-- under the walkable strip becomes LeafyGrass, which has none
 	pcall(function()
-		local strip = Region3.new(Vector3.new(-8, -20, -HALF - 4), Vector3.new(TOTAL + 8, 20, HALF + 4)):ExpandToGrid(4)
+		local strip = Region3.new(Vector3.new(-8, -20, -HALF - 12), Vector3.new(TOTAL + 8, 20, HALF + 12)):ExpandToGrid(4)
 		terrain:ReplaceMaterial(strip, 4, Enum.Material.Grass, Enum.Material.LeafyGrass)
 	end)
 	local function decor(folder, props)
@@ -1305,7 +1305,9 @@ if World.CARTOON_FLOOR then
 		local folder = Build.folder(floor, "Floor" .. i)
 		local rng = Random.new(100 + i)
 		for ix = 0, LENGTH / TILE - 1 do
-			for iz = 0, (HALF * 2) / TILE - 1 do
+			-- (one more row on each side, under the walls: no strip of the
+			-- realistic ground left between the floor and the wall)
+			for iz = -1, (HALF * 2) / TILE do
 				local cx, cz = x0 + (ix + 0.5) * TILE, -HALF + (iz + 0.5) * TILE
 				local function lay(x, z, size, reach, top)
 					local tile = Build.part(folder, {
