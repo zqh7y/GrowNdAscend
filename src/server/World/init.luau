@@ -1237,6 +1237,9 @@ if World.CARTOON_FLOOR then
 	-- terrain right away): any tile the ground still pokes over goes up
 	function World.settleFloor()
 		for _, t in ipairs(World.FloorTileList) do
+			if t.Reach == 0 then
+				continue -- (the flat rows under the walls)
+			end
 			local top = heightAt(t.X, t.Z, t.Reach)
 			if top > t.Tile.Position.Y + 0.5 + 0.001 then
 				t.Tile.CFrame = CFrame.new(t.X, top - 0.5, t.Z)
@@ -1299,6 +1302,11 @@ if World.CARTOON_FLOOR then
 		World.coverSides()
 		World.liftProps()
 	end)
+	for _, side in ipairs({ -1, 1 }) do
+		pcall(function()
+			terrain:FillBlock(CFrame.new(TOTAL / 2, Config.TERRAIN_TOP + 20, side * (HALF + 2.5)), Vector3.new(TOTAL, 40, 5), Enum.Material.Air)
+		end)
+	end
 	for i = 1, #Config.AREAS do
 		local look = World.FLOOR[i] or World.FLOOR[1]
 		local x0 = Config.areaStart(i)
@@ -1321,8 +1329,13 @@ if World.CARTOON_FLOOR then
 					table.insert(World.FloorTileList, { Tile = tile, X = x, Z = z, Reach = reach })
 					World.FloorTiles += 1
 				end
-				local top = flatTop(cx, cz, 2)
-				if top then
+				local edge = iz < 0 or iz >= (HALF * 2) / TILE
+				local top = if edge then Config.TERRAIN_TOP + 0.05 else flatTop(cx, cz, 2)
+				if top and edge then
+					-- (the rows under the walls stay flat: banks and hills there
+					-- are cleared away above the floor instead)
+					lay(cx, cz, TILE, 0, top)
+				elseif top then
 					lay(cx, cz, TILE, 2, top)
 				else
 					-- next to a pond or the oasis: small 1 stud pieces, so only
