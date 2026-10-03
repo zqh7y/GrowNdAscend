@@ -241,6 +241,9 @@ mid = "M0,650 C260,530 520,570 760,630 C1000,690 1240,530 1500,570 C1700,600 182
 parts.append(f'<path d="{mid}" fill="{vshade("#93e56c", "#5cbf48")}"/>')
 for tx, ty, ts in ((120, 650, 1), (640, 612, 0.82), (1560, 572, 0.92), (1850, 610, 0.72), (360, 600, 0.6)):
     parts.append(tree(tx, ty, ts))
+# the pet's chance: huge rainbow number in the sky, behind everything
+from chance import chance, defs as chance_defs
+parts.append(chance("1/964,817,253", 1010, 478, 244, -4, "odds"))
 # front ground with the path
 front = "M0,770 C320,710 620,750 960,770 C1300,790 1600,730 1920,750 L1920,1080 L0,1080 Z"
 parts.append(f'<path d="{front}" fill="{vshade("#72d653", "#3c9e37")}"/>')
@@ -283,6 +286,7 @@ parts.append(f'''<g transform="translate(290 500) scale(1.16)">
 
 </g>''')
 # motion trail and the dice
+parts.append('<g transform="translate(735 600) scale(0.78) translate(-900 -410)">')
 parts.append('<g stroke-linecap="round" fill="none"><path d="M 600 470 Q 680 400 760 400" stroke="#ffffff" stroke-width="12" opacity="0.85"/><path d="M 610 520 Q 690 470 770 470" stroke="#fff6c2" stroke-width="10" opacity="0.8"/><path d="M 600 420 Q 660 350 740 340" stroke="#ffffff" stroke-width="8" opacity="0.7"/></g>')
 for k in range(9):
     t = k / 8
@@ -296,11 +300,9 @@ parts.append(f'''<g transform="translate(900 410) rotate(-16)" filter="url(#glow
 ''' + "".join(f'<circle cx="{px}" cy="{py}" r="17" fill="{shade("#2a3da8", "40%", "35%")}"/><circle cx="{px-5}" cy="{py-5}" r="5" fill="#8fa2ff" opacity="0.8"/>' for px, py in ((-70, -20), (10, -20), (-30, 25), (-70, 70), (10, 70))) +
 f'''<ellipse cx="40" cy="-95" rx="16" ry="9" fill="#1f2f8a"/><ellipse cx="90" cy="-20" rx="9" ry="16" fill="#3d4fa8"/><ellipse cx="90" cy="40" rx="9" ry="16" fill="#3d4fa8"/>
 </g>''')
+parts.append('</g>')
 for x, y, sz, col in ((780, 255, 1.8, "#fff8c4"), (1060, 300, 1.3, "#ffffff"), (1040, 560, 1.5, "#fff8c4"), (720, 590, 1.0, "#ffffff"), (1180, 470, 1.1, "#fff8c4"), (300, 420, 1.2, "#ffffff"), (1880, 440, 1.4, "#fff8c4"), (1450, 330, 1.0, "#ffffff")):
     parts.append(spark(x, y, sz, col))
-# the pet's chance, big and rainbow, above the rare dragon
-from chance import chance, defs as chance_defs
-parts.append(chance("1/999,999,999", 1488, 392, 122, -4, "odds"))
 # the title: 3D extrusion, gradient face, a shine band, sparkles
 title = []
 for d in range(14, 0, -2):
