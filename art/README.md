@@ -1,7 +1,7 @@
 # Game art
 
-- `icon.png` (512x512): the game icon. A dice character with a rainbow luck ring and a bacon hair kid waving beside it, on a blue sunburst, with a NEW ribbon.
-- `thumbnail.png` (1920x1080): the game thumbnail. A bacon hair player throwing a glowing dice, a parade of pets (cat, bunny, dog, penguin, dragon) on green hills, and the ROLL PETS RNG title.
+- `icon.png` (512x512): the game icon. A dice character with a rainbow luck ring and a classic bacon hair (white skin, swept orange-brown hair, the default smile, black jacket over a blue shirt) waving beside it, on a blue sunburst, with a NEW ribbon.
+- `thumbnail.png` (1920x1080): the game thumbnail. The classic bacon hair throwing a glowing dice, a parade of pets (cat, bunny, dog, penguin, dragon) on green hills, and the ROLL PETS RNG title.
 
 Upload them on the Roblox Creator Hub: your game -> Configure -> Places -> the icon, and Thumbnails.
 

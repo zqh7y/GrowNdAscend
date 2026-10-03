@@ -260,31 +260,33 @@ for _ in range(34):
 # pets parade on the right
 for kind, x, y, s, glow in [("dragon", 1600, 700, 1.25, "#ff7ad9"), ("cat", 1130, 930, 1.05, "#7dffa8"), ("bunny", 1330, 950, 1.05, "#7fd2ff"), ("dog", 1530, 930, 1.1, "#c58bff"), ("penguin", 1725, 960, 1.05, "#ffd65c")]:
     parts.append(pet(kind, x, y, s, glow))
-# the player, shaded blocks
-Y, B, G, H = "#ffd23f", "#3a7bff", "#3fb34f", "#7a4a24"
+# the player: the classic bacon hair (white skin, swept orange-brown bacon
+# hair, the default smile, an open black jacket over a blue shirt)
+SKIN, HAIR, JACKET, SHIRT, PANTS = "#f4f4f4", "#c8641e", "#26262e", "#2f6fe0", "#2b2b33"
 parts.append(f'''<g transform="translate(290 500) scale(1.16)">
 <ellipse cx="90" cy="432" rx="160" ry="28" fill="#1f5a26" opacity="0.4" filter="url(#soft1)"/>
-<rect x="22" y="300" width="64" height="130" rx="10" fill="{shade(G)}" stroke="{INK}" stroke-width="9"/>
-<rect x="96" y="300" width="64" height="130" rx="10" fill="{shade(dark(G, 0.08))}" stroke="{INK}" stroke-width="9"/>
-<rect x="14" y="402" width="78" height="34" rx="12" fill="{shade("#ffffff")}" stroke="{INK}" stroke-width="8"/><rect x="90" y="402" width="78" height="34" rx="12" fill="{shade("#ffffff")}" stroke="{INK}" stroke-width="8"/>
-<path d="M 18,424 L 88,424 M 94,424 L 164,424" stroke="#e43c4f" stroke-width="6"/>
-<rect x="10" y="150" width="162" height="160" rx="14" fill="{shade(B)}" stroke="{INK}" stroke-width="9"/>
-<path d="M 91,178 L 99,200 L 122,200 L 104,214 L 111,236 L 91,222 L 71,236 L 78,214 L 60,200 L 83,200 Z" fill="{shade("#ffd23f")}" stroke="{INK}" stroke-width="5" stroke-linejoin="round"/>
-<rect x="22" y="160" width="46" height="12" rx="6" fill="#ffffff" opacity="0.35"/>
-<g transform="rotate(-30 -10 170)"><rect x="-58" y="160" width="60" height="140" rx="12" fill="{shade(Y)}" stroke="{INK}" stroke-width="9"/></g>
-<g transform="rotate(-145 182 172)"><rect x="152" y="160" width="60" height="140" rx="12" fill="{shade(Y)}" stroke="{INK}" stroke-width="9"/></g>
-<rect x="18" y="-10" width="146" height="146" rx="22" fill="{shade(Y)}" stroke="{INK}" stroke-width="9"/>
-<path d="M 8,52 Q -4,4 24,-26 Q 34,-46 56,-44 Q 70,-62 92,-54 Q 112,-66 130,-52 Q 156,-54 166,-30 Q 186,-8 176,22 Q 182,40 174,56 Q 162,30 150,40 Q 140,18 120,26 Q 100,6 80,22 Q 60,8 46,28 Q 28,18 22,44 Q 14,38 8,52 Z" fill="{shade("#9a5a2c")}" stroke="{INK}" stroke-width="8" stroke-linejoin="round"/>
-<path d="M 22,-4 Q 60,-30 104,-24 Q 140,-22 164,-2" stroke="#e7a768" stroke-width="12" fill="none" stroke-linecap="round"/>
-<path d="M 14,22 Q 50,-6 100,-2 Q 140,0 172,22" stroke="#e7a768" stroke-width="10" fill="none" stroke-linecap="round"/>
-<path d="M 30,-24 Q 70,-44 120,-38" stroke="#5e2f14" stroke-width="7" fill="none" stroke-linecap="round"/>
-<path d="M 18,8 Q 54,-18 104,-12 Q 146,-10 170,8" stroke="#6e3a1c" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.8"/>
-<path d="M 60,-40 Q 80,-46 100,-42" stroke="#f0b47a" stroke-width="5" fill="none" stroke-linecap="round"/>
-<ellipse cx="62" cy="62" rx="13" ry="17" fill="{INK}"/><ellipse cx="122" cy="62" rx="13" ry="17" fill="{INK}"/>
-<circle cx="57" cy="55" r="5.5" fill="#fff"/><circle cx="117" cy="55" r="5.5" fill="#fff"/><circle cx="66" cy="69" r="2.4" fill="#fff"/><circle cx="126" cy="69" r="2.4" fill="#fff"/>
-<ellipse cx="36" cy="92" rx="12" ry="7" fill="#ff8fa0" opacity="0.6"/><ellipse cx="148" cy="92" rx="12" ry="7" fill="#ff8fa0" opacity="0.6"/>
-<path d="M 56,94 Q 92,130 128,94 Z" fill="#7a1d3a" stroke="{INK}" stroke-width="6" stroke-linejoin="round"/><path d="M 76,112 Q 92,104 108,112 Q 100,121 92,121 Q 84,121 76,112 Z" fill="#ff6f8f"/>
-{gloss(52, 24, 24, 10, -20, 0.55)}
+<rect x="24" y="300" width="64" height="128" rx="12" fill="{shade(PANTS)}" stroke="{INK}" stroke-width="9"/>
+<rect x="94" y="300" width="64" height="128" rx="12" fill="{shade(dark(PANTS, 0.1))}" stroke="{INK}" stroke-width="9"/>
+<rect x="16" y="404" width="76" height="30" rx="12" fill="{shade("#3a3a44")}" stroke="{INK}" stroke-width="8"/><rect x="90" y="404" width="76" height="30" rx="12" fill="{shade("#3a3a44")}" stroke="{INK}" stroke-width="8"/>
+<rect x="10" y="150" width="162" height="162" rx="18" fill="{shade(JACKET)}" stroke="{INK}" stroke-width="9"/>
+<path d="M 62,152 L 120,152 L 116,310 L 66,310 Z" fill="{shade(SHIRT)}"/>
+<path d="M 62,152 L 46,196 L 70,206 Z M 120,152 L 136,196 L 112,206 Z" fill="{shade("#3a3a46")}" stroke="{INK}" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 64,152 L 66,310 M 118,152 L 116,310" stroke="{INK}" stroke-width="5"/>
+<rect x="24" y="162" width="30" height="10" rx="5" fill="#ffffff" opacity="0.18"/>
+<g transform="rotate(-24 -6 172)"><rect x="-60" y="160" width="58" height="126" rx="14" fill="{shade(JACKET)}" stroke="{INK}" stroke-width="9"/><rect x="-56" y="270" width="50" height="40" rx="14" fill="{shade(SKIN)}" stroke="{INK}" stroke-width="8"/></g>
+<g transform="rotate(-145 184 172)"><rect x="156" y="160" width="58" height="126" rx="14" fill="{shade(JACKET)}" stroke="{INK}" stroke-width="9"/><rect x="160" y="270" width="50" height="40" rx="14" fill="{shade(SKIN)}" stroke="{INK}" stroke-width="8"/></g>
+<rect x="22" y="-6" width="140" height="142" rx="34" fill="{shade(SKIN, "35%", "25%", "85%")}" stroke="{INK}" stroke-width="9"/>
+<path d="M 10,74 Q 0,10 30,-22 Q 58,-50 104,-48 Q 152,-46 172,-12 Q 186,16 176,60 Q 166,38 160,46 Q 156,22 140,14 Q 126,30 104,26 Q 80,40 58,30 Q 40,44 30,30 Q 22,52 26,78 Q 16,68 10,74 Z" fill="{shade(HAIR)}" stroke="{INK}" stroke-width="8" stroke-linejoin="round"/>
+<path d="M 30,30 Q 52,4 86,2 Q 110,0 136,10 Q 112,14 96,28 Q 74,22 58,32 Q 44,26 30,30 Z" fill="{shade(light(HAIR, 0.1))}"/>
+<path d="M 30,-6 Q 70,-34 120,-30 Q 152,-26 168,-4" stroke="{light(HAIR, 0.38)}" stroke-width="9" fill="none" stroke-linecap="round"/>
+<path d="M 20,24 Q 56,-6 104,-6 Q 142,-4 172,20" stroke="{light(HAIR, 0.3)}" stroke-width="7" fill="none" stroke-linecap="round"/>
+<path d="M 40,-28 Q 76,-46 120,-42" stroke="{dark(HAIR, 0.3)}" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path d="M 24,8 Q 60,-20 108,-18 Q 146,-16 170,6" stroke="{dark(HAIR, 0.28)}" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.9"/>
+<path d="M 150,24 Q 168,36 172,56 M 18,48 Q 16,62 22,72" stroke="{dark(HAIR, 0.3)}" stroke-width="5" fill="none" stroke-linecap="round"/>
+<ellipse cx="68" cy="72" rx="9" ry="14" fill="{INK}"/><ellipse cx="116" cy="72" rx="9" ry="14" fill="{INK}"/>
+<circle cx="65" cy="66" r="3.5" fill="#fff"/><circle cx="113" cy="66" r="3.5" fill="#fff"/>
+<path d="M 64,98 Q 92,122 120,98" stroke="{INK}" stroke-width="7" fill="none" stroke-linecap="round"/>
+{gloss(50, 52, 16, 7, -20, 0.45)}
 </g>''')
 # motion trail and the dice
 parts.append('<g stroke-linecap="round" fill="none"><path d="M 600 470 Q 680 400 760 400" stroke="#ffffff" stroke-width="12" opacity="0.85"/><path d="M 610 520 Q 690 470 770 470" stroke="#fff6c2" stroke-width="10" opacity="0.8"/><path d="M 600 420 Q 660 350 740 340" stroke="#ffffff" stroke-width="8" opacity="0.7"/></g>')
