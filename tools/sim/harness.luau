@@ -994,6 +994,20 @@ if ok then
 				data.Items = {}
 				local got = Items.claimBoost(player)
 				bo.Claimed = got ~= nil and (data.Items[got] or 0) == 1 and data.BoostReady > nowT + Config.BOOST_MACHINE.Cooldown - 5
+				-- the client: standing on the pad when it's ready really claims
+				do
+					local CState = C("State")
+					local realClaim, realReady = BoostsUI.claim, CState.Data.BoostReady
+					local clientClaimed = false
+					BoostsUI.claim = function()
+						clientClaimed = true
+					end
+					CState.Data.BoostReady = nowT - 1
+					BoostsUI.checkMachine()
+					STEP(0.05)
+					bo.ClientClaims = clientClaimed
+					BoostsUI.claim, CState.Data.BoostReady = realClaim, realReady
+				end
 				-- using x2 Luck doubles luck; a second one adds its time
 				data.ActiveBoosts = {}
 				data.Items = { Luck2 = 2 }
@@ -3193,7 +3207,7 @@ if ok then
 		item(115, "props on the real ground", bw.Ground == true,
 			string.format("Mega Roll pad top Y %.1f, Aura Machine circle top Y %.1f (ground ~%.1f)", bw.Pad or -1, bw.Circle or -1, Config.GROUND_Y))
 		local bo = STATS.Boosts or {}
-		item(116, "Boost Machine and boosts", bo.Machine == true and bo.EarlyRefused == true and bo.FarRefused == true and bo.Claimed == true
+		item(116, "Boost Machine and boosts", bo.Machine == true and bo.ClientClaims == true and bo.EarlyRefused == true and bo.FarRefused == true and bo.Claimed == true
 			and bo.Doubled == true and bo.Stacked == true and bo.NoneLeft == true,
 			"machine in the Frozen Peaks gives a boost when ready and you're on its circle; x2 Luck doubles luck; another adds 10 minutes")
 		item(117, "Inventory Boosts section", bo.Section == true and bo.UsedFromCard == true and bo.BackToPets == true,

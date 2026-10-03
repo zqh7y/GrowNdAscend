@@ -438,7 +438,7 @@ function Boosts.checkMachine()
 		Boosts.SignTimer.Text = "Ready! Step on the circle"
 		Boosts.SignTimer.TextColor3 = Color3.fromRGB(130, 255, 150)
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		local circle = machine:FindFirstChild("BoostCircle")
+		local circle = machine:FindFirstChild("BoostCircle", true)
 		if root and circle then
 			local flat = Vector3.new(root.Position.X - circle.Position.X, 0, root.Position.Z - circle.Position.Z)
 			if flat.Magnitude <= Config.BOOST_MACHINE.Radius then
