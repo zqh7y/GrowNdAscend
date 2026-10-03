@@ -154,6 +154,37 @@ function Build.ball(parent, position, diameter, props)
 	return Build.part(parent, props)
 end
 
+-- A step-on pad (in front of the machines: step on it to open the screen):
+-- a low flat platform almost flush with the ground, a dark edge, a glowing
+-- ring and a coloured top with four white arrows pointing to the middle.
+-- `ground` is the ground's height under it (X and Z: its middle). Returns the
+-- top disc (named `name`; its Size.Y is its diameter), which the client
+-- checks the player is standing on.
+function Build.stepPad(parent, ground, diameter, color, name)
+	local model = Build.model(parent, "StepPad")
+	local bottom = ground - Vector3.new(0, 0.2, 0)
+	Build.cylinder(model, bottom, 0.45, diameter + 1.2, { Name = "PadEdge", Color = color:Lerp(Color3.new(0, 0, 0), 0.45) })
+	Build.cylinder(model, bottom + Vector3.new(0, 0.45, 0), 0.06, diameter + 0.5, {
+		Name = "PadGlow",
+		Color = color:Lerp(Color3.new(1, 1, 1), 0.3),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	})
+	local top = Build.cylinder(model, bottom, 0.55, diameter, { Name = name, Color = color:Lerp(Color3.new(1, 1, 1), 0.35) })
+	local y = bottom.Y + 0.57
+	for k = 0, 3 do
+		local a = k * math.pi / 2
+		local dir = Vector3.new(math.cos(a), 0, math.sin(a))
+		local at = Vector3.new(bottom.X, y, bottom.Z) + dir * diameter * 0.3
+		for _, turn in ipairs({ -1, 1 }) do
+			-- one arm of a ">" pointing in
+			local arm = CFrame.lookAt(at, at - dir) * CFrame.Angles(0, math.rad(turn * 40), 0) * CFrame.new(0, 0, -0.35)
+			Build.part(model, { Name = "PadArrow", Size = Vector3.new(0.22, 0.05, 0.9), CFrame = arm, Color = Color3.new(1, 1, 1), Material = Enum.Material.Neon, CanCollide = false, CastShadow = false })
+		end
+	end
+	return top
+end
+
 -- Upright cylinder standing on `bottom`
 function Build.cylinder(parent, bottom, height, diameter, props)
 	props = props or {}
