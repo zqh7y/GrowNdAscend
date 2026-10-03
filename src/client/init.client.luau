@@ -23,6 +23,7 @@ require(script.Perks) -- the rebirth perk pads' status
 require(script.BossBar) -- the boss's health bar in the Lava Arena
 require(script.Gatekeeper) -- the gatekeeper animals' speech bubbles and hops
 require(script.BossShop) -- the Boss Shop screen (opened at the shop in the Lava Arena)
+require(script.PetUpgrader) -- the Pet Upgrades stand by the spawn (pet levels)
 require(script.Tutorial) -- the first-time tutorial and each new world's tour
 require(script.Session) -- no reset button, no AFK kick
 

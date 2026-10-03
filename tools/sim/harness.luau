@@ -634,6 +634,58 @@ if ok then
 			PlayerData.sync(player)
 			STATS.BossShop = bs
 		end)
+		try("pet levels", function()
+			-- server: owned pets only, costs coins, raises damage and stats, stops at 10
+			local PetLevels = __cache["PetLevels"]
+			local pl = {}
+			local saved = { Coins = data.Coins, Pets = table.clone(data.Pets), Equipped = table.clone(data.Equipped), Levels = data.PetLevels }
+			data.PetLevels = {}
+			data.Pets.Bunny = 2
+			data.Equipped = { "Bunny" }
+			local cost = Config.petLevelCost("Bunny", 1)
+			local dmg1, luck1, coins1 = Config.hitDamage(data, "Bunny"), Config.teamStat(data, "Luck"), Config.teamStat(data, "Coins")
+			data.Coins = cost - 1
+			pl.Poor = PetLevels.upgrade(player, "Bunny") == false and Config.petLevel(data, "Bunny") == 1 and data.Coins == cost - 1
+			data.Coins = cost
+			pl.Bought = PetLevels.upgrade(player, "Bunny") == 2 and Config.petLevel(data, "Bunny") == 2 and data.Coins == 0
+			pl.Stronger = math.abs(Config.hitDamage(data, "Bunny") / dmg1 - Config.levelPower(2) * Config.petStat("Bunny", "Damage", 2) / Config.petStat("Bunny", "Damage", 1)) < 1e-6
+				and Config.teamStat(data, "Luck") > luck1 and Config.teamStat(data, "Coins") > coins1
+			pl.Pricier = Config.petLevelCost("Bunny", 2) > cost and Config.petLevelCost("Lion", 1) > cost
+			data.Coins = 1e300
+			for _ = 1, 20 do
+				PetLevels.upgrade(player, "Bunny")
+			end
+			pl.Max = Config.petLevel(data, "Bunny") == Config.PET_LEVEL_MAX and PetLevels.upgrade(player, "Bunny") == false
+			data.Pets.Bunny = nil
+			pl.NotOwned = PetLevels.upgrade(player, "Bunny") == false and PetLevels.upgrade(player, "Nope") == false and PetLevels.upgrade(player, 5) == false
+			-- client: the stand by the spawn, 3 pets on podiums with UPGRADE buttons
+			local W = __cache["World/init"]
+			local stand = W.PetUpgrader
+			pl.World = stand ~= nil and #stand.Podiums == 3 and #stand.Buttons == 3 and Config.areaAt(stand.Podiums[2].Position.X) == 1
+			local PU = C("PetUpgrader")
+			data.PetLevels = {}
+			data.Pets = { Dog = 1, Cat = 1, Bunny = 1, Chick = 1 }
+			data.Equipped = { "Cat" }
+			data.Coins = Config.petLevelCost("Cat", 1)
+			PlayerData.sync(player)
+			frames(1)
+			PU.Page = 1
+			PU.refresh()
+			local shown = 0
+			for _, slot in ipairs(PU.Slots) do
+				if slot.Model and slot.Info.Enabled and slot.ButtonGui.Enabled then shown += 1 end
+			end
+			local first = PU.Slots[1]
+			pl.Stand = shown == 3 and first.Name == "Cat" and first.Level.Text == "LV 1 / 10"
+				and first.Button.Content.Label.Text == Config.formatNumber(Config.petLevelCost("Cat", 1)) and first.Button:GetAttribute("Style") == "success"
+				and PU.Pager.Enabled == true and PU.PageLabel.Text == "1/2"
+			PU.upgrade(1)
+			frames(1)
+			pl.Client = PU.LastResult == 2 and Config.petLevel(data, "Cat") == 2 and first.Level.Text == "LV 2 / 10" and first.Button:GetAttribute("Style") == "disabled"
+			data.Coins, data.Pets, data.Equipped, data.PetLevels = saved.Coins, saved.Pets, saved.Equipped, saved.Levels
+			PlayerData.sync(player)
+			STATS.PetLevels = pl
+		end)
 		try("aura machine fuse", function()
 			local AuraMachine = C("AuraMachine")
 			data.Pets.Cat = 3
@@ -2910,6 +2962,11 @@ if ok then
 			item(137, "player list shows the rarest pet hatched (Best)", bestV ~= nil and bestV:IsA("StringValue") and (savedOdds or 0) > 1 and matches and noneDash and bigOk,
 				string.format("Best column '%s' (BestOdds %s); none -> '-' %s; a rare one -> %s", tostring(shownNow), tostring(savedOdds), tostring(noneDash), tostring(bigOk)))
 		end
+		local pl = STATS.PetLevels or {}
+		item(138, "pet levels: the Pet Upgrades stand, coins, up to level 10", pl.Poor == true and pl.Bought == true and pl.Stronger == true and pl.Pricier == true
+			and pl.Max == true and pl.NotOwned == true and pl.World == true and pl.Stand == true and pl.Client == true,
+			string.format("refused without the coins %s; bought level 2 %s; stronger (damage x%.1f, luck and coins up) %s; pricier with level and rarity %s; stops at 10 %s; not owned/junk refused %s; stand in the Forest %s; 3 pets on podiums with priced buttons and pages %s; the button levels it up %s",
+				tostring(pl.Poor), tostring(pl.Bought), Config.levelPower(2), tostring(pl.Stronger), tostring(pl.Pricier), tostring(pl.Max), tostring(pl.NotOwned), tostring(pl.World), tostring(pl.Stand), tostring(pl.Client)))
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,

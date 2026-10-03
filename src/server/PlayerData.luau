@@ -39,6 +39,7 @@ local DEFAULT = {
 	Obtained = {}, -- [pet name] = the roll number it was last hatched on (newest first)
 	LuckBoard = {}, -- [Luck Board row id] = level bought
 	BossUpgrades = {}, -- [Boss Shop upgrade id] = level bought
+	PetLevels = {}, -- [pet name] = its level (2..10; missing = 1), from the Pet Upgrades stand
 	Seen = {}, -- [tutorial key] = true once shown (the first-time tutorial, each world's tour)
 }
 
@@ -83,6 +84,7 @@ local function load(player)
 	data.Obtained = {}
 	data.LuckBoard = {}
 	data.BossUpgrades = {}
+	data.PetLevels = {}
 	data.Seen = {}
 	if ok and saved then
 		for k, v in pairs(saved) do
@@ -110,6 +112,9 @@ local function load(player)
 	end
 	data.Fusion = nil
 
+	if type(data.PetLevels) ~= "table" then
+		data.PetLevels = {}
+	end
 	-- older saves: the best pet's own odds
 	if type(data.BestOdds) ~= "number" then
 		data.BestOdds = 0
@@ -197,6 +202,7 @@ function PlayerData.sync(player)
 		Obtained = data.Obtained or {},
 		LuckBoard = data.LuckBoard or {},
 		BossUpgrades = data.BossUpgrades or {},
+		PetLevels = data.PetLevels or {},
 		Seen = data.Seen or {},
 		MegaReady = data.MegaReady,
 		MegaMult = data.MegaMult,

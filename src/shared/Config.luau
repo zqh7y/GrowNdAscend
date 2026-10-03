@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 83 (Best pet chance on the player list)"
+Config.BUILD = "build 84 (pet levels: Pet Upgrades stand)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -382,17 +382,55 @@ for _, pet: any in ipairs(Config.PETS :: { any }) do
 	end
 end
 
--- One pet's multiplier for a stat ("Huge Fox", "Luck" -> 1.54)
-function Config.petStat(name, stat)
+-- Pet levels (the Pet Upgrades stand by the spawn in the Forest): every pet
+-- (each kind and size you own, all its copies together) starts at level 1
+-- and can be upgraded with coins up to PET_LEVEL_MAX. Each level above 1
+-- gives: +PET_LEVEL_POWER power, +PET_LEVEL_BONUS of each stat's bonus plus
+-- +PET_LEVEL_FLAT flat (so even a plain 1x stat grows), +PET_LEVEL_SPEED
+-- speed. Level 10: x2.8 power, bonuses x2.35 (+0.09). Saved in
+-- data.PetLevels[pet name].
+Config.PET_LEVEL_MAX = 10
+Config.PET_LEVEL_POWER = 0.2
+Config.PET_LEVEL_BONUS = 0.15
+Config.PET_LEVEL_FLAT = 0.01
+Config.PET_LEVEL_SPEED = 0.05
+
+-- A pet's level (1 if never upgraded)
+function Config.petLevel(data, name)
+	local level = data and data.PetLevels and data.PetLevels[name]
+	if type(level) ~= "number" or level ~= level then
+		return 1
+	end
+	return math.clamp(math.floor(level), 1, Config.PET_LEVEL_MAX)
+end
+
+-- The power multiplier of a level (level 1 = x1)
+function Config.levelPower(level)
+	return 1 + Config.PET_LEVEL_POWER * ((level or 1) - 1)
+end
+
+-- Coins to take a pet from `level` to the next: rarer pets cost more,
+-- and each level doubles
+function Config.petLevelCost(name, level)
+	local odds = math.max(Config.oddsOf(name), 1)
+	local cost = 100 * odds ^ 0.75 * 2 ^ ((level or 1) - 1)
+	local digits = 10 ^ math.max(math.floor(math.log10(cost)) - 2, 0)
+	return math.floor(cost / digits + 0.5) * digits -- 3 significant digits
+end
+
+-- One pet's multiplier for a stat ("Huge Fox", "Luck" -> 1.54), at a
+-- level (nil = 1)
+function Config.petStat(name, stat, level)
 	local pet, size = Config.petInfo(name)
 	if not pet then
 		return 1
 	end
+	local up = math.max((level or 1) - 1, 0)
 	local value = pet.Stats[stat] or 1
 	if stat == "Speed" then
-		return value
+		return value * (1 + Config.PET_LEVEL_SPEED * up)
 	end
-	value = 1 + (value - 1) * size.Luck
+	value = 1 + (value - 1) * size.Luck * (1 + Config.PET_LEVEL_BONUS * up) + Config.PET_LEVEL_FLAT * up
 	-- an aura multiplies the stats it boosts
 	local aura = Config.petAura(name)
 	if aura and aura.Boosts[stat] then
@@ -405,7 +443,7 @@ end
 function Config.teamStat(data, stat)
 	local total = 1
 	for _, name in ipairs(data.Equipped or {}) do
-		total += Config.petStat(name, stat) - 1
+		total += Config.petStat(name, stat, Config.petLevel(data, name)) - 1
 	end
 	return total
 end
@@ -1200,9 +1238,12 @@ Config.FIGHT_RADIUS = 40 -- pets go after coins this close to the player
 -- rest. An enemy pays the same in total either way.
 Config.FIGHT_PAY = 0.5
 
--- One hit of a pet: its power x the Damage upgrade x its own Damage stat
+-- One hit of a pet: its power (x its level) x the Damage upgrade x its own
+-- Damage stat
 function Config.hitDamage(data, name)
-	return Config.petPower(name) * Config.upgradeValue(data, "Damage") * Config.petStat(name, "Damage") * Config.perkValue(data, "Damage")
+	local level = Config.petLevel(data, name)
+	return Config.petPower(name) * Config.levelPower(level) * Config.upgradeValue(data, "Damage")
+		* Config.petStat(name, "Damage", level) * Config.perkValue(data, "Damage")
 end
 
 -- One equipped pet's damage per second
@@ -1230,8 +1271,8 @@ function Config.bestTeam(data)
 	local dps, luck, coins = {}, {}, {}
 	for _, name in ipairs(copies) do
 		dps[name] = dps[name] or Config.petDps(data, name)
-		luck[name] = luck[name] or Config.petStat(name, "Luck")
-		coins[name] = coins[name] or Config.petStat(name, "Coins")
+		luck[name] = luck[name] or Config.petStat(name, "Luck", Config.petLevel(data, name))
+		coins[name] = coins[name] or Config.petStat(name, "Coins", Config.petLevel(data, name))
 	end
 	table.sort(copies, function(a, b)
 		if dps[a] ~= dps[b] then

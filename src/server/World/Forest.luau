@@ -514,6 +514,61 @@ local function leaderboardStage(parent, world, center)
 	return total
 end
 
+-- The Pet Upgrades stand: a stage with three round podiums (your pets stand
+-- on them, shown by the client: client/PetUpgrader.luau) and a big green
+-- button in front of each, under a PET UPGRADES arch. Faces the middle.
+local PODIUM_COLORS = { Color3.fromRGB(120, 200, 255), Color3.fromRGB(255, 205, 60), Color3.fromRGB(255, 130, 190) }
+local function petStand(parent, center)
+	local model = Build.model(parent, "PetUpgrader")
+	local facing = CFrame.lookAt(center, Vector3.new(center.X, center.Y, 0))
+	local SPREAD = 7.5
+	-- the stage, with a gold trim and a step in front
+	Build.part(model, { Size = Vector3.new(SPREAD * 3 + 2, 1, 8), CFrame = facing * CFrame.new(0, 0.5, 0.6), Color = WHITE })
+	Build.part(model, { Size = Vector3.new(SPREAD * 3 + 2.2, 0.3, 8.2), CFrame = facing * CFrame.new(0, 1.05, 0.6), Color = Color3.fromRGB(110, 210, 120) })
+	Build.part(model, { Size = Vector3.new(SPREAD * 3, 0.5, 1.6), CFrame = facing * CFrame.new(0, 0.25, -4.1), Color = WHITE })
+	local podiums, buttons = {}, {}
+	for i = 1, 3 do
+		local x = (i - 2) * SPREAD
+		local color = PODIUM_COLORS[i]
+		-- a round podium: a darker foot, the column, a light top the pet stands on
+		Build.part(model, {
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.6, 5.2, 5.2),
+			CFrame = facing * CFrame.new(x, 1.5, 1.2) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = color:Lerp(Color3.new(0, 0, 0), 0.25),
+		})
+		Build.part(model, {
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1.8, 4.4, 4.4),
+			CFrame = facing * CFrame.new(x, 2.7, 1.2) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = color,
+		})
+		podiums[i] = Build.part(model, {
+			Name = "Podium" .. i,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.3, 4.8, 4.8),
+			CFrame = facing * CFrame.new(x, 3.75, 1.2) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = color:Lerp(Color3.new(1, 1, 1), 0.5),
+		})
+		-- the button: a little console in front with a big green top
+		Build.part(model, { Size = Vector3.new(3.4, 1.6, 1.6), CFrame = facing * CFrame.new(x, 2, -2.4), Color = WHITE })
+		buttons[i] = Build.part(model, {
+			Name = "Button" .. i,
+			Size = Vector3.new(2.8, 0.4, 1.2),
+			CFrame = facing * CFrame.new(x, 2.95, -2.4),
+			Color = Color3.fromRGB(80, 220, 110),
+			Material = Enum.Material.Neon,
+		})
+	end
+	-- the arch with the sign
+	for _, x in ipairs({ -SPREAD * 1.5 - 0.6, SPREAD * 1.5 + 0.6 }) do
+		Build.part(model, { Size = Vector3.new(0.9, 11, 0.9), CFrame = facing * CFrame.new(x, 6.5, 4), Color = WHITE })
+		Build.ball(model, (facing * CFrame.new(x, 12.4, 4)).Position, 1.3, { Color = Color3.fromRGB(255, 205, 60) })
+	end
+	Build.sign(model, facing * CFrame.new(0, 11, 4), Vector3.new(SPREAD * 3 + 2, 2.6, 0.6), "PET UPGRADES", Color3.new(1, 1, 1), Color3.fromRGB(80, 190, 100))
+	return { Model = model, Podiums = podiums, Buttons = buttons }
+end
+
 -- Building the area --------------------------------------------------------------------------------
 
 -- A tall wooden plank fence along one side of the area (so the scenery
@@ -582,6 +637,13 @@ function Forest.build(ctx)
 	space:add(cottageAt, 9)
 	space:add(cottageAt + Vector3.new(0, 0, -7), 4)
 	windmill(deco, Vector3.new(x0 + 82, 0, -(half + 14)), 1)
+	-- the Pet Upgrades stand on the right, next to the spawn
+	local standAt = Vector3.new(x0 + 21, 0, half - 9)
+	ctx.World.PetUpgrader = petStand(deco, standAt)
+	for dx = -12, 12, 6 do
+		space:add(standAt + Vector3.new(dx, 0, 0), 6)
+		space:add(standAt + Vector3.new(dx, 0, -7), 4) -- room to walk up to the buttons
+	end
 	local outside = Build.space()
 	outside:add(Vector3.new(x0 + 82, 0, -(half + 14)), 8)
 

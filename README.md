@@ -364,6 +364,8 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 
 **Props on the ground:** the worlds build their props on Y = 0, but the real ground comes out at about Y 2.0; once the map is built every model standing in the walkable strip (trees, rocks, fountains, the igloo, machines, gates...) is lifted so its lowest visible part rests on the ground (`World.liftProps`), again a moment later when the terrain can be measured.
 
+**Pet levels (Pet Upgrades stand):** in the Forest, on the right next to the spawn: a white stage with three round podiums (blue, gold, pink) under a green "PET UPGRADES" arch. Three of your pets stand on the podiums, turning and bobbing: your team first (each kind once), then your strongest other pets; the arrows under the sign show the next three. Over each pet: its name, "LV 3 / 10" and what the next level gives; in front of it a green button with the price. Click it to level that pet up with coins (every copy of that kind and size; saved in data.PetLevels). Max level 10. Each level: +20% power (level 10 = x2.8), +15% of every stat bonus plus +1% flat, +5% speed. The price grows with the pet's rarity (and size) and doubles each level (`Config.petLevelCost`). The Inventory's details show the level ("LV 3") and the levelled power and stats. (`Config.PET_LEVEL_*`, `server/PetLevels.luau`, `client/PetUpgrader.luau`)
+
 **Step pads:** in front of the Pet Aura Machine, the Boost Machine, the Fuse Machine and the Boss Shop: a low flat platform almost flush with the ground in the machine's colour, with a dark edge, a glowing ring and four white arrows pointing to the middle. Step on it to open that screen (`Build.stepPad`).
 
 **Buttons (sticker style, the user's reference):** no tile or panel behind any of them, just a big glossy cartoon icon with a dark outline and a white shine, and a chunky white name with a thick dark outline over the icon's bottom edge (`client/Sticker.luau`). Each icon is 3D: a darker copy of it sits just under it as its thick edge, with a soft shadow on the ground. Hover grows and tilts the icon, a press squashes it. Left menu (two columns: Inventory | Index, Upgrades | Teleport, Rebirth | Settings): Inventory (an orange backpack), Index (a blue book with a gold star), Upgrades (a big green arrow), Teleport (a purple portal), Rebirth (a gold crown with a red gem), Settings (a grey gear). Right: **ROLL** is an icy white-blue dice with navy pips (a slim cyan bar on its top edge fills while it gets ready), and AUTO to its left is a round badge with ">>" that turns green when it's on.
@@ -429,6 +431,8 @@ rojo serve              # then connect from the Rojo plugin in Studio
 | `src/client/FuseMachine.luau` | The Fuse Machine screen (100 → Huge, 20 Huge → Titanic) and reveal |
 | `src/server/Fuse.luau` | Fusing pets into their Huge / Titanic |
 | `src/client/BossShop.luau` | The Boss Shop screen (Lava Arena) |
+| `src/client/PetUpgrader.luau` | The Pet Upgrades stand by the spawn: your pets on podiums, UPGRADE buttons (pet levels) |
+| `src/server/PetLevels.luau` | Levelling pets up with coins (UpgradePet remote) |
 | `src/server/BossShop.luau` | Buying boss upgrades |
 | `src/client/Living.luau`, `Pets.luau` | Living coins hopping, pets following and attacking |
 | `src/client/Creature.luau` | How every animal moves (walk, hop, waddle, fly, hover, swim, slither) |

@@ -47,5 +47,6 @@ require(script.Progress)
 require(script.Aura) -- the Pet Aura Machine (Sahara)
 require(script.Fuse) -- the Fuse Machine (Sakura Jungle)
 require(script.BossShop) -- the Boss Shop (Lava Arena)
+require(script.PetLevels) -- pet levels (the Pet Upgrades stand in the Forest)
 require(script.BoostZones) -- random Luck / Coins circles on the map
 require(script.Items) -- boost items, the Boost Machine, teleporting

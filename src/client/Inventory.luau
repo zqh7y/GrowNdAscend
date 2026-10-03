@@ -571,15 +571,16 @@ local function fillDetails(name)
 	local rarity = Config.rarity(pet.Odds)
 	detailName.Text = Config.displayName(name)
 	local aura = Config.petAura(name)
+	local level = Config.petLevel(data, name)
 	detailTag.Text = string.upper(rarity.Name) .. (if size.Index > 1 then "  ·  " .. string.upper(size.Name) else "")
-		.. (if aura then "  ·  " .. string.upper(aura.Name) else "")
+		.. (if aura then "  ·  " .. string.upper(aura.Name) else "") .. "  ·  LV " .. level
 	detailTag.BackgroundColor3 = accentOf(name)
 	local outfit = Config.outfitOf(name)
 	outfitValue.Text = if outfit then outfit.Name else "-"
-	powerValue.Text = Config.formatNumber(Config.petPower(name))
+	powerValue.Text = Config.formatNumber(Config.petPower(name) * Config.levelPower(level))
 	dpsValue.Text = Config.formatNumber(Config.petDps(data, name))
 	for _, look in ipairs(STAT_LOOK) do
-		local value = Config.petStat(name, look.Stat)
+		local value = Config.petStat(name, look.Stat, level)
 		statValues[look.Stat].Text = Config.formatStat(value)
 		statValues[look.Stat].TextColor3 = if value > 1.001 then Ui.INK else Ui.MUTED
 	end
