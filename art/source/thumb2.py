@@ -298,11 +298,9 @@ f'''<ellipse cx="40" cy="-95" rx="16" ry="9" fill="#1f2f8a"/><ellipse cx="90" cy
 </g>''')
 for x, y, sz, col in ((780, 255, 1.8, "#fff8c4"), (1060, 300, 1.3, "#ffffff"), (1040, 560, 1.5, "#fff8c4"), (720, 590, 1.0, "#ffffff"), (1180, 470, 1.1, "#fff8c4"), (300, 420, 1.2, "#ffffff"), (1880, 440, 1.4, "#fff8c4"), (1450, 330, 1.0, "#ffffff")):
     parts.append(spark(x, y, sz, col))
-# luck burst badge
-parts.append(f'''<g transform="translate(1110 250) rotate(10)">
-<path d="M0,-82 L22,-32 L76,-42 L42,0 L76,42 L22,32 L0,82 L-22,32 L-76,42 L-42,0 L-76,-42 L-22,-32 Z" fill="{shade("#ff4f6d")}" stroke="{INK}" stroke-width="8" stroke-linejoin="round"/>
-<text x="0" y="14" font-family="Lilita" font-size="44" fill="#ffffff" stroke="{INK}" stroke-width="8" paint-order="stroke" text-anchor="middle">LUCK!</text>
-</g>''')
+# the pet's chance, big and rainbow, above the rare dragon
+from chance import chance, defs as chance_defs
+parts.append(chance("1/999,999,999", 1488, 392, 122, -4, "odds"))
 # the title: 3D extrusion, gradient face, a shine band, sparkles
 title = []
 for d in range(14, 0, -2):
@@ -333,7 +331,7 @@ head = f'''<defs>
 <filter id="soft2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.5"/></filter>
 <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="4"/><feColorMatrix type="saturate" values="0"/></filter>
-{"".join(defs)}
+{"".join(defs)}{chance_defs("odds")}
 </defs>'''
 svg = '<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">' + head + "".join(parts) + '</svg>'
 html = '<!doctype html><html><head><meta charset="utf-8"><style>@font-face{font-family:"Lilita";src:url("lilita.ttf");}html,body{margin:0;padding:0;}svg{display:block;}</style></head><body>' + svg + '</body></html>'
