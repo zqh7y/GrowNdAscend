@@ -1069,6 +1069,73 @@ terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF 
 World.settlePaths()
 task.delay(2, World.settlePaths)
 
+-- Props onto the ground. The worlds build their props on Y = 0 (or
+-- Config.GROUND_Y), but the real ground comes out at about Y 2.0, so they'd
+-- stand a little in it. Every model standing in the walkable strip (not the
+-- paths, which settle themselves) is lifted so its lowest visible part rests
+-- on the ground (World.surfaceAt: the cartoon floor where there is one). Its
+-- step pad, if it has one, stays level with the ground.
+World.LiftSkip = {} -- folders left alone (the paths are added below)
+World.Lifted = 0
+function World.surfaceAt(x, z)
+	local y = World.groundAt(x, z)
+	return math.max(Config.TERRAIN_TOP, if y and y < Config.GROUND_Y + 3 then y else Config.TERRAIN_TOP)
+end
+function World.lowest(model)
+	local bottom = math.huge
+	for _, d in ipairs(model:GetDescendants()) do
+		-- (not invisible walls, step pads, or helper pieces buried completely)
+		if d:IsA("BasePart") and d.Transparency < 1 and not (d.Parent and d.Parent.Name == "StepPad") then
+			local r = d.CFrame
+			local half = (math.abs(r.RightVector.Y) * d.Size.X + math.abs(r.UpVector.Y) * d.Size.Y + math.abs(r.LookVector.Y) * d.Size.Z) / 2
+			if d.Position.Y + half > -0.5 then
+				-- (a ball or a lying cylinder sunk past its middle, like the igloo's
+				-- dome and tunnel, counts from its middle: the rest is meant to
+				-- be in the ground)
+				local sunkBall = d:IsA("Part") and (d.Shape == Enum.PartType.Ball or d.Shape == Enum.PartType.Cylinder)
+					and half > 1.5 and d.Position.Y < Config.TERRAIN_TOP + 0.6
+				bottom = math.min(bottom, if sunkBall then d.Position.Y else d.Position.Y - half)
+			end
+		end
+	end
+	return bottom
+end
+function World.liftProps()
+	local function skipped(inst)
+		local up = inst
+		while up do
+			if World.PathPoints[up] or table.find(World.LiftSkip, up) then
+				return true
+			end
+			up = up.Parent
+		end
+		return false
+	end
+	for _, inst in ipairs(map:GetDescendants()) do
+		if inst:IsA("Model") and not inst.Parent:IsA("Model") and not skipped(inst) then
+			local ok, cf = pcall(function()
+				return inst:GetPivot()
+			end)
+			local bottom = World.lowest(inst)
+			if ok and bottom < math.huge then
+				local p = cf.Position
+				if math.abs(p.Z) < HALF + 1 and p.X > -1 and p.X < TOTAL + 1 then
+					local delta = World.surfaceAt(p.X, p.Z) - bottom
+					if delta > 0.05 and delta < 3.2 then
+						inst:PivotTo(inst:GetPivot() + Vector3.new(0, delta, 0))
+						for _, pad in ipairs(inst:GetDescendants()) do
+							if pad:IsA("Model") and pad.Name == "StepPad" then
+								pad:PivotTo(pad:GetPivot() - Vector3.new(0, delta, 0))
+							end
+						end
+						World.Lifted += 1
+					end
+				end
+			end
+		end
+	end
+end
+
 -- Cartoon floor: the walkable strip of every world is covered with smooth,
 -- flat tiles in one base colour (no realistic terrain texture), with a
 -- lighter path down the middle, and cartoon details painted on top: soft
@@ -1209,49 +1276,19 @@ if World.CARTOON_FLOOR then
 		local look = World.FLOOR[hill.Area] or World.FLOOR[1]
 		hill.Part.Color = look.Base:Lerp(look.Dark, 0.35)
 	end
-	-- things built for the old ground height (Y 0 to 1.6) sit a little in the
-	-- floor: every model standing in the strip goes up onto the floor (not
-	-- the paths, which settle themselves, nor anything far below it, like a
-	-- gate's invisible wall)
-	World.Lifted = 0
-	function World.liftOntoFloor()
-		local skip = { floor }
-		if hillFolder then
-			table.insert(skip, hillFolder)
-		end
-		for folder in pairs(World.PathPoints) do
-			table.insert(skip, folder)
-		end
-		local function skipped(inst)
-			local up = inst
-			while up do
-				if table.find(skip, up) then
-					return true
-				end
-				up = up.Parent
-			end
-			return false
-		end
-		for _, inst in ipairs(map:GetDescendants()) do
-			if inst:IsA("Model") and not inst.Parent:IsA("Model") and #inst:GetChildren() > 0 and not skipped(inst) then
-				local ok, cf, size = pcall(function()
-					return inst:GetBoundingBox()
-				end)
-				if ok and math.abs(cf.Position.Z) < HALF and cf.Position.X > 0 and cf.Position.X < TOTAL then
-					local bottom = cf.Position.Y - size.Y / 2
-					local delta = heightAt(cf.Position.X, cf.Position.Z, 1) - bottom
-					if delta > 0.05 and delta < 2.6 then
-						inst:PivotTo(inst:GetPivot() + Vector3.new(0, delta, 0))
-						World.Lifted += 1
-					end
-				end
-			end
-		end
+	-- props stand on the floor's top (World.liftProps, above), not on the
+	-- terrain under it; the floor, the hills and the sides are left alone
+	World.surfaceAt = function(x, z)
+		return heightAt(x, z, 1)
+	end
+	table.insert(World.LiftSkip, floor)
+	if hillFolder then
+		table.insert(World.LiftSkip, hillFolder)
 	end
 	task.delay(2, function()
 		World.settleFloor()
 		World.coverSides()
-		World.liftOntoFloor()
+		World.liftProps()
 	end)
 	for i = 1, #Config.AREAS do
 		local look = World.FLOOR[i] or World.FLOOR[1]
@@ -1416,6 +1453,13 @@ if World.CARTOON_FLOOR then
 			end
 		end
 	end
+end
+
+-- (props onto the ground, or the cartoon floor: now, and again once the
+-- terrain can be measured)
+World.liftProps()
+if not World.CARTOON_FLOOR then
+	task.delay(2.5, World.liftProps)
 end
 
 -- Breakable spots were picked before the small props and some terrain; keep
