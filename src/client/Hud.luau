@@ -465,9 +465,10 @@ local function button(parent, order, art, label, onClick)
 	return holder, b
 end
 
-button(nav, 1, "backpack", "Inventory", function()
+Hud.NavButtons = {} -- [label] = the sticker button (the tutorial points at them)
+Hud.NavButtons.Inventory = select(2, button(nav, 1, "backpack", "Inventory", function()
 	Inventory.open()
-end)
+end))
 local _, indexButton = button(nav, 2, "book", "Index", Index.open)
 button(nav, 3, "upgrade", "Upgrades", UpgradeBoard.openScreen)
 button(nav, 4, "portal", "Teleport", Travel.open)

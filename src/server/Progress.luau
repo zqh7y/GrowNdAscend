@@ -93,6 +93,26 @@ for i, gate in pairs(World.Gates) do
 	end)
 end
 
+-- Tutorials the player has seen (client/Tutorial.luau): only known keys,
+-- so nothing else can be written into the save
+local SEEN_KEYS = { Tutorial = true }
+for i = 2, #Config.AREAS do
+	SEEN_KEYS["World" .. i] = true
+end
+local seenFunction = Instance.new("RemoteFunction")
+seenFunction.Name = "MarkSeen" -- client -> server: (key) -> true
+seenFunction.Parent = remotes
+seenFunction.OnServerInvoke = Security.guard("MarkSeen", function(player, key)
+	local data = PlayerData.get(player)
+	if not data or type(key) ~= "string" or not SEEN_KEYS[key] then
+		return false
+	end
+	data.Seen = data.Seen or {}
+	data.Seen[key] = true
+	PlayerData.sync(player)
+	return true
+end, 4)
+
 rebirthFunction.OnServerInvoke = Security.guard("Rebirth", function(player)
 	local data = PlayerData.get(player)
 	if not data then
