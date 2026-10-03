@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Build = require(ReplicatedStorage.Shared.Build)
+local Gatekeepers = require(script.Gatekeepers)
 
 local World = {}
 
@@ -623,21 +624,19 @@ local function buildGate(i)
 		area.Color:Lerp(Color3.new(0, 0, 0), 0.15)
 	)
 
-	-- the button players walk up to (on the side they come from)
-	local button = Build.cylinder(gate, Vector3.new(x - 6, 0, 0), 1, 7, {
-		Name = "UnlockButton",
-		Color = area.Color,
-		Material = Enum.Material.Neon,
-	})
+	-- the gatekeeper: a friendly animal of the world behind the gate, beside
+	-- it on the side players come from. Ask it to open the gate
+	-- (server/Progress.luau decides; it answers in a speech bubble).
+	local keeper, head = Gatekeepers.build(gate, i, Vector3.new(x - 5, 0, 7), Vector3.new(-1, 0, 0))
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Unlock " .. area.Name
-	prompt.ObjectText = string.lower(Config.areaCostText(i))
+	prompt.ActionText = "Ask to open"
+	prompt.ObjectText = keeper:GetAttribute("Animal") .. "  ·  " .. string.lower(Config.areaCostText(i))
 	prompt.HoldDuration = 0.3
-	prompt.MaxActivationDistance = 14
+	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
-	prompt.Parent = button
+	prompt.Parent = head
 
-	World.Gates[i] = { Barrier = barrier, Blocker = blocker, Sign = sign, Button = button, Prompt = prompt, Faces = faces }
+	World.Gates[i] = { Barrier = barrier, Blocker = blocker, Sign = sign, Button = head, Keeper = keeper, Prompt = prompt, Faces = faces }
 end
 
 -- Opens (or closes) the gate into area i
@@ -658,8 +657,7 @@ function World.setGateOpen(i, open)
 	for _, face in ipairs(gate.Faces) do
 		face.Enabled = not open
 	end
-	gate.Prompt.Enabled = not open
-	gate.Button.Transparency = if open then 1 else 0
+	gate.Prompt.Enabled = not open -- (the gatekeeper stays, as a friendly guard)
 	Build.setSignText(gate.Sign, if open
 		then area.Name:upper()
 		else area.Name:upper() .. "  ·  " .. Config.areaCostText(i))

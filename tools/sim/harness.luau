@@ -2750,6 +2750,37 @@ if ok then
 			item(134, "props stand on the ground, not in it", checked >= 7 and sunk == 0 and (W.Lifted or 0) >= 50,
 				string.format("%d props checked, %d sunk %s; %d models lifted onto the ground", checked, sunk, table.concat(list, ", "), W.Lifted or 0))
 		end
+		do
+			-- a gatekeeper animal at every gate: ask it, it answers (no / yes) and opens
+			local W = __cache["World/init"]
+			local GK = __cache["Client/Gatekeeper"]
+			local animals, prompts = {}, 0
+			for i = 2, #Config.AREAS do
+				local g = W.Gates[i]
+				local keeper = g.Keeper
+				if keeper then
+					animals[keeper:GetAttribute("Animal") or "?"] = true
+					if g.Prompt.Parent and g.Prompt.Parent.Name == "Head" and g.Prompt.Parent.Parent == keeper then prompts += 1 end
+				end
+			end
+			local kinds = 0
+			for _ in pairs(animals) do kinds += 1 end
+			local saved = data.Unlocked
+			data.Unlocked = 2
+			W.Gates[4].Prompt.Triggered:Fire(player)
+			STEP(0.05)
+			local refused = GK.Last ~= nil and GK.Last.Gate == 4 and GK.Last.Mood == "no" and data.Unlocked == 2 and GK.Last.Bubble ~= nil
+			data.Unlocked = 3
+			W.Gates[4].Prompt.Triggered:Fire(player)
+			STEP(0.05)
+			local accepted = GK.Last ~= nil and GK.Last.Gate == 4 and GK.Last.Mood == "yes" and data.Unlocked == 4 and string.find(GK.Last.Text, "Welcome") ~= nil
+			data.Unlocked = saved
+			for i = 2, #Config.AREAS do W.setGateOpen(i, i <= saved) end
+			PlayerData.sync(player)
+			item(135, "gatekeeper animals open the worlds", kinds == #Config.AREAS - 1 and prompts == #Config.AREAS - 1 and refused and accepted,
+				string.format("%d different animals, %d asking prompts on their heads; too early -> '%s'; asked with the coins -> opened %s",
+					kinds, prompts, tostring(refused), tostring(accepted)))
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,
