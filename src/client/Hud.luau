@@ -72,7 +72,7 @@ Effects.CoinLanded.Event:Connect(function()
 	TweenService:Create(coinScale, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 end)
 
--- The player card (bottom left): level + EXP on top, your team under it ----------------------------
+-- The player card (bottom left): level + EXP (and, on phones, your team under it) -----------------
 
 local card = Ui.new("Frame", {
 	Name = "PlayerCard",
@@ -145,6 +145,43 @@ local teamText = Ui.new("TextLabel", {
 	TextSize = 13,
 	Parent = team,
 })
+Hud.Team = team
+
+-- With a mouse and keyboard YOUR TEAM is a tall column on its own at the
+-- right edge, halfway down, between the AUTO dice (bottom right) and
+-- Roblox's player list (top right, Tab): the title, the pets one under the
+-- other, the DPS at the bottom. On phones it's the row in the top-right card.
+local teamLayout = team:FindFirstChildOfClass("UIListLayout")
+local teamPadding = team:FindFirstChildOfClass("UIPadding")
+local chipsLayout = chips:FindFirstChildOfClass("UIListLayout")
+function Hud.setTeamVertical(vertical)
+	if vertical then
+		teamLayout.FillDirection = Enum.FillDirection.Vertical
+		teamLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		teamLayout.Padding = UDim.new(0, 6)
+		teamPadding.PaddingLeft, teamPadding.PaddingRight = UDim.new(0, 8), UDim.new(0, 8)
+		teamPadding.PaddingTop, teamPadding.PaddingBottom = UDim.new(0, 10), UDim.new(0, 10)
+		team.Size = UDim2.fromOffset(84, 0)
+		team.AutomaticSize = Enum.AutomaticSize.Y
+		chipsLayout.FillDirection = Enum.FillDirection.Vertical
+		chipsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		chips.Size = UDim2.fromOffset(64, 0)
+		chips.AutomaticSize = Enum.AutomaticSize.Y
+	else
+		teamLayout.FillDirection = Enum.FillDirection.Horizontal
+		teamLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+		teamLayout.Padding = UDim.new(0, 6)
+		teamPadding.PaddingLeft, teamPadding.PaddingRight = UDim.new(0, 12), UDim.new(0, 14)
+		teamPadding.PaddingTop, teamPadding.PaddingBottom = UDim.new(0, 0), UDim.new(0, 0)
+		team.Size = UDim2.fromOffset(0, 64)
+		team.AutomaticSize = Enum.AutomaticSize.X
+		chipsLayout.FillDirection = Enum.FillDirection.Horizontal
+		chipsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+		chips.Size = UDim2.fromOffset(0, 50)
+		chips.AutomaticSize = Enum.AutomaticSize.X
+	end
+	Hud.TeamVertical = vertical
+end
 
 -- each equipped pet: a round chip with the pet inside, and under it its
 -- damage per second and its share of the team's damage ("1.2K · 45%")
@@ -494,6 +531,10 @@ function Hud.layout(touch)
 		card.AnchorPoint = Vector2.new(1, 0)
 		card.Position = UDim2.new(1, -12, 0, Hud.TOUCH_CARD_TOP)
 		cardScale.Scale = Hud.TOUCH_CARD_SCALE
+		Hud.setTeamVertical(false)
+		team.Parent = card
+		team.AnchorPoint = Vector2.new(0, 0)
+		team.Position = UDim2.new()
 		-- the level on its own at the very bottom left
 		levelBar.Parent = gui
 		levelBar.AnchorPoint = Vector2.new(0, 1)
@@ -511,6 +552,11 @@ function Hud.layout(touch)
 		levelBar.Position = UDim2.new()
 		levelTouchScale.Scale = 1
 		levelBar.LayoutOrder, team.LayoutOrder = 1, 2
+		-- YOUR TEAM: a column at the right edge, halfway down
+		Hud.setTeamVertical(true)
+		team.Parent = gui
+		team.AnchorPoint = Vector2.new(1, 0.5)
+		team.Position = UDim2.new(1, -16, 0.5, 0)
 		nav.AnchorPoint = Vector2.new(0, 0.5)
 		nav.Position = UDim2.new(0, 16, 0.5, 20)
 		controls.Position = UDim2.new(1, -18, 1, -16)

@@ -2561,14 +2561,19 @@ if ok then
 			local Hud = __cache["Client/Hud"]
 			local Screen = __cache["Client/Screen"]
 			local c = Hud.PlayerCard
-			local level, team = c and c:FindFirstChild("Level"), c and c:FindFirstChild("Team")
-			local pcOk = c ~= nil and c.Position.X.Scale == 0 and c.Position.Y.Scale == 1 and c.AnchorPoint.Y == 1
+			local level, team = c and c:FindFirstChild("Level"), Hud.Team
+			-- PC: the level bottom left; YOUR TEAM a column at the right edge, halfway down
+			local function teamColumn()
+				return team.Parent ~= c and team.AnchorPoint.X == 1 and team.Position.X.Scale == 1 and team.Position.Y.Scale == 0.5
+					and Hud.TeamVertical == true and team:FindFirstChildOfClass("UIListLayout").FillDirection == Enum.FillDirection.Vertical
+			end
+			local pcOk = c ~= nil and c.Position.X.Scale == 0 and c.Position.Y.Scale == 1 and c.AnchorPoint.Y == 1 and teamColumn()
 			-- on a phone: the card goes top left (clear of the joystick), ROLL / AUTO move up (clear of jump)
 			Hud.layout(true)
 			local phoneOk = c.Position.X.Scale == 1 and c.Position.Y.Scale == 0 and c.Position.Y.Offset <= 20 and Screen.Controls.Controls.Position.Y.Offset <= -150
-				and level.Parent ~= c and level.AnchorPoint.Y == 1 and level.AnchorPoint.X == 0 and level.Position.X.Scale == 0 and level.Position.Y.Scale == 1 and team.Parent == c
+				and level.Parent ~= c and level.AnchorPoint.Y == 1 and level.AnchorPoint.X == 0 and level.Position.X.Scale == 0 and level.Position.Y.Scale == 1 and team.Parent == c and Hud.TeamVertical == false
 			Hud.layout(false)
-			local backOk = c.Position.Y.Scale == 1 and level.Parent == c and level.LayoutOrder < team.LayoutOrder
+			local backOk = c.Position.Y.Scale == 1 and level.Parent == c and teamColumn()
 			-- an iPhone in landscape (844 x 390): readable UI, panels and the reveal fit, nothing overlaps
 			local phone = Vector2.new(844, 390)
 			local scale = Screen.scaleFor(phone, true)
@@ -2589,7 +2594,7 @@ if ok then
 			print(string.format("  iPhone 844x390: UI scale %.2f (text 12 -> %.1fpt), panels x%.2f (%dx%d pt), card top right %d-%d (x%.2f), menu %d-%d of %d, teleport x%.2f", scale, 12 * scale, fit, 900 * fit * scale, 600 * fit * scale, Hud.TOUCH_CARD_TOP, cardBottom, Hud.TOUCH_CARD_SCALE, navTop, navBottom, tall, tf))
 			item(128, "player card bottom left; phone layout (iPhone)", pcOk and phoneOk and backOk
 				and level ~= nil and team ~= nil and level.LayoutOrder < team.LayoutOrder,
-				string.format("PC: bottom left, level on top of YOUR TEAM %s; iPhone: bigger readable UI, panels and reveals shrink to fit, YOUR TEAM top right, level at the very bottom left, menu top left, ROLL/AUTO above the jump button %s", tostring(pcOk), tostring(phoneOk)))
+				string.format("PC: level bottom left, YOUR TEAM a column at the right edge between AUTO and the player list %s; iPhone: bigger readable UI, panels and reveals shrink to fit, YOUR TEAM top right, level at the very bottom left, menu top left, ROLL/AUTO above the jump button %s", tostring(pcOk), tostring(phoneOk)))
 		end
 		do
 			-- security: spam is dropped, bad arguments never break anything,

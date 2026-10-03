@@ -359,13 +359,13 @@ local function refreshAuto(animate)
 	if not autoRow then
 		return
 	end
-	-- AUTO: white "AUTO OFF", or green "AUTO ON" with its status dot lit
+	-- AUTO: always white; the caption says "AUTO ON" or "AUTO OFF"
 	Sticker.setAuto(autoRow, autoRoll)
 	if Roll.AutoCaption then
 		Roll.AutoCaption.Text = if autoRoll then "AUTO ON" else "AUTO OFF"
 	end
 	if Roll.AutoDot then
-		Roll.AutoDot.Visible = autoRoll
+		Roll.AutoDot.Visible = false -- (the button stays white; the caption says ON/OFF)
 	end
 	if animate then
 		Ui.pop(autoRow, 0.92)
