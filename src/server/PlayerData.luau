@@ -24,6 +24,7 @@ local DEFAULT = {
 	Pets = {}, -- [pet name with size, e.g. "Huge Tiger"] = how many you have
 	Equipped = {}, -- names of the pets following you (they add luck)
 	Best = nil, -- name of the rarest pet ever rolled
+	BestOdds = 0, -- the rarest pet ever hatched: its "1 in N" counting its size
 	Coins = 0,
 	Unlocked = 1, -- highest area unlocked
 	Rebirths = 0,
@@ -109,7 +110,16 @@ local function load(player)
 	end
 	data.Fusion = nil
 
-	-- shows Rolls on the player list
+	-- older saves: the best pet's own odds
+	if type(data.BestOdds) ~= "number" then
+		data.BestOdds = 0
+	end
+	local bestPet = data.Best and Config.PETS_BY_NAME[data.Best]
+	if bestPet and data.BestOdds < bestPet.Odds then
+		data.BestOdds = bestPet.Odds
+	end
+
+	-- shows Rolls, Coins and the rarest pet hatched on the player list
 	local stats = Instance.new("Folder")
 	stats.Name = "leaderstats"
 	local rolls = Instance.new("IntValue")
@@ -120,12 +130,25 @@ local function load(player)
 	coins.Name = "Coins"
 	coins.Value = Config.formatNumber(data.Coins)
 	coins.Parent = stats
+	local best = Instance.new("StringValue")
+	best.Name = "Best"
+	best.Value = PlayerData.bestText(data)
+	best.Parent = stats
 	stats.Parent = player
 
 	if player.Parent then
 		sessionData[player] = data
 		PlayerData.Loaded:Fire(player)
 	end
+end
+
+-- The player list's Best: the rarest pet hatched as "1/964.8M" ("-" if none)
+function PlayerData.bestText(data)
+	local odds = data.BestOdds or 0
+	if odds < 1 then
+		return "-"
+	end
+	return "1/" .. Config.formatNumber(math.floor(odds + 0.5))
 end
 
 local function save(player)
@@ -155,6 +178,7 @@ function PlayerData.sync(player)
 	if stats then
 		stats.Rolls.Value = data.Rolls
 		stats.Coins.Value = Config.formatNumber(data.Coins)
+		stats.Best.Value = PlayerData.bestText(data)
 	end
 	stateEvent:FireClient(player, {
 		Rolls = data.Rolls,

@@ -116,6 +116,8 @@ local function award(data, outcome, extra)
 	if not best or pet.Odds > best.Odds then
 		data.Best = pet.Name
 	end
+	-- the rarest pet ever hatched, counting its size (the player list's Best)
+	data.BestOdds = math.max(data.BestOdds or 0, Config.oddsOf(name))
 	local result = {
 		Kind = "Pet",
 		Pet = pet.Name,

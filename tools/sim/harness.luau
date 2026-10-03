@@ -2889,6 +2889,27 @@ if ok then
 				string.format("tutorial shown %s, step 1 -> 2 after a roll %s, steps %s, finished and saved %s; Sahara tour (Aura Machine, Mega Roll, camera back, saved) %s; unknown keys refused %s",
 					tostring(tu.Shown), tostring(tu.Auto), table.concat(steps, ">"), tostring(tu.Done), tostring(tu.Tour), tostring(tu.Junk)))
 		end
+		do
+			-- the player list's Best: the rarest pet hatched, as "1/N"
+			local stats = player:FindFirstChild("leaderstats")
+			local bestV = stats and stats:FindFirstChild("Best")
+			local savedOdds = data.BestOdds
+			local rare = Config.PETS[#Config.PETS]
+			local Rolling = __cache["Rolling"]
+			PlayerData.sync(player)
+			local shownNow = bestV and bestV.Value
+			local matches = shownNow == "1/" .. Config.formatNumber(math.floor((data.BestOdds or 0) + 0.5))
+			data.BestOdds = 0
+			PlayerData.sync(player)
+			local noneDash = bestV and bestV.Value == "-"
+			data.BestOdds = rare.Odds * 7.3
+			PlayerData.sync(player)
+			local bigOk = bestV and bestV.Value == "1/" .. Config.formatNumber(math.floor(rare.Odds * 7.3 + 0.5))
+			data.BestOdds = savedOdds
+			PlayerData.sync(player)
+			item(137, "player list shows the rarest pet hatched (Best)", bestV ~= nil and bestV:IsA("StringValue") and (savedOdds or 0) > 1 and matches and noneDash and bigOk,
+				string.format("Best column '%s' (BestOdds %s); none -> '-' %s; a rare one -> %s", tostring(shownNow), tostring(savedOdds), tostring(noneDash), tostring(bigOk)))
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,
