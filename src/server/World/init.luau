@@ -358,6 +358,12 @@ cartoonTerrain = function(area)
 	return proxy
 end
 
+-- Where the gatekeeper of the gate into area i stands (on the ground, a
+-- little before the gate and off the middle path)
+function World.keeperSpot(i)
+	return Vector3.new(Config.areaStart(i) - 6.5, 0, 11)
+end
+
 -- Gates between areas ----------------------------------------------------------------
 
 -- One side of a gate's wall: just the price, in big chunky gold numbers with
@@ -627,7 +633,7 @@ local function buildGate(i)
 	-- the gatekeeper: a friendly animal of the world behind the gate, beside
 	-- it on the side players come from. Ask it to open the gate
 	-- (server/Progress.luau decides; it answers in a speech bubble).
-	local keeper, head = Gatekeepers.build(gate, i, Vector3.new(x - 5, 0, 7), Vector3.new(-1, 0, 0))
+	local keeper, head = Gatekeepers.build(gate, i, World.keeperSpot(i), Vector3.new(-1, 0, 0), area.Color)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Ask to open"
 	prompt.ObjectText = keeper:GetAttribute("Animal") .. "  ·  " .. string.lower(Config.areaCostText(i))
@@ -982,6 +988,10 @@ for i, area in ipairs(Config.AREAS) do
 	-- something gets pushed up on top of it)
 	space:add(Vector3.new(x0, 0, 0), 9)
 	space:add(Vector3.new(x0 + LENGTH, 0, 0), 9)
+	-- (and room for the next gate's gatekeeper animal)
+	if i < #Config.AREAS then
+		space:add(World.keeperSpot(i + 1), 5)
+	end
 	space:add(Vector3.new(x0 + 10, 0, 0), 9)
 
 	-- spots for this area's breakables, away from the decorations. Areas call

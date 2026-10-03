@@ -495,7 +495,7 @@ function Frozen.build(ctx)
 	-- band of smooth blue ice with a darker edge, a lighter shine down the
 	-- middle and a few white cracks
 	local lake = {}
-	for x = x0 + 4, x1 - 4, 2 do
+	for x = x0 + 4, x1 - 12, 2 do
 		table.insert(lake, Vector3.new(x, 0, math.sin((x - x0) / 7) * 2.5))
 		space:add(Vector3.new(x, 0, 0), 5)
 	end
