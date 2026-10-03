@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 71 test (enemy health; 5 min boost; Forest fence; graphics-test branch)"
+Config.BUILD = "build 72 test (white AUTO dice; YOUR TEAM column on the right; graphics-test branch)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
