@@ -2704,6 +2704,27 @@ if ok then
 			item(133, "enemy labels show health; free boost every 5 minutes", shown > 0 and withHp == shown and coinsShown == 0 and Config.BOOST_MACHINE.Cooldown == 5 * 60,
 				string.format("%d enemy labels, %d with HP, %d still showing coins; boost every %ds", shown, withHp, coinsShown, Config.BOOST_MACHINE.Cooldown))
 		end
+		do
+			-- props stand on the ground (Y ~2.0), not in it
+			local W = __cache["World/init"]
+			local names = { Fountain = 1, Cottage = 1, IceArch = 3, Igloo = 3, KoiPond = 4, Torii = 4, Pot = 2, Mushroom = 1 }
+			local checked, sunk, list = 0, 0, {}
+			for name, area in pairs(names) do
+				local m = W.Areas[area].Folder:FindFirstChild(name, true)
+				if m then
+					checked += 1
+					local b = W.lowest(m)
+					if b < Config.TERRAIN_TOP - 0.1 then
+						sunk += 1
+						table.insert(list, string.format("%s %.2f", name, b))
+					end
+				end
+			end
+			local gate = workspace.Map:FindFirstChild("Gate2")
+			if gate and W.lowest(gate) < Config.TERRAIN_TOP - 0.1 then sunk += 1 table.insert(list, "Gate2") end
+			item(134, "props stand on the ground, not in it", checked >= 7 and sunk == 0 and (W.Lifted or 0) >= 50,
+				string.format("%d props checked, %d sunk %s; %d models lifted onto the ground", checked, sunk, table.concat(list, ", "), W.Lifted or 0))
+		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
 			and fz.List == true and fz.Ready == true and fz.Client == true and fz.NotReady == true and fz.World == true,

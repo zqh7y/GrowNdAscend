@@ -946,6 +946,75 @@ terrain:FillBlock(CFrame.new(TOTAL / 2, 30, 0), Vector3.new(TOTAL + 8, 60, HALF 
 World.settlePaths()
 task.delay(2, World.settlePaths)
 
+-- Props onto the ground. The worlds build their props on Y = 0 (or
+-- Config.GROUND_Y), but the real ground comes out at about Y 2.0, so they'd
+-- stand a little in it. Every model standing in the walkable strip (not the
+-- paths, which settle themselves) is lifted so its lowest visible part rests
+-- on the ground (World.surfaceAt: the cartoon floor where there is one). Its
+-- step pad, if it has one, stays level with the ground.
+World.LiftSkip = {} -- folders left alone (the paths are added below)
+World.Lifted = 0
+function World.surfaceAt(x, z)
+	local y = World.groundAt(x, z)
+	return math.max(Config.TERRAIN_TOP, if y and y < Config.GROUND_Y + 3 then y else Config.TERRAIN_TOP)
+end
+function World.lowest(model)
+	local bottom = math.huge
+	for _, d in ipairs(model:GetDescendants()) do
+		-- (not invisible walls, step pads, or helper pieces buried completely)
+		if d:IsA("BasePart") and d.Transparency < 1 and not (d.Parent and d.Parent.Name == "StepPad") then
+			local r = d.CFrame
+			local half = (math.abs(r.RightVector.Y) * d.Size.X + math.abs(r.UpVector.Y) * d.Size.Y + math.abs(r.LookVector.Y) * d.Size.Z) / 2
+			if d.Position.Y + half > -0.5 then
+				-- (a ball or a lying cylinder sunk past its middle, like the igloo's
+				-- dome and tunnel, counts from its middle: the rest is meant to
+				-- be in the ground)
+				local sunkBall = d:IsA("Part") and (d.Shape == Enum.PartType.Ball or d.Shape == Enum.PartType.Cylinder)
+					and half > 1.5 and d.Position.Y < Config.TERRAIN_TOP + 0.6
+				bottom = math.min(bottom, if sunkBall then d.Position.Y else d.Position.Y - half)
+			end
+		end
+	end
+	return bottom
+end
+function World.liftProps()
+	local function skipped(inst)
+		local up = inst
+		while up do
+			if World.PathPoints[up] or table.find(World.LiftSkip, up) then
+				return true
+			end
+			up = up.Parent
+		end
+		return false
+	end
+	for _, inst in ipairs(map:GetDescendants()) do
+		if inst:IsA("Model") and not inst.Parent:IsA("Model") and not skipped(inst) then
+			local ok, cf = pcall(function()
+				return inst:GetPivot()
+			end)
+			local bottom = World.lowest(inst)
+			if ok and bottom < math.huge then
+				local p = cf.Position
+				if math.abs(p.Z) < HALF + 1 and p.X > -1 and p.X < TOTAL + 1 then
+					local delta = World.surfaceAt(p.X, p.Z) - bottom
+					if delta > 0.05 and delta < 3.2 then
+						inst:PivotTo(inst:GetPivot() + Vector3.new(0, delta, 0))
+						for _, pad in ipairs(inst:GetDescendants()) do
+							if pad:IsA("Model") and pad.Name == "StepPad" then
+								pad:PivotTo(pad:GetPivot() - Vector3.new(0, delta, 0))
+							end
+						end
+						World.Lifted += 1
+					end
+				end
+			end
+		end
+	end
+end
+World.liftProps()
+task.delay(2.5, World.liftProps)
+
 -- Breakable spots were picked before the small props and some terrain; keep
 -- only the ones on flat ground and set them to its real height
 -- only the ones on flat ground and set them to its real height. If too few
