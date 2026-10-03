@@ -2453,9 +2453,12 @@ if ok then
 			end
 			if math.abs(sum - 1) > 1e-9 then valid = false end
 		end
-		local glitch = Config.chanceOf("Glitch", Config.MAX_LUCK, 1, 4)
-		item(67, "shown odds = real odds", checked >= 8 and worst < 0.05 and impossible == 0 and math.abs(total - 1) < 1e-9 and math.abs(sizeTotal - 1) < 1e-9 and valid and glitch < 1,
-			string.format("%d results (pets and boosts) checked over 1M real rolls, worst error %.1f%%; all chances add up to 1; max luck still leaves the rarest at %s", checked, worst * 100, Config.formatChance(glitch)))
+		-- no luck limit: enormous luck keeps raising the rarest pet's chance
+		local glitchHigh = Config.chanceOf("Glitch", 1e15, 1, 4)
+		local glitchHuge = Config.chanceOf("Glitch", 1e40, 1, 4)
+		local noLimit = Config.MAX_LUCK >= 1e300 and glitchHuge > glitchHigh and Config.luck({ Upgrades = { Luck = 1 }, Equipped = {}, Rebirths = 8, LuckChain = 1024, ActiveBoosts = {}, Perks = {} }, true, 5, 1e30) > 1e30
+		item(67, "shown odds = real odds; no luck limit", checked >= 8 and worst < 0.05 and impossible == 0 and math.abs(total - 1) < 1e-9 and math.abs(sizeTotal - 1) < 1e-9 and valid and noLimit,
+			string.format("%d results (pets and boosts) checked over 1M real rolls, worst error %.1f%%; all chances add up to 1; no luck limit %s (rarest at x1e15 luck %s, at x1e40 %s)", checked, worst * 100, tostring(noLimit), Config.formatChance(glitchHigh), Config.formatChance(glitchHuge)))
 	end
 
 	-- 68. every spinning pet (and the result) shows its exact chance for that roll
@@ -3036,7 +3039,7 @@ if ok then
 		local zero, worst = 0, 1
 		for _, pet in ipairs(Config.PETS) do
 			for world = 1, #Config.AREAS do
-				for _, luck in ipairs({ 1, 50, 1e4, 1e5, Config.MAX_LUCK }) do
+				for _, luck in ipairs({ 1, 50, 1e4, 1e5, 1e8 }) do
 					local p = Config.chanceOf(pet.Name, luck, 1, world)
 					if not (p > 0) then zero += 1 end
 					if pet.World > world then worst = math.min(worst, p) end

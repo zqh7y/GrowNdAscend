@@ -71,8 +71,9 @@ chase Huge and Titanic pets.**
   - **Crazy pulls** (a Mythic or Secret animal) get their own show: dark
     screen, heartbeats with rings of light, rainbow cracks, a flash, then
     "INSANE PULL!" (again only when the pet beats one on your team).
-  - Luck stops at x100Qn (`Config.MAX_LUCK`, so even the Glitch is never
-    certain); the luck chip then says "MAX".
+  - Luck has no limit: every multiplier keeps stacking, and with enough luck
+    the rarest pets become near-certain (`Config.MAX_LUCK` is only a 1e300
+    safety net against numbers too big to handle).
 
   The ROLL button and AUTO switch sit on their own layer above
   everything, so they always work. Every 10th roll has 2x luck.
