@@ -16,11 +16,33 @@ local function keeperOf(i)
 	return gate and gate:FindFirstChild("Gatekeeper")
 end
 
+-- the animal (without its base and plate): what moves
+local function animalOf(i)
+	local keeper = keeperOf(i)
+	return keeper and keeper:FindFirstChild("Animal")
+end
+
 local bubbles = {} -- [gate index] = the bubble now showing
 local busy = {} -- [gate index] = true while it hops or shakes
+local homes = {} -- [gate index] = where the animal stands (its server pivot)
+
+local placed = {} -- [gate index] = where we last put it
+local function homeOf(i, animal)
+	-- (if the server moved it since, e.g. lifting the gate onto the ground,
+	-- that's its new home)
+	local now = animal:GetPivot()
+	if not homes[i] or (placed[i] and (now.Position - placed[i].Position).Magnitude > 0.05) then
+		homes[i] = now
+	end
+	return homes[i]
+end
+local function place(i, animal, cf)
+	placed[i] = cf
+	animal:PivotTo(cf)
+end
 
 local function bubble(keeper, i, text, mood)
-	local head = keeper:FindFirstChild("Head")
+	local head = keeper:FindFirstChild("Head", true)
 	if not head then
 		return nil
 	end
@@ -81,12 +103,12 @@ end
 
 -- a few quick moves of the whole animal (smoothly, step by step), then
 -- back where it was
-local function act(keeper, i, moves)
+local function act(animal, i, moves)
 	if busy[i] then
 		return
 	end
 	busy[i] = true
-	local home = keeper:GetPivot()
+	local home = homeOf(i, animal)
 	task.spawn(function()
 		local from = CFrame.new()
 		for _, move in ipairs(moves) do
@@ -94,12 +116,12 @@ local function act(keeper, i, moves)
 			for k = 1, steps do
 				local t = k / steps
 				t = t * t * (3 - 2 * t)
-				keeper:PivotTo(home * from:Lerp(move[1], t))
+				place(i, animal, home * from:Lerp(move[1], t))
 				task.wait(1 / 30)
 			end
 			from = move[1]
 		end
-		keeper:PivotTo(home)
+		place(i, animal, home)
 		busy[i] = false
 	end)
 end
@@ -111,15 +133,42 @@ function Gatekeeper.say(i, text, mood)
 		return
 	end
 	Gatekeeper.Last.Bubble = bubble(keeper, i, text, mood)
+	local animal = animalOf(i)
+	if not animal then
+		return
+	end
 	if mood == "yes" then
 		local up = CFrame.new(0, 1.6, 0)
-		act(keeper, i, { { up, 0.18 }, { CFrame.new(), 0.16 }, { up, 0.18 }, { CFrame.new(), 0.16 } })
+		act(animal, i, { { up, 0.18 }, { CFrame.new(), 0.16 }, { up, 0.18 }, { CFrame.new(), 0.16 } })
 		Effects.play("Coin", 1.3, 0.05)
 	else
 		local left, right = CFrame.Angles(0, math.rad(18), 0), CFrame.Angles(0, math.rad(-18), 0)
-		act(keeper, i, { { left, 0.1 }, { right, 0.14 }, { left, 0.14 }, { CFrame.new(), 0.1 } })
+		act(animal, i, { { left, 0.1 }, { right, 0.14 }, { left, 0.14 }, { CFrame.new(), 0.1 } })
 	end
 end
+
+-- Idle: a slow breathing bob and now and then a little look around, so
+-- the animals feel alive (each a little out of step with the others)
+Gatekeeper.IDLE = true
+local clock = 0
+game:GetService("RunService").Heartbeat:Connect(function(dt)
+	if not Gatekeeper.IDLE then
+		return
+	end
+	clock += dt
+	for i = 2, 8 do
+		if not keeperOf(i) then
+			break
+		end
+		local animal = animalOf(i)
+		if animal and not busy[i] then
+			local home = homeOf(i, animal)
+			local bob = 0.08 * math.sin(clock * 2.2 + i)
+			local look = math.rad(10) * math.sin(clock * 0.45 + i * 1.7) ^ 3
+			place(i, animal, home * CFrame.new(0, bob, 0) * CFrame.Angles(0, look, 0))
+		end
+	end
+end)
 
 ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("GatekeeperSay").OnClientEvent:Connect(Gatekeeper.say)
 

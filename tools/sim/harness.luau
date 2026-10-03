@@ -2734,8 +2734,15 @@ if ok then
 				local g = W.Gates[i]
 				local keeper = g.Keeper
 				if keeper then
-					animals[keeper:GetAttribute("Animal") or "?"] = true
-					if g.Prompt.Parent and g.Prompt.Parent.Name == "Head" and g.Prompt.Parent.Parent == keeper then prompts += 1 end
+					local animal = keeper:FindFirstChild("Animal")
+					local parts = 0
+					for _, d in ipairs(animal and animal:GetDescendants() or {}) do
+						if d:IsA("BasePart") then parts += 1 end
+					end
+					if parts >= 40 then
+						animals[keeper:GetAttribute("Animal") or "?"] = true
+					end
+					if g.Prompt.Parent and g.Prompt.Parent.Name == "Head" and g.Prompt.Parent.Parent and g.Prompt.Parent.Parent.Parent == keeper then prompts += 1 end
 				end
 			end
 			local kinds = 0
@@ -2753,7 +2760,7 @@ if ok then
 			for i = 2, #Config.AREAS do W.setGateOpen(i, i <= saved) end
 			PlayerData.sync(player)
 			item(135, "gatekeeper animals open the worlds", kinds == #Config.AREAS - 1 and prompts == #Config.AREAS - 1 and refused and accepted,
-				string.format("%d different animals, %d asking prompts on their heads; too early -> '%s'; asked with the coins -> opened %s",
+				string.format("%d different detailed animals (40+ parts each), %d asking prompts on their heads; too early -> '%s'; asked with the coins -> opened %s",
 					kinds, prompts, tostring(refused), tostring(accepted)))
 		end
 		local fz = STATS.Fuse or {}
