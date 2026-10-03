@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 79 test (tutorials; floor under the walls; graphics-test branch)"
+Config.BUILD = "build 80 test (no luck limit; graphics-test branch)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -452,16 +452,17 @@ function Config.boostColor(multiplier)
 end
 Config.CHAIN_CHANCE = Config.BOOST_CHANCE
 Config.CHAIN_MAX = 1024
--- Total luck never goes above this, so no pet is ever certain (the rarest
--- animal stays at 1 in 10 or worse even with every multiplier stacked)
-Config.MAX_LUCK = 1e20
+-- There's no luck limit: every multiplier keeps stacking (with enough luck
+-- the rarest pets become near-certain). This is only a safety net against
+-- numbers too big for the game to handle.
+Config.MAX_LUCK = 1e300
 
 -- The Mega Roll pad (Sahara, just past the gate): every MEGA_ROLL.Cooldown
 -- seconds you can claim one roll with an insanely high luck multiplier
 -- (random between Min and Max, shown on the pad before you claim it). Step
--- onto the pad when the timer is done. Its luck may go past MAX_LUCK, up to
--- LuckCap, and it always hatches a pet (never a x2 boost).
-Config.MEGA_ROLL = { Cooldown = 20 * 60, First = 8 * 60, Min = 1e3, Max = 1e5, Radius = 8, LuckCap = 1e21 }
+-- onto the pad when the timer is done. Its luck has no limit either, and it
+-- always hatches a pet (never a x2 boost).
+Config.MEGA_ROLL = { Cooldown = 20 * 60, First = 8 * 60, Min = 1e3, Max = 1e5, Radius = 8, LuckCap = 1e300 }
 -- (x1K-x100K on top of your luck: usually a band or two better than a normal
 -- roll, not the best pets. The first one is ready 8 minutes after joining.)
 -- (claiming it puts a Mega Roll in your Boosts, data.MegaRolls; you use it
@@ -591,7 +592,7 @@ end
 --   pet luck      = 1 + sum over equipped pets of (pet Luck - 1)
 -- e.g. pets of 1.1x and 1.3x -> 1.4x; with existing luck x5 -> x7.
 -- `world` is the area the player stands in (nil = 1); `multiplier` is the
--- luck boost (nil = the one waiting in data.LuckChain). Capped at MAX_LUCK.
+-- luck boost (nil = the one waiting in data.LuckChain). (No real cap: MAX_LUCK is only a safety net.)
 function Config.petLuckTotal(data)
 	return Config.teamStat(data, "Luck")
 end

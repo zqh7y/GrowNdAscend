@@ -1,0 +1,173 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: "Lilita"; src: url("lilita.ttf"); }
+html, body { margin: 0; padding: 0; background: #000; }
+svg { display: block; }
+</style></head>
+<body>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="48%" r="70%">
+      <stop offset="0" stop-color="#8fe6ff"/>
+      <stop offset="0.45" stop-color="#3d8bff"/>
+      <stop offset="1" stop-color="#2236b8"/>
+    </radialGradient>
+    <linearGradient id="diceFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.7" stop-color="#eaf1ff"/>
+      <stop offset="1" stop-color="#c9d8ff"/>
+    </linearGradient>
+    <linearGradient id="diceSide" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a9bdf2"/>
+      <stop offset="1" stop-color="#7d95d8"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff5b8a"/>
+      <stop offset="0.2" stop-color="#ffb13b"/>
+      <stop offset="0.4" stop-color="#fff35c"/>
+      <stop offset="0.6" stop-color="#5cff9d"/>
+      <stop offset="0.8" stop-color="#4fd6ff"/>
+      <stop offset="1" stop-color="#b56bff"/>
+    </linearGradient>
+    <radialGradient id="cat" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffc77a"/>
+      <stop offset="1" stop-color="#ff9030"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <linearGradient id="shirt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4a58"/><stop offset="1" stop-color="#1e1e26"/></linearGradient><linearGradient id="tee" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fb0ff"/><stop offset="1" stop-color="#3a78ff"/></linearGradient>
+    <linearGradient id="baconHair" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#e48a40"/><stop offset="0.55" stop-color="#c8641e"/><stop offset="1" stop-color="#9a4614"/></linearGradient>
+    <radialGradient id="skin" cx="35%" cy="28%" r="85%"><stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#f1f1f1"/><stop offset="1" stop-color="#c9c9d2"/></radialGradient>
+    <radialGradient id="hair" cx="35%" cy="25%" r="85%"><stop offset="0" stop-color="#ec8d45"/><stop offset="0.5" stop-color="#c8641e"/><stop offset="1" stop-color="#8a3e0e"/></radialGradient>
+    <radialGradient id="bokeh" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3"/><feColorMatrix type="saturate" values="0"/></filter>
+    <clipPath id="round"><rect width="512" height="512" rx="0"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#round)">
+    <!-- background and sunburst -->
+    <rect width="512" height="512" fill="url(#bg)"/>
+    <g transform="translate(256 250)" opacity="0.16" fill="#ffffff">
+      <g id="rays">
+        <polygon points="0,0 -26,-420 26,-420"/>
+      </g>
+      <use href="#rays" transform="rotate(22.5)"/><use href="#rays" transform="rotate(45)"/><use href="#rays" transform="rotate(67.5)"/>
+      <use href="#rays" transform="rotate(90)"/><use href="#rays" transform="rotate(112.5)"/><use href="#rays" transform="rotate(135)"/>
+      <use href="#rays" transform="rotate(157.5)"/><use href="#rays" transform="rotate(180)"/><use href="#rays" transform="rotate(202.5)"/>
+      <use href="#rays" transform="rotate(225)"/><use href="#rays" transform="rotate(247.5)"/><use href="#rays" transform="rotate(270)"/>
+      <use href="#rays" transform="rotate(292.5)"/><use href="#rays" transform="rotate(315)"/><use href="#rays" transform="rotate(337.5)"/>
+    </g>
+    <circle cx="256" cy="260" r="170" fill="#bff3ff" opacity="0.35" filter="url(#soft)"/>
+    <circle cx="70" cy="250" r="34" fill="url(#bokeh)"/><circle cx="455" cy="270" r="26" fill="url(#bokeh)"/><circle cx="120" cy="470" r="40" fill="url(#bokeh)"/><circle cx="420" cy="470" r="30" fill="url(#bokeh)"/><circle cx="300" cy="40" r="24" fill="url(#bokeh)"/>
+
+    <!-- sparkles -->
+    <g fill="#fff8c4">
+      <path id="spark" d="M0,-16 C2,-4 4,-2 16,0 C4,2 2,4 0,16 C-2,4 -4,2 -16,0 C-4,-2 -2,-4 0,-16Z"/>
+    </g>
+    <use href="#spark" transform="translate(86 120) scale(1.2)" fill="#fff8c4"/>
+    <use href="#spark" transform="translate(440 150) scale(0.9)" fill="#ffffff"/>
+    <use href="#spark" transform="translate(70 380) scale(0.8)" fill="#ffffff"/>
+    <use href="#spark" transform="translate(452 400) scale(1.3)" fill="#fff8c4"/>
+    <use href="#spark" transform="translate(400 70) scale(0.7)" fill="#ffffff"/>
+
+    <!-- the luck ring, back half -->
+    <g transform="rotate(-12 256 412)" filter="url(#glow)">
+      <path d="M 76 412 A 180 46 0 0 1 436 412" fill="none" stroke="url(#ring)" stroke-width="14" stroke-linecap="round" opacity="0.95"/>
+    </g>
+
+    <!-- the dice buddy -->
+    <g transform="translate(256 286)">
+      <!-- shadow -->
+      <ellipse cx="0" cy="168" rx="120" ry="18" fill="#10196b" opacity="0.35"/>
+      <!-- legs -->
+      <rect x="-70" y="112" width="44" height="52" rx="18" fill="#eaf1ff" stroke="#1d2140" stroke-width="9"/>
+      <rect x="26" y="112" width="44" height="52" rx="18" fill="#eaf1ff" stroke="#1d2140" stroke-width="9"/>
+      <!-- side of the cube (3D) -->
+      <rect x="-104" y="-142" width="256" height="252" rx="58" fill="url(#diceSide)" stroke="#1d2140" stroke-width="10"/>
+      <!-- front face -->
+      <rect x="-128" y="-124" width="256" height="252" rx="58" fill="url(#diceFace)" stroke="#1d2140" stroke-width="11"/>
+      <path d="M -96,-104 Q -60,-116 -10,-112" stroke="#ffffff" stroke-width="12" stroke-linecap="round" fill="none" opacity="0.9"/>
+      <!-- pips -->
+      <circle cx="-80" cy="-78" r="17" fill="#1f2f8a"/><circle cx="-77" cy="-75" r="12" fill="#2c42b8"/><circle cx="-85" cy="-83" r="5" fill="#8fa2ff" opacity="0.9"/>
+      <circle cx="80" cy="-78" r="17" fill="#1f2f8a"/><circle cx="83" cy="-75" r="12" fill="#2c42b8"/><circle cx="75" cy="-83" r="5" fill="#8fa2ff" opacity="0.9"/>
+      <circle cx="-80" cy="84" r="17" fill="#1f2f8a"/><circle cx="-77" cy="87" r="12" fill="#2c42b8"/><circle cx="-85" cy="79" r="5" fill="#8fa2ff" opacity="0.9"/>
+      <circle cx="80" cy="84" r="17" fill="#1f2f8a"/><circle cx="83" cy="87" r="12" fill="#2c42b8"/><circle cx="75" cy="79" r="5" fill="#8fa2ff" opacity="0.9"/>
+      
+      <!-- face -->
+      <ellipse cx="-42" cy="-6" rx="30" ry="38" fill="#1d2140"/>
+      <ellipse cx="42" cy="-6" rx="30" ry="38" fill="#1d2140"/>
+      <ellipse cx="-42" cy="4" rx="22" ry="26" fill="#3a63ff"/>
+      <ellipse cx="42" cy="4" rx="22" ry="26" fill="#3a63ff"/>
+      <circle cx="-52" cy="-20" r="11" fill="#ffffff"/>
+      <circle cx="32" cy="-20" r="11" fill="#ffffff"/>
+      <circle cx="-32" cy="10" r="5" fill="#ffffff"/><circle cx="-46" cy="22" r="3" fill="#bcd0ff"/><circle cx="38" cy="22" r="3" fill="#bcd0ff"/>
+      <circle cx="52" cy="10" r="5" fill="#ffffff"/>
+      <ellipse cx="-86" cy="34" rx="18" ry="11" fill="#ff8fb0" opacity="0.85"/>
+      <ellipse cx="86" cy="34" rx="18" ry="11" fill="#ff8fb0" opacity="0.85"/>
+      <path d="M -30,38 Q 0,78 30,38 Z" fill="#7a1d3a" stroke="#1d2140" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M -14,56 Q 0,48 14,56 Q 6,68 0,68 Q -6,68 -14,56 Z" fill="#ff6f8f"/>
+      <!-- arms: one waving up, one holding -->
+      <path d="M -124,10 Q -168,-10 -178,-62" fill="none" stroke="#1d2140" stroke-width="30" stroke-linecap="round"/>
+      <path d="M -124,10 Q -168,-10 -178,-62" fill="none" stroke="#eaf1ff" stroke-width="16" stroke-linecap="round"/>
+      <circle cx="-180" cy="-74" r="22" fill="#ffffff" stroke="#1d2140" stroke-width="9"/>
+
+    </g>
+
+    <!-- a bacon hair kid popping up beside the dice -->
+    <g transform="translate(406 254) rotate(6) scale(1.12)">
+      <!-- body: an open black jacket over a blue shirt, black pants, a waving arm -->
+      <rect x="-30" y="110" width="28" height="58" rx="8" fill="#2b2b33" stroke="#1d2140" stroke-width="7"/>
+      <rect x="2" y="110" width="28" height="58" rx="8" fill="#24242b" stroke="#1d2140" stroke-width="7"/>
+      <rect x="-46" y="30" width="92" height="88" rx="12" fill="url(#shirt)" stroke="#1d2140" stroke-width="8"/>
+      <path d="M -24,32 L 24,32 L 22,116 L -22,116 Z" fill="url(#tee)" stroke="#1d2140" stroke-width="3"/><path d="M -16,32 L -26,58 L -12,62 Z M 16,32 L 26,58 L 12,62 Z" fill="#3a3a46" stroke="#1d2140" stroke-width="3" stroke-linejoin="round"/>
+      <g transform="rotate(-140 54 38)"><rect x="40" y="36" width="28" height="70" rx="10" fill="url(#shirt)" stroke="#1d2140" stroke-width="7"/><rect x="42" y="92" width="24" height="20" rx="8" fill="url(#skin)" stroke="#1d2140" stroke-width="5"/></g>
+      <g transform="rotate(18 -56 40)"><rect x="-70" y="36" width="28" height="64" rx="10" fill="url(#shirt)" stroke="#1d2140" stroke-width="7"/><rect x="-68" y="86" width="24" height="20" rx="8" fill="url(#skin)" stroke="#1d2140" stroke-width="5"/></g>
+    </g>
+    <g transform="translate(404 232) rotate(6) scale(0.92)">
+<g transform="translate(0 -56) scale(1.16)">
+<path d="M -60,62 Q -68,22 -46,-2 Q -20,-24 12,-20 Q 48,-18 62,4 Q 72,30 64,62 Q 56,52 50,58 L -50,58 Q -56,54 -60,62 Z" fill="url(#baconHair)" stroke="#1d2140" stroke-width="5" stroke-linejoin="round"/>
+</g>
+<g transform="translate(0 -56) scale(1.16)">
+<rect x="-50" y="0" width="100" height="100" rx="22" fill="url(#skin)" stroke="#1d2140" stroke-width="6"/>
+<path d="M -58,48 Q -70,14 -48,-6 Q -42,-20 -26,-18 Q -16,-32 2,-26 Q 18,-34 34,-22 Q 52,-20 58,-2 Q 70,14 62,38 Q 56,30 50,34 Q 48,22 38,24 Q 32,38 20,32 Q 12,20 0,26 Q -8,40 -20,34 Q -28,24 -38,32 Q -44,42 -52,40 Q -54,44 -58,48 Z" fill="url(#baconHair)" stroke="#1d2140" stroke-width="5" stroke-linejoin="round"/>
+<path d="M -56,36 Q -70,52 -62,66 Q -68,78 -60,90 Q -54,80 -48,82 Q -44,68 -48,58 Q -42,48 -46,40 Z" fill="url(#baconHair)" stroke="#1d2140" stroke-width="5" stroke-linejoin="round"/>
+<path d="M 56,30 Q 70,46 62,62 Q 68,74 62,88 Q 56,78 50,80 Q 46,66 50,56 Q 44,46 46,36 Z" fill="url(#baconHair)" stroke="#1d2140" stroke-width="5" stroke-linejoin="round"/>
+<path d="M -42,0 Q -24,-14 -4,-12" stroke="#f0a060" stroke-width="5" fill="none" stroke-linecap="round"/>
+<path d="M 8,-16 Q 28,-20 44,-6" stroke="#f0a060" stroke-width="5" fill="none" stroke-linecap="round"/>
+<path d="M -50,22 Q -30,4 -8,8" stroke="#f0a060" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M 4,8 Q 26,0 50,16" stroke="#f0a060" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M -20,34 Q -18,16 -6,4" stroke="#7e3a10" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+<path d="M 20,32 Q 18,16 28,4" stroke="#7e3a10" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+<path d="M 38,24 Q 42,10 50,4" stroke="#7e3a10" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M -38,32 Q -36,18 -26,10" stroke="#7e3a10" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M -4,-20 Q 6,-6 2,10" stroke="#7e3a10" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.8"/>
+<path d="M -60,52 Q -64,64 -58,76" stroke="#f0a060" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<path d="M 60,48 Q 64,60 58,72" stroke="#f0a060" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<ellipse cx="-16" cy="56" rx="5.5" ry="9" fill="#111111"/>
+<ellipse cx="16" cy="56" rx="5.5" ry="9" fill="#111111"/>
+<path d="M -21,72 Q 0,86 21,72" stroke="#111111" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+</g>
+    </g>
+    <!-- the luck ring, front half -->
+    <g transform="rotate(-12 256 412)" filter="url(#glow)">
+      <path d="M 436 412 A 180 46 0 0 1 76 412" fill="none" stroke="url(#ring)" stroke-width="14" stroke-linecap="round"/>
+    </g>
+    <use href="#spark" transform="translate(150 360) scale(0.9)" fill="#ffffff"/><use href="#spark" transform="translate(96 430) scale(0.6)" fill="#fff8c4"/><use href="#spark" transform="translate(430 392) scale(0.55)" fill="#ffffff"/><use href="#spark" transform="translate(250 470) scale(0.5)" fill="#fff8c4"/>
+    <use href="#spark" transform="translate(372 260) scale(0.7)" fill="#fff8c4"/>
+
+    <!-- NEW ribbon -->
+    <g transform="translate(0 0)">
+      <path d="M 0,96 L 96,0 L 170,0 L 0,170 Z" fill="#ff3b3b" stroke="#1d2140" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M 0,96 L 96,0 L 104,0 L 0,104 Z" fill="#ff7a7a"/>
+      <text x="0" y="0" transform="translate(68 92) rotate(-45)" font-family="Lilita" font-size="46" fill="#ffffff" stroke="#1d2140" stroke-width="8" paint-order="stroke" text-anchor="middle">NEW</text>
+    </g>
+    <rect width="512" height="512" filter="url(#grain)" opacity="0.09"/>
+  </g>
+</svg>
+</body></html>
