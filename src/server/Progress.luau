@@ -47,6 +47,13 @@ local function refreshGates(unlocked)
 	end
 end
 
+-- Asking a gatekeeper to open its gate: it answers in a speech bubble over
+-- its head (client/Gatekeeper.luau), happy when it opens, shaking its head
+-- when you can't yet.
+local sayEvent = Instance.new("RemoteEvent")
+sayEvent.Name = "GatekeeperSay" -- server -> client: (gate index, text, "yes" | "no")
+sayEvent.Parent = remotes
+
 for i, gate in pairs(World.Gates) do
 	gate.Prompt.Triggered:Connect(function(player)
 		local data = PlayerData.get(player)
@@ -55,18 +62,19 @@ for i, gate in pairs(World.Gates) do
 		end
 		local area = Config.AREAS[i]
 		if data.Unlocked < i - 1 then
-			notifyEvent:FireClient(player, "Unlock " .. Config.AREAS[i - 1].Name .. " first!", "danger")
+			sayEvent:FireClient(player, i, "Open the " .. Config.AREAS[i - 1].Name .. " first!", "no")
 			return
 		end
 		local cost = Config.areaCost(i)
 		if data.Coins < cost then
-			notifyEvent:FireClient(player, "You need " .. Config.formatNumber(cost - data.Coins) .. " more coins", "danger")
+			sayEvent:FireClient(player, i, "Sorry! You need " .. Config.formatNumber(cost - data.Coins) .. " more coins.", "no")
 			return
 		end
 		data.Coins -= cost
 		data.Unlocked = i
 		refreshGates(data.Unlocked)
 		PlayerData.sync(player)
+		sayEvent:FireClient(player, i, "Sure! Welcome to the " .. area.Name .. "!", "yes")
 		notifyEvent:FireClient(player, area.Name .. " unlocked!", "success")
 	end)
 end
