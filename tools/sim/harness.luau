@@ -132,8 +132,7 @@ if ok then
 			print("GAME ERROR: " .. message)
 		end
 	end
-	-- GATES (testing build): areas start locked and cost 0 coins; the gate
-	-- still has to be used. Check the locked look, unlock World 2 at its gate,
+	-- GATES: areas start locked and cost coins, paid at the gate. Check the locked look, unlock World 2 at its gate,
 	-- check the open look, then open the rest for the tests below.
 	do
 		local W = __cache["World/init"]
@@ -165,12 +164,17 @@ if ok then
 		wall.Want = (#Config.AREAS - 1) * 2
 		wall.Visible = math.abs(W.Gates[2].Barrier.Transparency - 0.8) < 0.01 and W.Gates[2].Barrier.Material ~= Enum.Material.ForceField
 		local unlockedBefore = data.Unlocked
+		-- without the coins the gate stays shut; with exactly the price it opens
 		data.Coins = 0
+		W.Gates[2].Prompt.Triggered:Fire(player)
+		STEP(0.05)
+		local poorRefused = data.Unlocked == unlockedBefore
+		data.Coins = Config.areaCost(2)
 		W.Gates[2].Prompt.Triggered:Fire(player)
 		STEP(0.05)
 		local g2 = W.Gates[2]
 		STATS.Gates = {
-			UnlockedBefore = unlockedBefore, Locked = locked, UnlockedAfter = data.Unlocked, CoinsAfter = data.Coins,
+			UnlockedBefore = unlockedBefore, Locked = locked, UnlockedAfter = data.Unlocked, CoinsAfter = data.Coins, PoorRefused = poorRefused,
 			Wall = wall, OpenFacesOff = not g2.Faces[1].Enabled and not g2.Faces[2].Enabled,
 			Open = { Collide = g2.Barrier.CanCollide, Transparency = g2.Barrier.Transparency, Prompt = g2.Prompt.Enabled, Posts = #g2.Barrier.Parent:GetChildren(),
 				Sign = signText(g2.Sign) },
@@ -2825,11 +2829,14 @@ if ok then
 			STEP(0.05)
 			local refused = GK.Last ~= nil and GK.Last.Gate == 4 and GK.Last.Mood == "no" and data.Unlocked == 2 and GK.Last.Bubble ~= nil
 			data.Unlocked = 3
+			local savedCoins = data.Coins
+			data.Coins = Config.areaCost(4)
 			W.Gates[4].Prompt.Triggered:Fire(player)
 			STEP(0.05)
 			local accepted = GK.Last ~= nil and GK.Last.Gate == 4 and GK.Last.Mood == "yes" and data.Unlocked == 4 and string.find(GK.Last.Text, "Welcome") ~= nil
 				and GK.Last.Food == "Apple" and GK.Last.Cutscene == true and W.Gates[4].Prompt.ActionText == "Feed the Red Panda"
 			data.Unlocked = saved
+			data.Coins = savedCoins
 			for i = 2, #Config.AREAS do W.setGateOpen(i, i <= saved) end
 			PlayerData.sync(player)
 			item(135, "feed the gatekeeper animals to open the worlds (with a cutscene)", kinds == #Config.AREAS - 1 and prompts == #Config.AREAS - 1 and refused and accepted
@@ -3092,14 +3099,14 @@ if ok then
 			string.format("%d/%d cards say 'Hatches in every world', %d/%d show the pet's rarity at x1 luck (not changed by your luck), %d 'Best in'", ix.EveryWorld or 0, ix.Cards or 0, ix.ChanceOk or 0, ix.Cards or 0, ix.BestIn or -1))
 		local g = STATS.Gates or {}
 		local lockedOk = g.Locked ~= nil
-		for _, l in ipairs(g.Locked or {}) do
-			if not (l.Collide == true and math.abs(l.Transparency - 0.8) < 0.01 and l.Prompt == true and l.Button == 0 and string.find(l.Sign, "0 COINS %(TEST%)")) then lockedOk = false end
+		for k, l in ipairs(g.Locked or {}) do
+			if not (l.Collide == true and math.abs(l.Transparency - 0.8) < 0.01 and l.Prompt == true and l.Button == 0 and string.find(l.Sign, Config.areaCostText(k + 1), 1, true) and not string.find(l.Sign, "TEST")) then lockedOk = false end
 		end
 		local open = g.Open or {}
-		item(87, "0-coin test gates: locked, then unlocked at the gate", lockedOk and g.UnlockedBefore == 1 and g.UnlockedAfter == 2 and g.CoinsAfter == 0
+		item(87, "gates: locked, then bought at the gate", lockedOk and g.PoorRefused == true and g.UnlockedBefore == 1 and g.UnlockedAfter == 2 and g.CoinsAfter == 0
 			and open.Collide == false and open.Transparency == 1 and open.Prompt == false and open.Posts == (g.Locked[1] or {}).Posts and not string.find(open.Sign, "COINS"),
-			string.format("joined with World %s; locked gate says '%s'; unlocked for 0 coins -> World %s, barrier open, posts and sign kept ('%s')",
-				tostring(g.UnlockedBefore), tostring(g.Locked and g.Locked[1] and g.Locked[1].Sign), tostring(g.UnlockedAfter), tostring(open.Sign)))
+			string.format("joined with World %s; locked gate says '%s'; refused with 0 coins: %s; paid the price -> World %s, barrier open, posts and sign kept ('%s')",
+				tostring(g.UnlockedBefore), tostring(g.Locked and g.Locked[1] and g.Locked[1].Sign), tostring(g.PoorRefused), tostring(g.UnlockedAfter), tostring(open.Sign)))
 		local inv = b.Inventory or {}
 		item(88, "dense inventory grid, details only on selection", inv.Cards == 3 and inv.StatsInGrid == 0 and (inv.FullColumns or 0) >= 7 and inv.Hidden == true
 			and inv.Shown == true and (inv.NarrowColumns or 0) >= 5 and inv.GridVisible == true and inv.Fits == true and inv.Amount == "x2"

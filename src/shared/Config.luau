@@ -3,7 +3,7 @@
 local Config = {}
 
 -- Shown on screen and in Output, so it's easy to tell which version is running
-Config.BUILD = "build 81 test (free boost pad works again; graphics-test branch)"
+Config.BUILD = "build 82 (release: real costs, fresh saves)"
 
 -- How far players can scroll the camera out (studs; Roblox's default is 128)
 Config.MAX_ZOOM = 45
@@ -1371,19 +1371,15 @@ Config.AREAS = {
 	},
 }
 
--- TESTING ONLY (temporary): every area unlock costs this many coins (0)
--- instead of its real Cost. The gates, borders, signs and unlock buttons
--- all work as normal: areas start locked and you unlock them at the gate,
--- you just pay nothing. BEFORE THE FINAL VERSION set this to nil so the
--- real costs (25K / 12M / 130B) apply (see CLAUDE.md).
-Config.AREA_COST_FOR_TESTING = 0
+-- For testing only: a number here makes every area unlock cost that many
+-- coins instead of its real Cost. nil (released game): the real costs.
+Config.AREA_COST_FOR_TESTING = nil
 -- Feeding a gatekeeper plays a short cutscene (the food, the munch, the wall
 -- sinking); the gate opens on the server when it ends
 Config.GATE_OPEN_DELAY = 3.6
--- TESTING ONLY (temporary): every join starts with only World 1 unlocked,
--- even if the save has more (older test builds opened every area), so the
--- locked gates can be looked at. BEFORE THE FINAL VERSION set this to false.
-Config.RELOCK_AREAS_FOR_TESTING = true
+-- For testing only: true makes every join start with only World 1 unlocked
+-- (to look at the locked gates). false in the released game.
+Config.RELOCK_AREAS_FOR_TESTING = false
 
 function Config.areaCost(i)
 	if Config.AREA_COST_FOR_TESTING then
@@ -1439,10 +1435,9 @@ Config.REBIRTHS = {
 }
 Config.MAX_REBIRTHS = #Config.REBIRTHS
 
--- TESTING ONLY: rebirths cost no coins so they can be tried sooner (the
--- level is still needed, and there are still at most 8).
--- BEFORE THE FINAL VERSION set this to false (see CLAUDE.md).
-Config.REBIRTH_FREE_FOR_TESTING = true
+-- For testing only: true makes rebirths cost no coins (the level is still
+-- needed). false in the released game.
+Config.REBIRTH_FREE_FOR_TESTING = false
 
 -- The next rebirth's row (nil when all 8 are done)
 function Config.nextRebirth(rebirths)

@@ -334,7 +334,7 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 
 **Player card (bottom left) and YOUR TEAM (right edge):** your level is in the bottom-left corner: a chunky gold LEVEL badge with a white star and outlined white letters next to a thick green EXP bar with a dark cartoon outline. YOUR TEAM (each equipped pet with its DPS and share) is a tall column at the right edge, halfway down, between the AUTO dice (bottom right) and Roblox's player list (top right, Tab): the title, the pets one under the other, the team's DPS at the bottom. The top of the screen only has the coins and luck. On phones and tablets (touch, no keyboard) Roblox's joystick takes the bottom-left corner and its jump button the bottom-right, so there YOUR TEAM moves to the top right, the level to the very bottom left, the menu to the top left under Roblox's menu buttons, and the AUTO dice moves up above the jump button (`Hud.layout`). Phones also get a bigger UI scale so text stays readable (`Screen.scaleFor`), big panels and the full reveal shrink to fit the screen (`Screen.fitScale`), and every panel (Inventory, Index, Upgrades, Teleport, ...) opens at 85% of that on phones (`Screen.PHONE_PANEL`), and the UI keeps clear of the notch (DeviceSafeInsets).
 
-**Security:** the server never trusts the client. It decides every roll, hit and reward; every remote checks its arguments (types, ownership, coins, distance, cooldowns) and is wrapped in a per-player rate limit (`server/Security.luau`: spam past a few calls a second is dropped, bad calls never error out). A zone guard puts any character found inside a world the player hasn't unlocked (flying or teleporting past a gate), under the map or above the sky lid back at the start of their last unlocked world. Before release: turn off the testing flags (free rebirths, 0-coin areas, relocking) and reset the DataStore name (see CLAUDE.md).
+**Security:** the server never trusts the client. It decides every roll, hit and reward; every remote checks its arguments (types, ownership, coins, distance, cooldowns) and is wrapped in a per-player rate limit (`server/Security.luau`: spam past a few calls a second is dropped, bad calls never error out). A zone guard puts any character found inside a world the player hasn't unlocked (flying or teleporting past a gate), under the map or above the sky lid back at the start of their last unlocked world.
 
 **Staying in the game:** the Roblox menu's Reset Character button is turned off, and you're never kicked for being AFK: when Roblox notices you've gone idle, the game presses a virtual mouse button for you (`client/Session.luau`), so auto roll and your pets can keep going for as long as you like.
 
@@ -380,7 +380,7 @@ the colour of the rarest aura; walk up and press the prompt to open it.
 
 **Paths:** the four paths are painted on top of the ground (`World.paintPath`), so they show on any floor; you walk over them and they never get in the way of coins or enemies.
 
-**Testing (temporary):** rebirths cost no coins (the level is still needed), area unlocks cost 0 coins (the gates still start locked and are unlocked at the gate as normal), and every join re-locks the areas so the gates can be seen (see CLAUDE.md, restore before release).
+**Testing flags:** `Config.REBIRTH_FREE_FOR_TESTING`, `Config.AREA_COST_FOR_TESTING` and `Config.RELOCK_AREAS_FOR_TESTING` are off in the released game (real rebirth and area costs, saves keep their areas). Saves live in the `RngData_release1` DataStore.
 
 ## Solo servers
 

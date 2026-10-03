@@ -3,25 +3,14 @@
 Solo pet RNG game for Roblox, synced into Studio with Rojo. See README.md
 for how it plays and where the code lives.
 
-## ⚠️ BEFORE THE FINAL VERSION
+## Released (build 82)
 
-- **BEFORE THE FINAL VERSION: Rebirth is currently free for testing. Restore
-  the normal rebirth requirements before releasing the final version of the
-  game.** Set `Config.REBIRTH_FREE_FOR_TESTING = false` in
-  `src/shared/Config.luau`. While it's on, rebirths cost no coins (the
-  required level and the max of 8 still apply); the real costs are in
-  `Config.REBIRTHS`.
-- **BEFORE THE FINAL VERSION: Area unlocks currently cost 0 coins for
-  testing (TEMPORARY). Restore the intended coin costs (25K / 12M / 130B,
-  in `Config.AREAS[i].Cost`) before releasing the final version of the
-  game.** Set `Config.AREA_COST_FOR_TESTING = nil` in
-  `src/shared/Config.luau`. The gates, borders, signs ("0 COINS (TEST)")
-  and unlock buttons work as normal while testing; you just pay nothing.
-- **BEFORE THE FINAL VERSION: every join currently re-locks the areas
-  (only World 1 open) so the locked gates can be inspected (TEMPORARY).**
-  Set `Config.RELOCK_AREAS_FOR_TESTING = false`. Saves from older test
-  builds may have every area unlocked, so also reset player data (change
-  the DataStore name in `PlayerData.luau`) before release.
+The game is released. The testing flags in `src/shared/Config.luau` are
+off: `REBIRTH_FREE_FOR_TESTING = false`, `AREA_COST_FOR_TESTING = nil`,
+`RELOCK_AREAS_FOR_TESTING = false`. Real players' saves live in the
+`RngData_release1` DataStore (`src/server/PlayerData.luau`). **Never
+change that name now**: it would wipe everyone's progress. Never turn a
+testing flag back on in a build that gets published.
 
 ## Notes for working on this project
 

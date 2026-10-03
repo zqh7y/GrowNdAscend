@@ -10,7 +10,7 @@ local stateEvent = Instance.new("RemoteEvent")
 stateEvent.Name = "State" -- server -> client: the player's data
 stateEvent.Parent = ReplicatedStorage:WaitForChild("Remotes")
 
-local store = DataStoreService:GetDataStore("RngData_v1")
+local store = DataStoreService:GetDataStore("RngData_release1")
 local AUTOSAVE_SECONDS = 60
 
 local PlayerData = {}
