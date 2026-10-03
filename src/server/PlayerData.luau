@@ -38,6 +38,7 @@ local DEFAULT = {
 	Obtained = {}, -- [pet name] = the roll number it was last hatched on (newest first)
 	LuckBoard = {}, -- [Luck Board row id] = level bought
 	BossUpgrades = {}, -- [Boss Shop upgrade id] = level bought
+	Seen = {}, -- [tutorial key] = true once shown (the first-time tutorial, each world's tour)
 }
 
 local sessionData = {} -- [player] = data while they're in game
@@ -81,6 +82,7 @@ local function load(player)
 	data.Obtained = {}
 	data.LuckBoard = {}
 	data.BossUpgrades = {}
+	data.Seen = {}
 	if ok and saved then
 		for k, v in pairs(saved) do
 			data[k] = v
@@ -171,6 +173,7 @@ function PlayerData.sync(player)
 		Obtained = data.Obtained or {},
 		LuckBoard = data.LuckBoard or {},
 		BossUpgrades = data.BossUpgrades or {},
+		Seen = data.Seen or {},
 		MegaReady = data.MegaReady,
 		MegaMult = data.MegaMult,
 		MegaRolls = data.MegaRolls or {},

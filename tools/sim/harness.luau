@@ -8,6 +8,10 @@ if __cache["BoostZones"] then
 end
 -- (the rate limits and the zone guard would get in the way of checks that call
 -- remotes back to back and move the player into locked worlds: item 129 tests them)
+-- (the tutorials would start on their own and move the camera: item 136 runs them)
+if __cache["Client/Tutorial"] then
+	__cache["Client/Tutorial"].ENABLED = false
+end
 if __cache["Security"] then
 	__cache["Security"].RateLimits = false
 	__cache["Security"].ZoneGuard = false
@@ -2816,6 +2820,50 @@ if ok then
 				string.format("%d tall (8+ studs), %d moving (head, tail/wings/flippers/arms, blinking eyes); ", tall, alive) ..
 				string.format("%d different detailed animals (40+ parts each), %d asking prompts on their heads; too early -> '%s'; asked with the coins -> opened %s",
 					kinds, prompts, tostring(refused), tostring(accepted)))
+		end
+		do
+			-- the first-time tutorial and a new world's tour (each once)
+			local T = __cache["Client/Tutorial"]
+			local tu = {}
+			local savedSeen, savedRolls = data.Seen, data.Rolls
+			data.Seen = {}
+			PlayerData.sync(player)
+			STEP(0.05)
+			task.spawn(T.runIntro)
+			STEP(0.1)
+			tu.Shown = T.Card.Visible == true and T.Step == 1 and T.Running == "Tutorial"
+			-- rolling moves it on by itself
+			data.Rolls = (data.Rolls or 0) + 1
+			PlayerData.sync(player)
+			for _ = 1, 12 do STEP(0.2) end
+			-- (steps already done, like having pets equipped, go by on their own too)
+			tu.Auto = T.Step >= 2
+			local steps = { T.Step }
+			for _ = 1, 4 do
+				if T.OnNext then T.OnNext() end
+				STEP(0.1)
+				table.insert(steps, T.Step)
+			end
+			STEP(0.2)
+			tu.Done = T.Running == nil and T.Card.Visible == false and data.Seen.Tutorial == true and T.Step == #T.STEPS
+			-- the Sahara's tour: the camera visits its two machines and comes back
+			T.TOUR_STOP = 0.2
+			task.spawn(T.runWorld, 2)
+			for _ = 1, 80 do
+				STEP(0.1)
+				if T.Running == nil then break end
+			end
+			local shots = T.Shots or {}
+			tu.Tour = #shots == 2 and shots[1].Name == "Pet Aura Machine" and shots[2].Name == "Mega Roll" and data.Seen.World2 == true
+				and workspace.CurrentCamera.CameraType ~= Enum.CameraType.Scriptable
+			-- the server only keeps known keys
+			local remote = game:GetService("ReplicatedStorage").Remotes.MarkSeen
+			tu.Junk = remote.OnServerInvoke(player, "Hacked") == false and data.Seen.Hacked == nil and remote.OnServerInvoke(player, 5) == false
+			data.Seen, data.Rolls = savedSeen, savedRolls
+			PlayerData.sync(player)
+			item(136, "first-time tutorial and new-world tours", tu.Shown and tu.Auto and tu.Done and tu.Tour and tu.Junk,
+				string.format("tutorial shown %s, step 1 -> 2 after a roll %s, steps %s, finished and saved %s; Sahara tour (Aura Machine, Mega Roll, camera back, saved) %s; unknown keys refused %s",
+					tostring(tu.Shown), tostring(tu.Auto), table.concat(steps, ">"), tostring(tu.Done), tostring(tu.Tour), tostring(tu.Junk)))
 		end
 		local fz = STATS.Fuse or {}
 		item(121, "Fuse Machine: 100 -> Huge, 20 Huge -> Titanic", fz.TooFew == true and fz.Huge == true and fz.Titanic == true and fz.Refused == true
