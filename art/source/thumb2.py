@@ -260,11 +260,15 @@ for _ in range(34):
 # pets parade on the right
 for kind, x, y, s, glow in [("dragon", 1600, 700, 1.25, "#ff7ad9"), ("cat", 1130, 930, 1.05, "#7dffa8"), ("bunny", 1330, 950, 1.05, "#7fd2ff"), ("dog", 1530, 930, 1.1, "#c58bff"), ("penguin", 1725, 960, 1.05, "#ffd65c")]:
     parts.append(pet(kind, x, y, s, glow))
+from bacon import bacon_head, HAIR_GRADIENT
+defs.append(HAIR_GRADIENT)
+BACON_BEHIND, BACON_FRONT = bacon_head(92, -10, 146, shade("#f4f4f4", "35%", "25%", "85%"))
 # the player: the classic bacon hair (white skin, swept orange-brown bacon
 # hair, the default smile, an open black jacket over a blue shirt)
 SKIN, HAIR, JACKET, SHIRT, PANTS = "#f4f4f4", "#c8641e", "#26262e", "#2f6fe0", "#2b2b33"
 parts.append(f'''<g transform="translate(290 500) scale(1.16)">
 <ellipse cx="90" cy="432" rx="160" ry="28" fill="#1f5a26" opacity="0.4" filter="url(#soft1)"/>
+{BACON_BEHIND}
 <rect x="24" y="300" width="64" height="128" rx="12" fill="{shade(PANTS)}" stroke="{INK}" stroke-width="9"/>
 <rect x="94" y="300" width="64" height="128" rx="12" fill="{shade(dark(PANTS, 0.1))}" stroke="{INK}" stroke-width="9"/>
 <rect x="16" y="404" width="76" height="30" rx="12" fill="{shade("#3a3a44")}" stroke="{INK}" stroke-width="8"/><rect x="90" y="404" width="76" height="30" rx="12" fill="{shade("#3a3a44")}" stroke="{INK}" stroke-width="8"/>
@@ -275,18 +279,8 @@ parts.append(f'''<g transform="translate(290 500) scale(1.16)">
 <rect x="24" y="162" width="30" height="10" rx="5" fill="#ffffff" opacity="0.18"/>
 <g transform="rotate(-24 -6 172)"><rect x="-60" y="160" width="58" height="126" rx="14" fill="{shade(JACKET)}" stroke="{INK}" stroke-width="9"/><rect x="-56" y="270" width="50" height="40" rx="14" fill="{shade(SKIN)}" stroke="{INK}" stroke-width="8"/></g>
 <g transform="rotate(-145 184 172)"><rect x="156" y="160" width="58" height="126" rx="14" fill="{shade(JACKET)}" stroke="{INK}" stroke-width="9"/><rect x="160" y="270" width="50" height="40" rx="14" fill="{shade(SKIN)}" stroke="{INK}" stroke-width="8"/></g>
-<rect x="22" y="-6" width="140" height="142" rx="34" fill="{shade(SKIN, "35%", "25%", "85%")}" stroke="{INK}" stroke-width="9"/>
-<path d="M 10,74 Q 0,10 30,-22 Q 58,-50 104,-48 Q 152,-46 172,-12 Q 186,16 176,60 Q 166,38 160,46 Q 156,22 140,14 Q 126,30 104,26 Q 80,40 58,30 Q 40,44 30,30 Q 22,52 26,78 Q 16,68 10,74 Z" fill="{shade(HAIR)}" stroke="{INK}" stroke-width="8" stroke-linejoin="round"/>
-<path d="M 30,30 Q 52,4 86,2 Q 110,0 136,10 Q 112,14 96,28 Q 74,22 58,32 Q 44,26 30,30 Z" fill="{shade(light(HAIR, 0.1))}"/>
-<path d="M 30,-6 Q 70,-34 120,-30 Q 152,-26 168,-4" stroke="{light(HAIR, 0.38)}" stroke-width="9" fill="none" stroke-linecap="round"/>
-<path d="M 20,24 Q 56,-6 104,-6 Q 142,-4 172,20" stroke="{light(HAIR, 0.3)}" stroke-width="7" fill="none" stroke-linecap="round"/>
-<path d="M 40,-28 Q 76,-46 120,-42" stroke="{dark(HAIR, 0.3)}" stroke-width="6" fill="none" stroke-linecap="round"/>
-<path d="M 24,8 Q 60,-20 108,-18 Q 146,-16 170,6" stroke="{dark(HAIR, 0.28)}" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.9"/>
-<path d="M 150,24 Q 168,36 172,56 M 18,48 Q 16,62 22,72" stroke="{dark(HAIR, 0.3)}" stroke-width="5" fill="none" stroke-linecap="round"/>
-<ellipse cx="68" cy="72" rx="9" ry="14" fill="{INK}"/><ellipse cx="116" cy="72" rx="9" ry="14" fill="{INK}"/>
-<circle cx="65" cy="66" r="3.5" fill="#fff"/><circle cx="113" cy="66" r="3.5" fill="#fff"/>
-<path d="M 64,98 Q 92,122 120,98" stroke="{INK}" stroke-width="7" fill="none" stroke-linecap="round"/>
-{gloss(50, 52, 16, 7, -20, 0.45)}
+{BACON_FRONT}
+
 </g>''')
 # motion trail and the dice
 parts.append('<g stroke-linecap="round" fill="none"><path d="M 600 470 Q 680 400 760 400" stroke="#ffffff" stroke-width="12" opacity="0.85"/><path d="M 610 520 Q 690 470 770 470" stroke="#fff6c2" stroke-width="10" opacity="0.8"/><path d="M 600 420 Q 660 350 740 340" stroke="#ffffff" stroke-width="8" opacity="0.7"/></g>')
